@@ -1,0 +1,134 @@
+@import '../styles/design-system.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #000000;
+  --card: #0d0d0d;
+  --border: #262626;
+  --accent: #ffffff;
+  --accent-hover: #e5e5e5;
+  --text: #f5f5f5;
+  --muted: #888888;
+  --error: #ff6b6b;
+  --input-bg: #0a0a0a;
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sx-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.sx-input {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.sx-input:focus { border-color: var(--accent); }
+.sx-input::placeholder { color: #5a5a5a; }
+
+.sx-label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.sx-btn {
+  background: var(--accent);
+  color: #000000;
+  font-weight: 600;
+  padding: 0.7rem 1.1rem;
+  border-radius: 8px;
+  transition: background 0.15s;
+  width: 100%;
+}
+.sx-btn:hover { background: var(--accent-hover); }
+.sx-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.sx-btn-outline {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  padding: 0.7rem 1.1rem;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.sx-btn-outline:hover { background: var(--accent); color: #000000; border-color: var(--accent); }
+
+.sx-link { color: var(--accent); }
+.sx-link:hover { text-decoration: underline; }
+
+.sx-error { color: var(--error); font-size: 0.8rem; margin-top: 0.25rem; }
+
+/* ============================================================
+   Dashboard Bento card aesthetic — applied to every panel.
+   ============================================================ */
+.sx-bento {
+  position: relative;
+  background: #000000 !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: transform 300ms ease, box-shadow 300ms ease, border-color 300ms ease;
+  will-change: transform;
+}
+.sx-bento:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 12px rgba(255,255,255,0.04), 0 16px 48px rgba(0,0,0,0.6) !important;
+  border-color: rgba(255,255,255,0.16) !important;
+}
+/* Radial dot grain — appears on hover */
+.sx-bento::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at center, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 4px 4px;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+.sx-bento:hover::before { opacity: 1; }
+/* Soft gradient halo around the border on hover */
+.sx-bento::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.10) 50%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+.sx-bento:hover::after { opacity: 1; }
