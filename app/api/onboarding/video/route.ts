@@ -1,10 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { sql } from "@/lib/db";
 import { advanceStep } from "@/lib/onboarding";
 import { fail, ok, requireUserId } from "@/lib/onboarding-server";
 import { extractYouTubeId } from "@/lib/youtube";
 
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "gemini-2.5-flash";
 
 const SYSTEM_PROMPT =
   "You are an expert cricket technique analyst. Analyse the cricket batting/bowling technique shown in this video. " +
@@ -86,29 +86,23 @@ export async function POST(req: Request) {
   if (!videoId) return fail("Provide a valid YouTube URL");
 
   let analysis: VideoAnalysis | null = null;
-  if (process.env.ANTHROPIC_API_KEY) {
+  if (process.env.GEMINI_API_KEY) {
     try {
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-      const resp = await client.messages.create({
-        model: MODEL,
-        max_tokens: 900,
-        system: SYSTEM_PROMPT,
-        messages: [{
-          role: "user",
-          content:
-            `Analyse the cricket technique in this YouTube video: ${url}. ` +
-            `Provide detailed technical feedback on the player's batting stance, grip, footwork, wrist position, ` +
-            `follow-through, and bowling action if visible.`,
-        }],
-      });
-      const text = resp.content.map((b: any) => (b.type === "text" ? b.text : "")).join("");
+      const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genai.getGenerativeModel({ model: MODEL, systemInstruction: SYSTEM_PROMPT });
+      const resp = await model.generateContent(
+        `Analyse the cricket technique in this YouTube video: ${url}. ` +
+        `Provide detailed technical feedback on the player's batting stance, grip, footwork, wrist position, ` +
+        `follow-through, and bowling action if visible.`
+      );
+      const text = resp.response.text();
       analysis = parseJson(text);
-      if (!analysis) console.warn("[video] Claude returned unparseable JSON; falling back. Preview:", text.slice(0, 200));
+      if (!analysis) console.warn("[video] Gemini returned unparseable JSON; falling back. Preview:", text.slice(0, 200));
     } catch (e: any) {
-      console.warn("[video] Anthropic call failed; using fallback:", e?.message);
+      console.warn("[video] Gemini call failed; using fallback:", e?.message);
     }
   } else {
-    console.log("[video] ANTHROPIC_API_KEY not set; using fallback analysis.");
+    console.log("[video] GEMINI_API_KEY not set; using fallback analysis.");
   }
   if (!analysis) analysis = fallback(url);
 
