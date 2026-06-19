@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -37,7 +37,7 @@ export default async function ScoutDashboardPage() {
           + (CASE WHEN ps.user_id IS NOT NULL THEN 25 ELSE 0 END)
           + (CASE WHEN ss.coach_verified THEN 15 ELSE 0 END)
           + 10 AS profile_pct
-      FROM sportx_score ss
+      FROM athlasx_score ss
       JOIN users u ON ss.user_id = u.id
       LEFT JOIN cricket_profile cp ON u.id = cp.user_id
       LEFT JOIN player_profiles pp ON u.id = pp.user_id
@@ -64,7 +64,7 @@ export default async function ScoutDashboardPage() {
           + (CASE WHEN ps.user_id IS NOT NULL THEN 25 ELSE 0 END)
           + (CASE WHEN ss.coach_verified THEN 15 ELSE 0 END)
           + 10 AS profile_pct
-      FROM sportx_score ss
+      FROM athlasx_score ss
       JOIN users u ON ss.user_id = u.id
       LEFT JOIN cricket_profile cp ON u.id = cp.user_id
       LEFT JOIN player_profiles pp ON u.id = pp.user_id

@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Inter, Space_Grotesk, Instrument_Sans } from "next/font/google";
 import "./globals.css";
-import "./sportx.css";
+import "./athlasx.css";
 import Providers from "@/components/Providers";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
 import AppBackground from "@/components/AppBackground";
@@ -22,7 +22,7 @@ const instrumentSans = Instrument_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "SportX — Cricket Talent Discovery",
+  title: "AthlasX — Cricket Talent Discovery",
   description: "India's cricket talent discovery platform. Verified player profiles. Scout-ready discovery.",
 };
 

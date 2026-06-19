@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -85,7 +85,7 @@ export async function POST() {
   }
 
   /* Submit: flip status to Pending Approval, keep visibility Private until
-     SportX Admin approves. Verification level stays at 1 (Self Registered)
+     AthlasX Admin approves. Verification level stays at 1 (Self Registered)
      until the next ladder rung is earned. */
   await sql`
     UPDATE player_profiles

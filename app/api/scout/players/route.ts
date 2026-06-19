@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
         ss.coach_verified,
         COALESCE(ps.bpi, 0) AS bpi,
         pp.avatar_url
-      FROM sportx_score ss
+      FROM athlasx_score ss
       JOIN users u ON ss.user_id = u.id
       LEFT JOIN cricket_profile cp ON u.id = cp.user_id
       LEFT JOIN player_profiles pp ON u.id = pp.user_id

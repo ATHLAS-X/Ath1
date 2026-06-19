@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { initials, scoreRingPath, AVA_COLORS, roleColor, calcAge } from "@/lib/score-utils";
 import { Ring, Ladder } from "@/components/sx/widgets";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 const PHASE_COLORS: Record<string, string> = {
   Powerplay: "#3B82F6",

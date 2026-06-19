@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -32,7 +32,7 @@ export default async function AcademyDashboardPage() {
         COUNT(*) FILTER (WHERE pp.user_id IS NOT NULL)::int AS active_players,
         COUNT(*) FILTER (WHERE COALESCE(ss.coach_verified, false) = true)::int AS verified_players
       FROM player_profiles pp
-      LEFT JOIN sportx_score ss ON ss.user_id = pp.user_id
+      LEFT JOIN athlasx_score ss ON ss.user_id = pp.user_id
       WHERE pp.academy_id = ${academyId}
     ` as unknown as Promise<any[]>, [{ total_players: 0, active_players: 0, verified_players: 0 }] as any[]),
 
@@ -81,7 +81,7 @@ export default async function AcademyDashboardPage() {
         pp.playing_role,
         ss.total_score, ss.coach_verified
       FROM player_profiles pp
-      JOIN sportx_score ss ON ss.user_id = pp.user_id
+      JOIN athlasx_score ss ON ss.user_id = pp.user_id
       LEFT JOIN users u ON u.id = pp.user_id
       WHERE pp.academy_id = ${academyId}
       ORDER BY ss.total_score DESC NULLS LAST

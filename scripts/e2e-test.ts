@@ -1,5 +1,5 @@
-/**
- * SportX V1 end-to-end transaction test.
+﻿/**
+ * AthlasX V1 end-to-end transaction test.
  *
  * Usage:  npx tsx scripts/e2e-test.ts
  *
@@ -59,8 +59,8 @@ if (!URL) {
 
 const pool = new Pool({ connectionString: URL });
 const RUN_ID = Date.now().toString(36);
-const TEST_EMAIL = `e2e+${RUN_ID}@sportx.test`;
-const TEST_SCOUT_EMAIL = `e2e-scout+${RUN_ID}@sportx.test`;
+const TEST_EMAIL = `e2e+${RUN_ID}@athlasx.test`;
+const TEST_SCOUT_EMAIL = `e2e-scout+${RUN_ID}@athlasx.test`;
 const TEST_NAME = `E2E Player ${RUN_ID}`;
 const TEST_SCOUT_NAME = `E2E Scout ${RUN_ID}`;
 
@@ -99,7 +99,7 @@ const state: {
 
 (async () => {
   console.log("════════════════════════════════════════════════════════");
-  console.log("  SportX V1 — End-to-End Transaction Test");
+  console.log("  AthlasX V1 — End-to-End Transaction Test");
   console.log(`  Run ID: ${RUN_ID}`);
   console.log("════════════════════════════════════════════════════════\n");
 
@@ -191,13 +191,13 @@ const state: {
     const invite = await pool.query(
       `INSERT INTO coach_invites (user_id, coach_name, coach_email, token, status)
        VALUES ($1, $2, $3, $4, 'PENDING') RETURNING id`,
-      [state.playerId, `Coach ${RUN_ID}`, `coach+${RUN_ID}@sportx.test`, token],
+      [state.playerId, `Coach ${RUN_ID}`, `coach+${RUN_ID}@athlasx.test`, token],
     );
     state.inviteToken = token;
     const reg = await pool.query(
       `INSERT INTO coach_registry
          (user_id, coach_name, academy_club, official_id, cert_url, coach_status, invite_id)
-       VALUES ($1, $2, 'SportX Academy', 'BCCI-001', '/uploads/test/cert.png', 'PENDING_REVIEW', $3)
+       VALUES ($1, $2, 'AthlasX Academy', 'BCCI-001', '/uploads/test/cert.png', 'PENDING_REVIEW', $3)
        RETURNING id`,
       [state.playerId, `Coach ${RUN_ID}`, invite.rows[0].id],
     );
@@ -217,11 +217,11 @@ const state: {
       [state.playerId],
     );
     await pool.query(
-      `INSERT INTO sportx_score (user_id, coach_verified, verification_score)
+      `INSERT INTO athlasx_score (user_id, coach_verified, verification_score)
        VALUES ($1, true, 5)
        ON CONFLICT (user_id) DO UPDATE SET
          coach_verified = true,
-         verification_score = LEAST(15, COALESCE(sportx_score.verification_score, 0) + 5)`,
+         verification_score = LEAST(15, COALESCE(athlasx_score.verification_score, 0) + 5)`,
       [state.playerId],
     );
     const r = await pool.query(
@@ -232,10 +232,10 @@ const state: {
   });
 
   /* Step 4 — Score calculation */
-  await step("4. SportX score recomputed", async () => {
+  await step("4. AthlasX score recomputed", async () => {
     // Dynamically import the score engine so its $/@lib paths resolve via tsconfig.
     const mod = await import("../lib/score-engine");
-    const result = await mod.calculateSportXScore(state.playerId!);
+    const result = await mod.calculateAthlasXScore(state.playerId!);
     assert(result.total > 0, `total ${result.total} not > 0`);
     assert(["STRONG", "MID", "WEAK"].includes(result.profile_strength),
       `strength ${result.profile_strength} not in expected set`);
@@ -265,7 +265,7 @@ const state: {
       `SELECT u.id, u.name, sxs.total_score, sxs.profile_strength, sxs.coach_verified
        FROM users u
        JOIN player_profiles pp ON pp.user_id = u.id
-       LEFT JOIN sportx_score sxs ON sxs.user_id = u.id
+       LEFT JOIN athlasx_score sxs ON sxs.user_id = u.id
        WHERE u.role = 'player'
          AND pp.playing_role = 'Batsman'
          AND pp.state = 'Uttar Pradesh'

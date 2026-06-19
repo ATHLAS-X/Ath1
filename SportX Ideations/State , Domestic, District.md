@@ -1,8 +1,8 @@
-**SportX**
+﻿**AthlasX**
 
 **State & Domestic Cricket: Levels, Recognition, Benchmarks & Scouting**
 
-_A deep-dive research document covering the complete Level 3 tournament structure, recognition gap between state and domestic players, SportX benchmarking standards, scouting & selection parameters, and how unrecognised players survive._
+_A deep-dive research document covering the complete Level 3 tournament structure, recognition gap between state and domestic players, AthlasX benchmarking standards, scouting & selection parameters, and how unrecognised players survive._
 
 Version 1.0  |  June 2026  |  Internal — Confidential
 
@@ -10,7 +10,7 @@ Version 1.0  |  June 2026  |  Internal — Confidential
 
 # 1. Level 3 — State & Domestic Tournament Structure
 
-India's cricket between district level (L4) and elite professional (L1/L2) is divided into two overlapping bands. Understanding the exact tournaments, their formats, age limits, and sequence is critical for SportX's benchmarking engine.
+India's cricket between district level (L4) and elite professional (L1/L2) is divided into two overlapping bands. Understanding the exact tournaments, their formats, age limits, and sequence is critical for AthlasX's benchmarking engine.
 
 ## 1.1 The Full Tournament Ladder — Sequence & Types
 
@@ -30,7 +30,7 @@ The Indian domestic system runs across two categories: Age-Group Tournaments (Le
 |Vijay Hazare Trophy (VHT)|Senior Domestic|Senior|List A (50 overs)|38 states|Dec 14 – Jan 8|L2 — Core|
 |Ranji Trophy|Senior Domestic|Senior|First-class (4-day)|38 teams (32 Elite + 6 Plate)|Oct 11 – Mar 3 (two phases)|L2 — Pinnacle|
 
-_Key 2026-27 Change: The U-23 State A Trophy and Vizzy Trophy have been converted from one-day to T20 format. This means more format-specific data is now available for this age group — directly useful for SportX's T20-specific scouting profiles._
+_Key 2026-27 Change: The U-23 State A Trophy and Vizzy Trophy have been converted from one-day to T20 format. This means more format-specific data is now available for this age group — directly useful for AthlasX's T20-specific scouting profiles._
 
 ## 1.2 The Progression Sequence
 
@@ -44,11 +44,11 @@ A player's journey through the state/domestic ladder follows a clear but compres
 |Stage 4: U-23 State|19–23|CK Nayudu Trophy + U-23 State A Trophy|40+ average in 4-day; wickets at economy under 6.5 in T20|Senior state squad or India A|
 |Stage 5: Senior Domestic|21+|SMAT → VHT → Ranji Trophy|50+ average in Ranji / 25+ wickets per Ranji season|India A / IPL / National team|
 
-## 1.3 The Two Critical Bridges SportX Must Target
+## 1.3 The Two Critical Bridges AthlasX Must Target
 
-•        Bridge 1 — District (L4) to State Age Group (L3): A player at district level needs a SportX profile to be discovered by state U-16 or U-19 selectors. This is the primary MVP bridge.
+•        Bridge 1 — District (L4) to State Age Group (L3): A player at district level needs a AthlasX profile to be discovered by state U-16 or U-19 selectors. This is the primary MVP bridge.
 
-•        Bridge 2 — State Age Group (L3) to Senior Domestic (L2): A U-23 player who has been performing in Cooch Behar / CK Nayudu but hasn't broken into the senior squad. State selectors need to see benchmarked, longitudinal data. This is SportX Version 1.5.
+•        Bridge 2 — State Age Group (L3) to Senior Domestic (L2): A U-23 player who has been performing in Cooch Behar / CK Nayudu but hasn't broken into the senior squad. State selectors need to see benchmarked, longitudinal data. This is AthlasX Version 1.5.
 
   
 
@@ -58,9 +58,9 @@ This is one of the most misunderstood distinctions in Indian cricket. The short 
 
 ## 2.1 Clarifying the Terminology
 
-_In Indian cricket, 'State Level' informally refers to both age-group representation (Vijay Merchant, Cooch Behar, CK Nayudu) AND senior domestic cricket (Ranji, SMAT, VHT). This ambiguity causes confusion. SportX must define these precisely._
+_In Indian cricket, 'State Level' informally refers to both age-group representation (Vijay Merchant, Cooch Behar, CK Nayudu) AND senior domestic cricket (Ranji, SMAT, VHT). This ambiguity causes confusion. AthlasX must define these precisely._
 
-|**Term Used**|**What It Actually Means**|**SportX Classification**|
+|**Term Used**|**What It Actually Means**|**AthlasX Classification**|
 |---|---|---|
 |'State Level' (common usage)|Any cricket played under a state association — could mean U-16 or Ranji|L3 (age group) or L2 (senior domestic) — must be specified|
 |'Domestic Cricket'|Senior BCCI tournaments: Ranji, SMAT, Vijay Hazare, Duleep|L2 — Senior Domestic|
@@ -83,13 +83,13 @@ _In Indian cricket, 'State Level' informally refers to both age-group representa
 
 ## 2.3 The Cruel Gap: Outstanding L3 Players Who Are Invisible
 
-Here is the structural injustice SportX exists to fix. Consider two real scenarios:
+Here is the structural injustice AthlasX exists to fix. Consider two real scenarios:
 
 _Scenario A: A player averages 62 in the Cooch Behar Trophy (U-19) over two seasons for Bihar. He is the top scorer in his state. No national media covers Bihar's matches. No selector from outside Bihar was present. He gets no U-19 national camp invitation. He ages out at 19 and moves to CK Nayudu — where the same thing happens. By 23 he has never been seen._
 
 _Scenario B: A player averages 38 in the SMAT for a major state (Maharashtra). His stats are on ESPNcricinfo. Three IPL franchises have him flagged in their database. He gets an IPL call-up despite lower absolute numbers, simply because his data is visible and trusted._
 
-The recognition gap is not about talent — it is about data visibility, geographic bias, and media coverage. This is exactly SportX's problem to solve at L3.
+The recognition gap is not about talent — it is about data visibility, geographic bias, and media coverage. This is exactly AthlasX's problem to solve at L3.
 
 ## 2.4 Are State and Domestic Players on the Same Page?
 
@@ -105,13 +105,13 @@ No — and the financial data makes this stark:
 |Senior Domestic — Experienced (40+ matches)|₹60,000 per day|₹25–35L/season|Closely watched|Yes|
 |Mumbai Ranji (MCA supplement)|₹40,000 (BCCI) + ₹40,000 (MCA)|₹50–70L/season|Highest domestic visibility|Yes — premium|
 
-_The gap between a U-23 player (₹4–5L/season, invisible) and a first-year Ranji player (₹17–22L/season, publicly visible) is enormous — despite often identical talent levels. SportX's L3 discovery layer addresses exactly this earnings and visibility cliff._
+_The gap between a U-23 player (₹4–5L/season, invisible) and a first-year Ranji player (₹17–22L/season, publicly visible) is enormous — despite often identical talent levels. AthlasX's L3 discovery layer addresses exactly this earnings and visibility cliff._
 
   
 
-# 3. SportX Benchmarking Standards
+# 3. AthlasX Benchmarking Standards
 
-For SportX to be credible to scouts and selectors, every player profile must carry a benchmark — not just raw numbers. A player's stats must be interpreted relative to what is expected at their level. Here are the benchmarks SportX should adopt as its scoring engine foundation.
+For AthlasX to be credible to scouts and selectors, every player profile must carry a benchmark — not just raw numbers. A player's stats must be interpreted relative to what is expected at their level. Here are the benchmarks AthlasX should adopt as its scoring engine foundation.
 
 ## 3.1 Batting Benchmarks by Level
 
@@ -140,11 +140,11 @@ For SportX to be credible to scouts and selectors, every player profile must car
 |L2 — VHT|50-over|Avg <32, econ <5.5|Avg <26, econ <5.0|Avg <22, econ <4.5|SR < 38|Middle-over control valued (overs 11–40)|
 |L2 — Ranji|4-day|Avg <32, SR < 65|Avg <26, SR < 52|Avg <22, SR < 45|SR < 45|CBR benchmark (IPL): 15.0 — lower = better|
 
-## 3.3 The SportX Score Calibration by Level
+## 3.3 The AthlasX Score Calibration by Level
 
-Based on these benchmarks, here is how SportX should calibrate the SportX Score thresholds to determine when a player's profile qualifies for visibility at the next level:
+Based on these benchmarks, here is how AthlasX should calibrate the AthlasX Score thresholds to determine when a player's profile qualifies for visibility at the next level:
 
-|**From Level**|**To Level**|**Minimum SportX Score**|**Key Qualifier Stat**|**What Scouts Need to See**|
+|**From Level**|**To Level**|**Minimum AthlasX Score**|**Key Qualifier Stat**|**What Scouts Need to See**|
 |---|---|---|---|---|
 |L4 District|L3 U-16 State Trial|45+|Batting avg 30+ OR bowling avg <32 over min. 8 matches|Consistency across 2 seasons, coach confirmation, age-verified|
 |L4 District|L3 U-19 State Trial|52+|Batting avg 35+ OR bowling avg <28 over min. 10 matches|Verified scorecard history + video evidence of technique|
@@ -152,9 +152,9 @@ Based on these benchmarks, here is how SportX should calibrate the SportX Score 
 |L3 U-23|L2 Senior State Squad|68+|CK Nayudu avg 42+ OR bowling avg <25 with 20+ wickets|BCCI ID, full verified history, video, fitness 4/5+|
 |L2 Senior|IPL Radar (Franchise Interest)|78+|SMAT econ <7.0 OR batting avg 35+ in SMAT + VHT|Longitudinal data, BPI/CBR index, IPL Benchmark Match %|
 
-## 3.4 Average Base Benchmarks — The SportX Minimum Floor
+## 3.4 Average Base Benchmarks — The AthlasX Minimum Floor
 
-_These are the MINIMUM stats a player must show before SportX makes their profile visible to scouts. Below this floor, the profile remains Tier 2 (partial visibility only). These numbers are not aspirational — they are the entry gate._
+_These are the MINIMUM stats a player must show before AthlasX makes their profile visible to scouts. Below this floor, the profile remains Tier 2 (partial visibility only). These numbers are not aspirational — they are the entry gate._
 
 |**Role**|**L4 → L3 Minimum Floor**|**L3 → L2 Minimum Floor**|**L2 → IPL Minimum Floor**|
 |---|---|---|---|
@@ -209,7 +209,7 @@ Arguably the most important dimension and the hardest to quantify. Selectors spe
 
 •        Body language in the field when the team is under pressure. Selectors watch fielding intensity as a proxy for mental engagement.
 
-_For SportX: Knockout match performance should be a separate, highlighted metric on every profile. A player's average in knockout stages vs group stages should be visible to scouts with a clear label. This is currently available nowhere for L3 and L4 players._
+_For AthlasX: Knockout match performance should be a separate, highlighted metric on every profile. A player's average in knockout stages vs group stages should be visible to scouts with a clear label. This is currently available nowhere for L3 and L4 players._
 
 ### Dimension 4: Role-Specific Fit
 
@@ -221,7 +221,7 @@ Teams don't select good cricketers — they select cricketers who fill specific 
 
 •        Age-group selectors select for developmental trajectory: A 16-year-old with a 32 average who has excellent footwork against spin is prioritised over an 18-year-old with a 40 average who has technical flaws.
 
-_For SportX: Role-specific profile labels (powerplay specialist, death bowler, anchor, floater, etc.) should be explicitly defined on player profiles. Scouts should be able to filter by role, not just by stats._
+_For AthlasX: Role-specific profile labels (powerplay specialist, death bowler, anchor, floater, etc.) should be explicitly defined on player profiles. Scouts should be able to filter by role, not just by stats._
 
 ### Dimension 5: Physical Fitness & Athleticism
 
@@ -229,7 +229,7 @@ _For SportX: Role-specific profile labels (powerplay specialist, death bowler, a
 
 •        Pace bowlers: Minimum pace thresholds. At L3→L2, 125+ km/h is broadly expected for pace bowlers. At L2→IPL, 130+ km/h is the informal threshold. Below these, a bowler needs exceptional accuracy and variation to compensate.
 
-•        NCA fitness benchmarks (from SportX research doc): 2km run under 8:30 (men), standing broad jump 2.3m+, 30m sprint under 4.0 seconds. These are the baseline filters used at BCCI age-group camps.
+•        NCA fitness benchmarks (from AthlasX research doc): 2km run under 8:30 (men), standing broad jump 2.3m+, 30m sprint under 4.0 seconds. These are the baseline filters used at BCCI age-group camps.
 
 •        Injury history: A player with repeated injury flags is deprioritised regardless of stats. Selectors at every level explicitly factor durability into selection decisions.
 
@@ -260,13 +260,13 @@ Beyond the observable, selectors carry institutional biases and contextual weigh
 
 •        Social media presence: An increasingly relevant signal at IPL scout level. A player with viral videos demonstrating skill creates awareness in the scouting community that would otherwise take months to build.
 
-_For SportX: The platform cannot eliminate political bias — but it can make merit-based evidence so clear and accessible that overlooking it becomes harder to justify. A verified 55-average player whose profile is on the scout's dashboard is harder to ignore than an identical player who exists only on paper._
+_For AthlasX: The platform cannot eliminate political bias — but it can make merit-based evidence so clear and accessible that overlooking it becomes harder to justify. A verified 55-average player whose profile is on the scout's dashboard is harder to ignore than an identical player who exists only on paper._
 
   
 
 # 5. How Unrecognised Players Survive in the Cricket Ecosystem
 
-This is the question that defines SportX's emotional and social purpose. The answer is a complex, often heartbreaking mix of financial strategy, career pivots, and quiet persistence.
+This is the question that defines AthlasX's emotional and social purpose. The answer is a complex, often heartbreaking mix of financial strategy, career pivots, and quiet persistence.
 
 ## 5.1 The Financial Reality by Level
 
@@ -299,7 +299,7 @@ The most cricket-adjacent survival path. Players who don't make the senior domes
 
 •        Double role: Many player-coaches continue playing district cricket while coaching — using their morning slots for personal training and afternoons for coaching batches.
 
-•        The irony: These coaches are often the best talent identifiers at district level. Their knowledge of technical fundamentals is high. SportX's P4 coach persona is largely built around this population.
+•        The irony: These coaches are often the best talent identifiers at district level. Their knowledge of technical fundamentals is high. AthlasX's P4 coach persona is largely built around this population.
 
 ### Strategy 3: Private League Cricket
 
@@ -307,7 +307,7 @@ The explosion of BCCI-affiliated and semi-official T20 leagues has created a mea
 
 •        State T20 leagues: TNPL (Tamil Nadu), KPL (Karnataka Premier League), MPL (Madhya Pradesh Premier League), and equivalent leagues in 15+ states now pay ₹50,000–₹3,00,000 per contract per season.
 
-•        These leagues are increasingly watched by IPL scouts. They are the bridge between L3 obscurity and L2 visibility that SportX should integrate with.
+•        These leagues are increasingly watched by IPL scouts. They are the bridge between L3 obscurity and L2 visibility that AthlasX should integrate with.
 
 •        Private leagues (outside BCCI): Club T20 leagues, corporate tournaments, invitational events — pay ₹5,000–₹25,000 per match. Not scouted, but provide income and match sharpness.
 
@@ -319,7 +319,7 @@ A deeply problematic but widespread survival behaviour. Players travel to multip
 
 •        The scam industry: Instagram and YouTube are flooded with fraudulent 'India trial' advertisements targeting desperate players and their families. Players have lost ₹50,000–₹2,00,000 to these scams.
 
-•        SportX's role here is critical: The Opportunity Marketplace allows verified scouts to post legitimate trial invitations. A verified trial listing with a named, verified organiser is the direct antidote to trial scams.
+•        AthlasX's role here is critical: The Opportunity Marketplace allows verified scouts to post legitimate trial invitations. A verified trial listing with a named, verified organiser is the direct antidote to trial scams.
 
 ### Strategy 5: Quiet Exit
 
@@ -329,7 +329,7 @@ The most common outcome for the majority of serious district and state-level cri
 
 •        The emotional cost: Interviews with ex-district cricketers consistently reveal regret not about the decision to exit, but about never knowing if they were good enough — because they were never given a fair, objective assessment.
 
-_This is SportX's deepest purpose. Not every player it surfaces will go on to play Ranji. But every player who has a verified, benchmarked profile knows exactly where they stand relative to the standard they're trying to reach. That honesty — delivered with data — is itself a form of respect that the current system withholds._
+_This is AthlasX's deepest purpose. Not every player it surfaces will go on to play Ranji. But every player who has a verified, benchmarked profile knows exactly where they stand relative to the standard they're trying to reach. That honesty — delivered with data — is itself a form of respect that the current system withholds._
 
 ## 5.3 The Parents' Perspective — The Hidden Cost
 
@@ -341,24 +341,24 @@ The financial survival story cannot be told without the family dimension. Most d
 
 •        The ROI conversation: Most families eventually force a 'cricket or career' decision around age 20–22 when no professional income has materialised. Players who haven't received a state trial invitation by this age face enormous family pressure to exit.
 
-•        SportX's value to parents: An objective, verified benchmark that tells a parent 'your son is at 68% of the L3 minimum standard — here is what he needs to improve' is more valuable than 5 years of coach opinions, because it is honest and actionable.
+•        AthlasX's value to parents: An objective, verified benchmark that tells a parent 'your son is at 68% of the L3 minimum standard — here is what he needs to improve' is more valuable than 5 years of coach opinions, because it is honest and actionable.
 
-•        The trial scam protection: A verified Opportunity Marketplace specifically protects parents from spending ₹50,000+ on fraudulent trial 'opportunities'. This is a concrete, measurable safety value SportX provides.
+•        The trial scam protection: A verified Opportunity Marketplace specifically protects parents from spending ₹50,000+ on fraudulent trial 'opportunities'. This is a concrete, measurable safety value AthlasX provides.
 
   
 
-# 6. Summary — SportX Implications
+# 6. Summary — AthlasX Implications
 
-|**Research Finding**|**SportX Implication**|
+|**Research Finding**|**AthlasX Implication**|
 |---|---|
 |L3 tournament structure has two distinct bands (age-group vs senior domestic)|Platform must separate L3 and L2 profiles clearly — a Cooch Behar player and a Ranji player are not the same and must not be benchmarked identically|
 |Domestic (L2) players are significantly more recognised than L3 players despite similar talent|The highest-impact discovery play is at L3 (CK Nayudu, Cooch Behar) → L2 — where data exists but visibility does not|
-|Scouts use 5 dimensions — stats are only the threshold, not the decision|SportX profiles must include video, knockout performance metrics, phase-split stats, role tags, and coach qualitative signals — not just averages|
+|Scouts use 5 dimensions — stats are only the threshold, not the decision|AthlasX profiles must include video, knockout performance metrics, phase-split stats, role tags, and coach qualitative signals — not just averages|
 |Role-specific fit matters more than absolute numbers to scouts|Add role-specific profile labels (powerplay specialist, anchor, death bowler, etc.) and role-specific filter for scouts on the dashboard|
 |Knockout performance is specifically and disproportionately valued|Highlight knockout match averages separately from group stage on every profile — this is a differentiating data point no other platform provides|
 |State T20 leagues (KPL, TNPL, MPL) are actively watched by IPL scouts|Integrate state league data as a verification and scouting source — these leagues are the bridge between L3 and IPL visibility|
 |Trial scams cost families ₹50,000–₹2,00,000|Opportunity Marketplace with verified scout/organiser badges is a safety feature, not just a convenience feature — market it as such to parents|
-|Most unrecognised players exit by 22–25 without objective feedback|SportX Score + IPL Benchmark Match % gives every player an honest, data-driven assessment of where they stand — this is a standalone value even for players who never get selected|
+|Most unrecognised players exit by 22–25 without objective feedback|AthlasX Score + IPL Benchmark Match % gives every player an honest, data-driven assessment of where they stand — this is a standalone value even for players who never get selected|
 |Financial survival depends on coaching income and state T20 leagues until L2|Consider a 'Player Economy' section on profiles showing active tournament participation — helps scouts understand a player's current competitive environment|
 
-_End of Document — SportX State & Domestic Research v1.0 — June 2026 — Internal Confidential_
+_End of Document — AthlasX State & Domestic Research v1.0 — June 2026 — Internal Confidential_

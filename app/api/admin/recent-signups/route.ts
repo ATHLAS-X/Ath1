@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-server";
 import { sql } from "@/lib/db";
 
@@ -19,7 +19,7 @@ export async function GET() {
       FROM users u
       LEFT JOIN cricket_profile cp ON u.id = cp.user_id
       LEFT JOIN player_profiles pp ON u.id = pp.user_id
-      LEFT JOIN sportx_score ss ON u.id = ss.user_id
+      LEFT JOIN athlasx_score ss ON u.id = ss.user_id
       LEFT JOIN onboarding_progress op ON u.id = op.user_id
       WHERE COALESCE(u.role, 'player') = 'player'
       ORDER BY u.created_at DESC

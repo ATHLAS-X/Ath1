@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useCallback } from "react";
 import { initials, Ring, Vlvl } from "@/components/sx/widgets";
 import { AVA_COLORS, roleColor } from "@/lib/score-utils";
-import SportXLogo from "@/components/SportXLogo";
-import "@/app/sportx.css";
+import AthlasXLogo from "@/components/AthlasXLogo";
+import "@/app/athlasx.css";
 
 const NAV = [
   {
@@ -131,7 +131,7 @@ export default function ScoutDashboardClient({ session, featuredPlayer, players,
         {/* ════ SIDEBAR ════ */}
         <aside className="sidebar">
           <div className="logo-row">
-            <SportXLogo />
+            <AthlasXLogo />
           </div>
 
           <nav className="nav">

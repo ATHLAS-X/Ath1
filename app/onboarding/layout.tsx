@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -6,7 +6,7 @@ import { useRouter, useParams, usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { ONBOARDING_STEPS, TOTAL_ONBOARDING_STEPS, getStepMeta } from "@/lib/onboarding-steps";
 import Loader from "@/components/Loader";
-import SportXLogo from "@/components/SportXLogo";
+import AthlasXLogo from "@/components/AthlasXLogo";
 
 interface OnboardingStateLite {
   currentStep: number;
@@ -103,7 +103,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       >
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
           <Link href="/dashboard" className="flex items-center">
-            <SportXLogo />
+            <AthlasXLogo />
           </Link>
           <div className="flex items-center gap-3 text-sm">
             <span style={{ color: "var(--muted)" }}>

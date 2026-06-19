@@ -1,4 +1,4 @@
-# Prisma migration notes
+﻿# Prisma migration notes
 
 ## Current state
 
@@ -19,7 +19,7 @@ Your live Neon DB already has 14 tables from `lib/schema.sql`. Running
 ## Three options for applying
 
 ### Option A — Fresh staging DB (lowest risk)
-1. Create a second Neon branch or DB (e.g. `sportx_v2`).
+1. Create a second Neon branch or DB (e.g. `athlasx_v2`).
 2. Set its URL in `.env.local` as `DATABASE_URL`.
 3. Run `npx prisma migrate dev --name initial`.
 4. Port lib/db.ts queries to Prisma incrementally.

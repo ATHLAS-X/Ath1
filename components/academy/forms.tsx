@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 /* Reusable academy admin forms — shared between the onboarding wizard
    (/academy/onboarding) and the dashboard quick-action modals
@@ -217,7 +217,7 @@ export function BulkCsvForm({ onSuccess, variant = "dark" }: BulkCsvFormProps) {
   const downloadTemplate = () => {
     const blob = new Blob([ACADEMY_CSV_HEADERS.join(",") + "\n"], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "sportx-players-template.csv";
+    const a = document.createElement("a"); a.href = url; a.download = "athlasx-players-template.csv";
     a.click(); URL.revokeObjectURL(url);
   };
 
@@ -325,7 +325,7 @@ export function BulkCsvForm({ onSuccess, variant = "dark" }: BulkCsvFormProps) {
       {summary && (
         <Banner kind="ok" c={c}>
           ✓ {summary.created} player{summary.created === 1 ? "" : "s"} imported successfully
-          {summary.skipped ? ` · ${summary.skipped} skipped (already on SportX)` : ""}
+          {summary.skipped ? ` · ${summary.skipped} skipped (already on AthlasX)` : ""}
           {summary.errors ? ` · ${summary.errors} failed` : ""}
         </Banner>
       )}

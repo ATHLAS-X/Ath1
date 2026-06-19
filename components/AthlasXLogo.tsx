@@ -1,5 +1,5 @@
-/**
- * Shared SportX wordmark — matches the cream-tile design.
+﻿/**
+ * Shared AthlasX wordmark — matches the cream-tile design.
  * Used in the landing hero and every dashboard sidebar so a future tweak
  * happens in one place.
  *
@@ -10,7 +10,7 @@ interface Props {
   size?: "sm" | "md";
 }
 
-export default function SportXLogo({ size = "sm" }: Props) {
+export default function AthlasXLogo({ size = "sm" }: Props) {
   const h = size === "sm" ? 28 : 40;
   const px = size === "sm" ? 12 : 18;
   const fs = size === "sm" ? 13.5 : 19;
@@ -34,7 +34,7 @@ export default function SportXLogo({ size = "sm" }: Props) {
         whiteSpace: "nowrap",
       }}
     >
-      SportX
+      AthlasX
     </span>
   );
 }

@@ -1,4 +1,4 @@
-  
+﻿  
 
 Claude finished the response
 
@@ -12,7 +12,7 @@ Reading the gdrive-folder-analyser skill
 
 What's the name of the Google Drive folder you'd like to analyse?
 
-SportX
+AthlasX
 
 5:18 PM
 
@@ -22,7 +22,7 @@ Used Google Drive integration, loaded tools
 
 Found it! Here are the details:
 
-- **Folder name:** SportX
+- **Folder name:** AthlasX
 - **Owner:** [naina260986@gmail.com](mailto:naina260986@gmail.com)
 - **Created:** 22 May 2026
 - **Last modified:** 31 May 2026
@@ -38,23 +38,23 @@ Search files
 
 Search files
 
-📁 **Folder: SportX** (13 files found)
+📁 **Folder: AthlasX** (13 files found)
 
 ---
 
-1. 📊 **Task Spreadsheet (SportX)** Brief: A simple team task tracker with columns for name, assigned task, date, and a checklist column. Current entries show Harshit assigned to Lovable codes (3-Jun-26), with sub-tasks including User Flow Architecture Design, User Workflow, and Player Profiling. Key topics: task management, team coordination
-2. 📄 **SportX_Application_Workflow.docx** Brief: A detailed end-to-end application workflow document covering all user journeys, data flows, and system logic for the MVP. It maps out five actor types (Player, Scout, Academy Admin, System Admin, Franchise Analyst) and seven lifecycle phases for the primary Level 4 district player persona, including entry points, registration, profile setup, and verification. Key topics: user journeys, system logic, MVP scope, Level 4 players
-3. 📄 **SportX_State_Domestic_Research.docx** Brief: A deep-dive research document on India's Level 3 state and domestic cricket tournament structure (Vijay Merchant to Ranji Trophy), recognition gaps between state and domestic players, and SportX's benchmarking standards. Covers the two critical bridges SportX must target — L4→L3 and L3→L2. Key topics: domestic cricket ladder, tournament structure, benchmarking, scouting parameters
-4. 📄 **SportX_Cricket_Ecosystem_Research.docx** Brief: The comprehensive foundation research document covering India's full six-level cricket pyramid, talent discovery bottlenecks, verification infrastructure, player progression pathways, stakeholder value mapping, and competitive landscape. Establishes why Level 4 (350,000 district players) is the MVP target. Key topics: cricket pyramid, ecosystem research, market sizing, competitive landscape
-5. 📄 **Technical Framework: Match ID & Multi-Persona Verification Strategy.docx** Brief: A technical specification for the verification backbone of SportX, detailing the SportX Score (0–100), the 8-persona witness layer (P1–P8), and an additive 15-point verification scoring system with source weights. Also covers the Batting Productivity Index (BPI), Combined Bowling Rate (CBR), and the AMS-inspired structural model. Key topics: verification architecture, SportX Score, BPI/CBR, multi-persona trust
-6. 📄 **SportX Age Verification Module.docx** Brief: A full technical specification for the Age Verification Module, addressing age fraud (a major issue in Indian district cricket) using Aadhaar-first verification with DigiLocker fallback. Covers legal compliance under the Aadhaar Act 2016, UIDAI registration requirements, and the technical flow via KYC API partners. Key topics: Aadhaar verification, age fraud, legal compliance, UIDAI, KYC
-7. 📄 **SportX Product Scope Document (built in Lovable)** Brief: The V1 + V2 product roadmap document tied to the live Lovable build at sportx-scout-network.lovable.app. Defines player and scout modules in detail — registration, onboarding, profiles, video management, the SportX Score formula, and the scout dashboard — along with V1 success metrics (5,000 player profiles, 100 active scouts). Key topics: product roadmap, V1/V2 features, Lovable build, success metrics
-8. 📄 **COMPETITOR ANALYSIS** Brief: A detailed analysis of ScoutEdge (AI-powered cricket scouting platform), covering its business model, four-sided marketplace structure, strengths, and critical gaps — particularly around development roadmaps, scouting standards, network effects, and self-reported data quality. Includes a direct comparison table against SportX. Key topics: ScoutEdge, competitive positioning, marketplace model, product gaps
-9. 📄 **The Indian Cricket Ecosystem (Levels & Market Size)** Brief: A structured breakdown of all five levels of Indian cricket with player counts, financial profiles, and the "black hole" bottleneck between L5 grassroots and L3/L4 official cricket. Explains how SportX solves the geographic blindspot and registration gatekeeping problem via digital meritocracy. Key topics: market sizing, talent bottleneck, discovery gaps, platform value proposition
-10. 📄 **SportX_Personas_Verification.docx** Brief: A detailed breakdown of all 8 personas on the platform (P1–P8) and their specific verification pipelines — from the hardest path (P1 grassroots player, zero external records) to auto-verified elite players (P3 via BCCI ID). Includes a full verification points table and the core principle that trust is persona-specific. Key topics: personas, verification pipelines, trust tiers, P1–P8 roles
-11. 📄 **Scouting_Market_Intelligence.docx** Brief: A market intelligence report on what scouts, coaches, and selectors use today — covering 10 primary sources including CricViz, Catapult, Hawk-Eye, SAP HANA, PitchVision, and CWI's AMS. Identifies SportX as the missing "Tier 3" layer that bridges grassroots players to professional scouts. Key topics: tools landscape, IPL scouting, CWI AMS, market gaps, competitive intelligence
-12. 📄 **SportX_Scoring_Research.docx** Brief: The academic and empirical research foundation for the SportX Score formula. Cites IPL franchise scouting criteria, Lemmer's CBR formula, the Batting Productivity Index (BPI), DPPI research, and NCA-BCCI fitness benchmarks. Provides the full scoring breakdown across 6 categories (Performance 40pts, Experience 15pts, Fitness 15pts, Verification 15pts, Mindset 10pts, Profile Completion 5pts). Key topics: scoring formula, BPI, CBR, IPL benchmarks, NCA fitness standards
-13. 📄 **Scouting Intelligence** Brief: A structured action plan for building SportX's scouting intelligence capability — covering scout persona creation, 20–30 user interviews, a "Scouting Signals Database," position-specific evaluation frameworks, and the critical distinction between observable vs. evaluative data. More of an internal research playbook than a finished document. Key topics: scout personas, user research, signals database, observable vs evaluative data
+1. 📊 **Task Spreadsheet (AthlasX)** Brief: A simple team task tracker with columns for name, assigned task, date, and a checklist column. Current entries show Harshit assigned to Lovable codes (3-Jun-26), with sub-tasks including User Flow Architecture Design, User Workflow, and Player Profiling. Key topics: task management, team coordination
+2. 📄 **AthlasX_Application_Workflow.docx** Brief: A detailed end-to-end application workflow document covering all user journeys, data flows, and system logic for the MVP. It maps out five actor types (Player, Scout, Academy Admin, System Admin, Franchise Analyst) and seven lifecycle phases for the primary Level 4 district player persona, including entry points, registration, profile setup, and verification. Key topics: user journeys, system logic, MVP scope, Level 4 players
+3. 📄 **AthlasX_State_Domestic_Research.docx** Brief: A deep-dive research document on India's Level 3 state and domestic cricket tournament structure (Vijay Merchant to Ranji Trophy), recognition gaps between state and domestic players, and AthlasX's benchmarking standards. Covers the two critical bridges AthlasX must target — L4→L3 and L3→L2. Key topics: domestic cricket ladder, tournament structure, benchmarking, scouting parameters
+4. 📄 **AthlasX_Cricket_Ecosystem_Research.docx** Brief: The comprehensive foundation research document covering India's full six-level cricket pyramid, talent discovery bottlenecks, verification infrastructure, player progression pathways, stakeholder value mapping, and competitive landscape. Establishes why Level 4 (350,000 district players) is the MVP target. Key topics: cricket pyramid, ecosystem research, market sizing, competitive landscape
+5. 📄 **Technical Framework: Match ID & Multi-Persona Verification Strategy.docx** Brief: A technical specification for the verification backbone of AthlasX, detailing the AthlasX Score (0–100), the 8-persona witness layer (P1–P8), and an additive 15-point verification scoring system with source weights. Also covers the Batting Productivity Index (BPI), Combined Bowling Rate (CBR), and the AMS-inspired structural model. Key topics: verification architecture, AthlasX Score, BPI/CBR, multi-persona trust
+6. 📄 **AthlasX Age Verification Module.docx** Brief: A full technical specification for the Age Verification Module, addressing age fraud (a major issue in Indian district cricket) using Aadhaar-first verification with DigiLocker fallback. Covers legal compliance under the Aadhaar Act 2016, UIDAI registration requirements, and the technical flow via KYC API partners. Key topics: Aadhaar verification, age fraud, legal compliance, UIDAI, KYC
+7. 📄 **AthlasX Product Scope Document (built in Lovable)** Brief: The V1 + V2 product roadmap document tied to the live Lovable build at athlasx-scout-network.lovable.app. Defines player and scout modules in detail — registration, onboarding, profiles, video management, the AthlasX Score formula, and the scout dashboard — along with V1 success metrics (5,000 player profiles, 100 active scouts). Key topics: product roadmap, V1/V2 features, Lovable build, success metrics
+8. 📄 **COMPETITOR ANALYSIS** Brief: A detailed analysis of ScoutEdge (AI-powered cricket scouting platform), covering its business model, four-sided marketplace structure, strengths, and critical gaps — particularly around development roadmaps, scouting standards, network effects, and self-reported data quality. Includes a direct comparison table against AthlasX. Key topics: ScoutEdge, competitive positioning, marketplace model, product gaps
+9. 📄 **The Indian Cricket Ecosystem (Levels & Market Size)** Brief: A structured breakdown of all five levels of Indian cricket with player counts, financial profiles, and the "black hole" bottleneck between L5 grassroots and L3/L4 official cricket. Explains how AthlasX solves the geographic blindspot and registration gatekeeping problem via digital meritocracy. Key topics: market sizing, talent bottleneck, discovery gaps, platform value proposition
+10. 📄 **AthlasX_Personas_Verification.docx** Brief: A detailed breakdown of all 8 personas on the platform (P1–P8) and their specific verification pipelines — from the hardest path (P1 grassroots player, zero external records) to auto-verified elite players (P3 via BCCI ID). Includes a full verification points table and the core principle that trust is persona-specific. Key topics: personas, verification pipelines, trust tiers, P1–P8 roles
+11. 📄 **Scouting_Market_Intelligence.docx** Brief: A market intelligence report on what scouts, coaches, and selectors use today — covering 10 primary sources including CricViz, Catapult, Hawk-Eye, SAP HANA, PitchVision, and CWI's AMS. Identifies AthlasX as the missing "Tier 3" layer that bridges grassroots players to professional scouts. Key topics: tools landscape, IPL scouting, CWI AMS, market gaps, competitive intelligence
+12. 📄 **AthlasX_Scoring_Research.docx** Brief: The academic and empirical research foundation for the AthlasX Score formula. Cites IPL franchise scouting criteria, Lemmer's CBR formula, the Batting Productivity Index (BPI), DPPI research, and NCA-BCCI fitness benchmarks. Provides the full scoring breakdown across 6 categories (Performance 40pts, Experience 15pts, Fitness 15pts, Verification 15pts, Mindset 10pts, Profile Completion 5pts). Key topics: scoring formula, BPI, CBR, IPL benchmarks, NCA fitness standards
+13. 📄 **Scouting Intelligence** Brief: A structured action plan for building AthlasX's scouting intelligence capability — covering scout persona creation, 20–30 user interviews, a "Scouting Signals Database," position-specific evaluation frameworks, and the critical distinction between observable vs. evaluative data. More of an internal research playbook than a finished document. Key topics: scout personas, user research, signals database, observable vs evaluative data
 
 ---
 
@@ -84,11 +84,11 @@ Read file content
 
 Read file content
 
-### 📊 File 1 — Task Spreadsheet (SportX)
+### 📊 File 1 — Task Spreadsheet (AthlasX)
 
 **Summary**
 
-This is a lightweight team task tracker for the SportX project. It has four columns: Name, Task Assigned, Date and Time, and a Checklist (green = done).
+This is a lightweight team task tracker for the AthlasX project. It has four columns: Name, Task Assigned, Date and Time, and a Checklist (green = done).
 
 Currently the only active entry is **Harshit**, with 4 tasks logged against **3-Jun-26**:
 
@@ -113,11 +113,11 @@ Read file content
 
 Read file content
 
-### 📄 File 2 — SportX_Application_Workflow.docx
+### 📄 File 2 — AthlasX_Application_Workflow.docx
 
 **Summary**
 
-This is the most comprehensive technical document in the folder — the full end-to-end application workflow for SportX, covering all user journeys, data flows, and system logic. It is built around a clear strategic anchor: **Level 4 district players (350,000 active) are the MVP core**, with scouts and academy admins as paying customers.
+This is the most comprehensive technical document in the folder — the full end-to-end application workflow for AthlasX, covering all user journeys, data flows, and system logic. It is built around a clear strategic anchor: **Level 4 district players (350,000 active) are the MVP core**, with scouts and academy admins as paying customers.
 
 ---
 
@@ -138,8 +138,8 @@ The document is organised into 5 major workflows:
 **Workflow 2 — Scout Journey (5 phases)**
 
 - Registers at Rs.999/mo, selects account type, completes onboarding questionnaire
-- Search with 8+ additive filters: role, level, state, age, SportX Score, verification tier, format, phase-split stats
-- Player profile shows 4 panels: Identity & Trust → SportX Score → Phase-Split Stats → Standardised Video
+- Search with 8+ additive filters: role, level, state, age, AthlasX Score, verification tier, format, phase-split stats
+- Player profile shows 4 panels: Identity & Trust → AthlasX Score → Phase-Split Stats → Standardised Video
 - Comparison View: 2–4 players side-by-side, same format, labelled unverified data, private annotations
 - Outreach: Save shortlist, request verification, send trial invite, generate PDF scouting report, flag suspicious profiles
 
@@ -189,11 +189,11 @@ Read file content
 
 Read file content
 
-### 📄 File 3 — SportX_State_Domestic_Research.docx
+### 📄 File 3 — AthlasX_State_Domestic_Research.docx
 
 **Summary**
 
-This is a deep-dive research document on India's Level 3 (state age-group) and Level 2 (senior domestic) cricket structures — written specifically to inform SportX's benchmarking engine, scoring calibration, and product strategy. It is one of the most strategically rich documents in the folder.
+This is a deep-dive research document on India's Level 3 (state age-group) and Level 2 (senior domestic) cricket structures — written specifically to inform AthlasX's benchmarking engine, scoring calibration, and product strategy. It is one of the most strategically rich documents in the folder.
 
 ---
 
@@ -207,7 +207,7 @@ This is a deep-dive research document on India's Level 3 (state age-group) and L
 - L2 core: SMAT (T20), VHT (50-over), Ranji Trophy (4-day pinnacle)
 - L2 elite: Duleep Trophy, Irani Cup
 
-Key takeaway for SportX: The L4→L3 bridge (district to U-16/U-19 state) is the **primary MVP bridge**. The L3→L2 bridge (U-23 to senior domestic) is the **Version 1.5 target**.
+Key takeaway for AthlasX: The L4→L3 bridge (district to U-16/U-19 state) is the **primary MVP bridge**. The L3→L2 bridge (U-23 to senior domestic) is the **Version 1.5 target**.
 
 ---
 
@@ -223,9 +223,9 @@ Financially, the gulf is stark too — a U-23 player earns ~₹4–5L/season and
 
 ---
 
-**Section 3 — SportX Benchmarking Standards** The document provides precise, level-by-level benchmarks for batting and bowling across every tournament from L4 district to IPL radar — broken down into "Minimum to get noticed", "Good (selector interest)", and "Elite (priority target)" thresholds.
+**Section 3 — AthlasX Benchmarking Standards** The document provides precise, level-by-level benchmarks for batting and bowling across every tournament from L4 district to IPL radar — broken down into "Minimum to get noticed", "Good (selector interest)", and "Elite (priority target)" thresholds.
 
-It also provides a SportX Score calibration table showing the minimum score required at each progression gate:
+It also provides a AthlasX Score calibration table showing the minimum score required at each progression gate:
 
 - L4→L3 trial: Score 45+
 - L3 U-19→U-23: Score 60+
@@ -251,7 +251,7 @@ The document also includes a detailed **Scout's Physical Observation Checklist*
 **Section 5 — How Unrecognised Players Survive** Five survival strategies documented:
 
 1. Government/PSU/Railways jobs (sports quota) — security vs. training intensity trade-off
-2. Academy coaching income (₹15–50K/month) — these coaches are often SportX's P4 persona
+2. Academy coaching income (₹15–50K/month) — these coaches are often AthlasX's P4 persona
 3. Private state T20 leagues (TNPL, KPL, MPL) — paying ₹50K–₹3L/season, increasingly watched by IPL scouts
 4. Trial tourism — deeply problematic; families spending ₹15–40K per trip, with a scam industry targeting desperate players
 5. Quiet exit by age 22–25 — the most common outcome; emotional cost is never knowing if you were good enough
@@ -260,13 +260,13 @@ The parents' perspective is highlighted separately — average family investment
 
 ---
 
-**Section 6 — Summary Implications for SportX** 9 direct product implications, including: separating L3 and L2 profiles in the benchmark engine, adding knockout match averages as a distinct metric, integrating state T20 league data, marketing the Opportunity Marketplace as a **trial scam protection tool** for parents, and adding a "Player Economy" section showing a player's current competitive environment.
+**Section 6 — Summary Implications for AthlasX** 9 direct product implications, including: separating L3 and L2 profiles in the benchmark engine, adding knockout match averages as a distinct metric, integrating state T20 league data, marketing the Opportunity Marketplace as a **trial scam protection tool** for parents, and adding a "Player Economy" section showing a player's current competitive environment.
 
 ---
 
 **Notable strengths:** Arguably the most practically useful document for product and GTM decisions. The benchmarking tables alone are a ready-to-use scoring engine input. The survival strategies section is deeply empathetic and could power compelling marketing copy.
 
-**Notable gap:** Women's cricket is entirely absent from this document — no benchmarks, no tournament structure for women's pathways. If SportX plans to include women players, a parallel research document would be needed.
+**Notable gap:** Women's cricket is entirely absent from this document — no benchmarks, no tournament structure for women's pathways. If AthlasX plans to include women players, a parallel research document would be needed.
 
 ---
 
@@ -280,11 +280,11 @@ Read file content
 
 Read file content
 
-### 📄 File 4 — SportX_Cricket_Ecosystem_Research.docx
+### 📄 File 4 — AthlasX_Cricket_Ecosystem_Research.docx
 
 **Summary**
 
-This is the strategic foundation document of SportX — the most comprehensive single file in the folder. It covers India's full cricket pyramid, where SportX creates maximum impact, every bottleneck in the system, all verification databases and data sources, player progression pathways, how scouts currently discover talent, what a player profile must contain, value delivered to each stakeholder, and the competitive landscape. It ends with concrete strategic recommendations.
+This is the strategic foundation document of AthlasX — the most comprehensive single file in the folder. It covers India's full cricket pyramid, where AthlasX creates maximum impact, every bottleneck in the system, all verification databases and data sources, player progression pathways, how scouts currently discover talent, what a player profile must contain, value delivered to each stakeholder, and the competitive landscape. It ends with concrete strategic recommendations.
 
 ---
 
@@ -295,7 +295,7 @@ This is the strategic foundation document of SportX — the most comprehensive s
 - L1 (IPL/National, ~200 players) — complete public data
 - L2 (Senior Domestic, ~950) — complete public data
 - L3 (Age Groups U-16/U-19/U-23, ~3,800) — mostly available
-- L4 (District, ~350,000) — **patchy but improving — SportX MVP target**
+- L4 (District, ~350,000) — **patchy but improving — AthlasX MVP target**
 - L5 (Academy/Grassroots, 2–3M) — fragmented
 - L6 (School, 13M+) — minimal, offline
 
@@ -303,9 +303,9 @@ Key insight on L6: School cricket is run by PT teachers, not cricket administrat
 
 ---
 
-**Section 2 — Where SportX Creates Maximum Impact** A detailed comparison table confirms that L4 (district) is the optimal MVP entry point across every dimension: player seriousness, data availability, verification feasibility, scout motivation, CricHeroes overlap, and partnership dependency. L5 is too fragmented for MVP; L2→L1 is already served.
+**Section 2 — Where AthlasX Creates Maximum Impact** A detailed comparison table confirms that L4 (district) is the optimal MVP entry point across every dimension: player seriousness, data availability, verification feasibility, scout motivation, CricHeroes overlap, and partnership dependency. L5 is too fragmented for MVP; L2→L1 is already served.
 
-One quote from an IPL scout is particularly notable: _"I long for the day when all the games taped by the BCCI are put up on an online server that every franchise can access."_ That server doesn't exist at district level — that is SportX.
+One quote from an IPL scout is particularly notable: _"I long for the day when all the games taped by the BCCI are put up on an online server that every franchise can access."_ That server doesn't exist at district level — that is AthlasX.
 
 ---
 
@@ -318,7 +318,7 @@ One quote from an IPL scout is particularly notable: _"I long for the day when 
 
 ---
 
-**Section 4 — Verification Databases & Data Sources** Covers 9 data sources from BCCI registration (very high reliability, restricted access) to DCA paper registers (variable, partnership required). CricHeroes gets a dedicated sub-section: 40M+ registered cricketers, $13.4M revenue, 78 employees — but no scout-facing product. **This is SportX's structural opening.** The recommendation is partnership over competition — pursue CricHeroes data integration as a top-3 business development priority.
+**Section 4 — Verification Databases & Data Sources** Covers 9 data sources from BCCI registration (very high reliability, restricted access) to DCA paper registers (variable, partnership required). CricHeroes gets a dedicated sub-section: 40M+ registered cricketers, $13.4M revenue, 78 employees — but no scout-facing product. **This is AthlasX's structural opening.** The recommendation is partnership over competition — pursue CricHeroes data integration as a top-3 business development priority.
 
 ---
 
@@ -350,7 +350,7 @@ A full workflow table shows exactly when each milestone triggers scout visibilit
 - **State selectors (L3→L2):** DCA recommendations + WhatsApp scouting is the norm. Structurally favours players from well-connected urban academies. Bihar, Assam, Jharkhand chronically underrepresented.
 - **Academy/grassroots:** Coach-takes-player-under-wing model. Viral video discovery (one IPL pick came from YouTube). Talent hunts are infrequent, not scalable.
 
-Summary breakdown table maps 7 failure points to SportX solutions — from "district players invisible to state selectors" to "data lost across career stages."
+Summary breakdown table maps 7 failure points to AthlasX solutions — from "district players invisible to state selectors" to "data lost across career stages."
 
 ---
 
@@ -368,7 +368,7 @@ Summary breakdown table maps 7 failure points to SportX solutions — from "dist
 
 ---
 
-**Section 10 — Competitive Landscape** 8-platform comparison table covering CricHeroes, CricViz, Catapult, Hawk-Eye, Ludimos, Cricbuzz/ESPNcricinfo, ScoutFlix, and Khelo India. SportX's structural differentiation is described as the combination of three things no other platform provides together: **trust architecture + scout-side B2B product + longitudinal career record**.
+**Section 10 — Competitive Landscape** 8-platform comparison table covering CricHeroes, CricViz, Catapult, Hawk-Eye, Ludimos, Cricbuzz/ESPNcricinfo, ScoutFlix, and Khelo India. AthlasX's structural differentiation is described as the combination of three things no other platform provides together: **trust architecture + scout-side B2B product + longitudinal career record**.
 
 ---
 
@@ -401,7 +401,7 @@ Read file content
 
 **Summary**
 
-This is a focused technical specification document covering SportX's verification backbone — the multi-persona witness layer, verification point system, anti-fraud mechanisms, trust tier architecture, and the value proposition for professional scouting. It is more concise than the other documents but technically precise, and introduces a few forward-looking features not found elsewhere.
+This is a focused technical specification document covering AthlasX's verification backbone — the multi-persona witness layer, verification point system, anti-fraud mechanisms, trust tier architecture, and the value proposition for professional scouting. It is more concise than the other documents but technically precise, and introduces a few forward-looking features not found elsewhere.
 
 ---
 
@@ -409,7 +409,7 @@ This is a focused technical specification document covering SportX's verificatio
 
 **Section 1 — Strategic Context** Opens with the core problem framing: families spend up to ₹18L on coaching and trials, yet 97% of district players remain digitally invisible to professional scouts. Professional franchises currently rely on a "four-stage broken system" — WhatsApp groups, one-day trials, academy connections, and viral luck.
 
-SportX's structural model is explicitly described as mirroring the **Athlete Management System (AMS) used by Cricket West Indies (CWI)** — the "Moneyball" solution for Indian grassroots cricket. The doc also reinforces the dual-layer philosophy from Miles Bascombe (CWI): quantitative signals (BPI, CBR, phase-split stats) must be anchored by qualitative signals (tactical acumen, composure under pressure).
+AthlasX's structural model is explicitly described as mirroring the **Athlete Management System (AMS) used by Cricket West Indies (CWI)** — the "Moneyball" solution for Indian grassroots cricket. The doc also reinforces the dual-layer philosophy from Miles Bascombe (CWI): quantitative signals (BPI, CBR, phase-split stats) must be anchored by qualitative signals (tactical acumen, composure under pressure).
 
 ---
 
@@ -469,12 +469,12 @@ Two specialised fast-track paths:
 
 **Section 6 — Value Proposition for Professional Scouting** Distinguishes two separate outputs:
 
-- **SportX Score (0–100):** Overall talent evaluation index
+- **AthlasX Score (0–100):** Overall talent evaluation index
 - **IPL Readiness %:** Direct role-specific comparison against franchise benchmarks (BPI 40.5 for batters, CBR 15.0 for bowlers)
 
 **Comparison Engine:** 2–4 players side-by-side, standardising disparate data points (SR trajectory vs economy by phase) for squad selection decisions.
 
-**Trajectory Modelling (forward-looking):** The most ambitious feature mentioned anywhere in the folder. The vision: compare a 14-year-old's current performance curve against the historical age-adjusted data of elite players (e.g., matching against Yashasvi Jaiswal's curve at age 14) to generate a **"Projected SportX Score at Age 21."** This mirrors predictive identification methods used by BBL and IPL franchises to secure talent years before domestic debut.
+**Trajectory Modelling (forward-looking):** The most ambitious feature mentioned anywhere in the folder. The vision: compare a 14-year-old's current performance curve against the historical age-adjusted data of elite players (e.g., matching against Yashasvi Jaiswal's curve at age 14) to generate a **"Projected AthlasX Score at Age 21."** This mirrors predictive identification methods used by BBL and IPL franchises to secure talent years before domestic debut.
 
 ---
 
@@ -494,11 +494,11 @@ Read file content
 
 Read file content
 
-### 📄 File 6 — SportX Age Verification Module.docx
+### 📄 File 6 — AthlasX Age Verification Module.docx
 
 **Summary**
 
-This is the most technically detailed document in the entire folder — a full production-grade technical specification for SportX's Age Verification Module. It covers the legal compliance framework, system architecture, data storage schema, fraud detection mechanisms, API specifications, UX flows, implementation roadmap with weekly tasks, cost analysis, risk assessment, success metrics, and a comprehensive comparison of 8 KYC providers. It reads like a document ready to hand to an engineering team.
+This is the most technically detailed document in the entire folder — a full production-grade technical specification for AthlasX's Age Verification Module. It covers the legal compliance framework, system architecture, data storage schema, fraud detection mechanisms, API specifications, UX flows, implementation roadmap with weekly tasks, cost analysis, risk assessment, success metrics, and a comprehensive comparison of 8 KYC providers. It reads like a document ready to hand to an engineering team.
 
 ---
 
@@ -514,9 +514,9 @@ This is the most technically detailed document in the entire folder — a full p
 
 ---
 
-**Section 2 — The Age Fraud Problem** The core problem: overage players in U-19/U-23 tournaments have massive physical and experience advantages. State selectors already discount district-level stats because they don't trust the ages — meaning SportX profiles without age verification would face the same skepticism. Current approaches (manual DCA checks, school certificates, visual inspection) all fail for different reasons — forgery, subjectivity, or scale.
+**Section 2 — The Age Fraud Problem** The core problem: overage players in U-19/U-23 tournaments have massive physical and experience advantages. State selectors already discount district-level stats because they don't trust the ages — meaning AthlasX profiles without age verification would face the same skepticism. Current approaches (manual DCA checks, school certificates, visual inspection) all fail for different reasons — forgery, subjectivity, or scale.
 
-**SportX opportunity:** Verified age becomes a competitive moat. Scouts trust SportX profiles more. Age-adjusted scoring (future ML feature) depends on accurate age data.
+**AthlasX opportunity:** Verified age becomes a competitive moat. Scouts trust AthlasX profiles more. Age-adjusted scoring (future ML feature) depends on accurate age data.
 
 ---
 
@@ -543,7 +543,7 @@ A "What You CANNOT Do" table covers 5 prohibited actions with consequences rangi
 5. Player enters OTP
 6. UIDAI validates → returns Name, DOB, Gender, Photo, Masked Aadhaar
 7. Backend extracts DOB, calculates age, stores only: masked_aadhaar, dob, age_at_verification, photo_hash, transaction_id
-8. Generates internal SportX-Age-Token
+8. Generates internal AthlasX-Age-Token
 9. Raw Aadhaar discarded from memory
 10. Immutable audit log entry created
 11. "Age Verified" badge shown on profile
@@ -647,11 +647,11 @@ Read file content
 
 Read file content
 
-### 📄 File 7 — SportX Product Scope Document (built in Lovable)
+### 📄 File 7 — AthlasX Product Scope Document (built in Lovable)
 
 **Summary**
 
-This is the official product roadmap document tied directly to the live Lovable build at [sportx-scout-network.lovable.app](https://sportx-scout-network.lovable.app/). It defines the V1 MVP scope, V2 intelligence platform scope, and a long-term V3+ vision — written in clean product spec style with feature lists, success metrics, and demo credentials included.
+This is the official product roadmap document tied directly to the live Lovable build at [athlasx-scout-network.lovable.app](https://athlasx-scout-network.lovable.app/). It defines the V1 MVP scope, V2 intelligence platform scope, and a long-term V3+ vision — written in clean product spec style with feature lists, success metrics, and demo credentials included.
 
 ---
 
@@ -669,17 +669,17 @@ Core user types: Players (free) and Scouts (paying) as primary; Academies, Coach
 
 1. **Authentication** — name, email, mobile, city, state; email + OTP verification; password reset
 2. **Player Onboarding** — personal info, cricket role (Batter/Bowler/WK/All-Rounder), batting/bowling style, physical profile (height/weight), academy info, achievements; multi-step with save progress
-3. **Player Profile** — header (photo, name, age, location, role, SportX Score) + 4 tabs: Overview, Statistics (batting + bowling), Videos (batting/bowling/fielding/highlights), Achievements
+3. **Player Profile** — header (photo, name, age, location, role, AthlasX Score) + 4 tabs: Overview, Statistics (batting + bowling), Videos (batting/bowling/fielding/highlights), Achievements
 4. **Video Management** — upload/edit/delete with title, description, tags, category; preview + progress
 5. **Statistics Management** — manual entry, performance history, basic analytics cards
-6. **SportX Score (V1)** — Technical (25%) + Performance (40%) + Consistency (20%) + Profile Completeness (15%) = 0–100 score with percentile ranking
-7. **Player Dashboard** — profile completion widget, SportX Score, profile views, video views, watchlist adds, recent activity, recommended improvements (placeholder)
+6. **AthlasX Score (V1)** — Technical (25%) + Performance (40%) + Consistency (20%) + Profile Completeness (15%) = 0–100 score with percentile ranking
+7. **Player Dashboard** — profile completion widget, AthlasX Score, profile views, video views, watchlist adds, recent activity, recommended improvements (placeholder)
 
 **Scout side:**
 
 1. **Scout Registration** — name, email, mobile, organisation, password
 2. **Scout Dashboard** — saved prospects, recently viewed, search shortcuts, recommended players (placeholder)
-3. **Advanced Player Search** — demographic filters (age, state, city) + cricket filters (role, batting/bowling style) + performance filter (SportX Score); sort by highest score, most viewed, newest
+3. **Advanced Player Search** — demographic filters (age, state, city) + cricket filters (role, batting/bowling style) + performance filter (AthlasX Score); sort by highest score, most viewed, newest
 4. **Watchlists** — create named lists (e.g. "U16 Prospects", "Left Arm Pacers", "IPL Watchlist"), add/remove players
 5. **Scout Notes** — private notes per player: strengths, weaknesses, potential, observations
 6. **Player Comparison** — side-by-side stats, scores, profile data, and videos
@@ -694,7 +694,7 @@ V2 shifts from discovery to evaluation, trust, and development. Key additions:
 
 - **Verified Profiles** — 7 verification badge types (identity, academy, coach, tournament, match, stats, video) + verification dashboard + history
 - **Career Timeline** — chronological player journey with events (academy joined, district/state/national selection, injury recovery) + media attachments
-- **Growth Tracking Dashboard** — SportX Score history, match performance trends, video activity, tournament participation; growth charts and progress indicators
+- **Growth Tracking Dashboard** — AthlasX Score history, match performance trends, video activity, tournament participation; growth charts and progress indicators
 - **AI Scouting Reports** — auto-generated player summaries covering strengths, weaknesses, development areas, performance trends, potential assessment; web view + downloadable PDF
 - **Gap Analysis Engine** — inputs: stats + age + growth history + role + score → outputs: current level, potential level, improvement areas, development priorities, risk factors
 - **Multi-Persona Evaluation Engine** (V2 differentiator) — same player shown differently to Scout (recruitability/potential/risks), Selector (selection readiness), Batting/Bowling/Fitness Coach (role-specific technical views), Franchise Analyst (long-term potential)
@@ -715,20 +715,20 @@ V2 shifts from discovery to evaluation, trust, and development. Key additions:
 
 **V3+ Long-Term Vision** Six-stage evolution: Discovery → Talent Intelligence → Development → Career Navigation → Recruitment Marketplace → **Predictive Talent Intelligence Network**
 
-Final positioning: _"SportX is the operating system for cricket talent — from aspiring player to professional athlete."_
+Final positioning: _"AthlasX is the operating system for cricket talent — from aspiring player to professional athlete."_
 
 ---
 
 **Demo Credentials (included in document)**
 
-- Player account: [demo.player@sportx.test](mailto:demo.player@sportx.test) / Demo1234! → /dashboard (Arjun Demo · Mumbai)
-- Scout account: [demo.scout@sportx.test](mailto:demo.scout@sportx.test) / Demo1234! → /scout (Priya Scout · SportX Demo Academy)
+- Player account: [demo.player@athlasx.test](mailto:demo.player@athlasx.test) / Demo1234! → /dashboard (Arjun Demo · Mumbai)
+- Scout account: [demo.scout@athlasx.test](mailto:demo.scout@athlasx.test) / Demo1234! → /scout (Priya Scout · AthlasX Demo Academy)
 
 ---
 
 **Notable strengths:** The clearest, most readable document in the folder — well-structured for product development handoffs. The V2 Multi-Persona Evaluation Engine is the standout differentiator: showing the same player profile differently depending on whether you're a scout, a batting coach, or a franchise analyst is genuinely novel and not available in any competitor. The V3+ roadmap is ambitious but logically sequenced.
 
-**Notable gaps:** The V1 SportX Score formula here (Technical 25% + Performance 40% + Consistency 20% + Profile Completeness 15%) differs from the formula in Files 5 and 6 (Performance 40% + Experience 15% + Fitness 15% + Verification 15% + Mindset 10% + Profile Strength 5%). This is a significant inconsistency — the Lovable build appears to be using an older, simpler formula that omits Fitness, Verification, Mindset, and Experience as separate categories. This needs to be reconciled before the scoring engine is finalised. Also, verification (Aadhaar, coach confirm, etc.) is entirely absent from V1 scope here — it's deferred to V2, which contradicts the detailed verification architecture in Files 5 and 6.
+**Notable gaps:** The V1 AthlasX Score formula here (Technical 25% + Performance 40% + Consistency 20% + Profile Completeness 15%) differs from the formula in Files 5 and 6 (Performance 40% + Experience 15% + Fitness 15% + Verification 15% + Mindset 10% + Profile Strength 5%). This is a significant inconsistency — the Lovable build appears to be using an older, simpler formula that omits Fitness, Verification, Mindset, and Experience as separate categories. This needs to be reconciled before the scoring engine is finalised. Also, verification (Aadhaar, coach confirm, etc.) is entirely absent from V1 scope here — it's deferred to V2, which contradicts the detailed verification architecture in Files 5 and 6.
 
 ---
 
@@ -746,7 +746,7 @@ Read file content
 
 **Summary**
 
-This is a strategic competitor analysis document, primarily focused on ScoutEdge (SportX's most direct Indian competitor), with a broader landscape scan covering 15+ global platforms. It doubles as a product strategy document — the second half is largely a vision statement for what SportX should build differently. Written in a punchy, first-person advisory style rather than a formal research format.
+This is a strategic competitor analysis document, primarily focused on ScoutEdge (AthlasX's most direct Indian competitor), with a broader landscape scan covering 15+ global platforms. It doubles as a product strategy document — the second half is largely a vision statement for what AthlasX should build differently. Written in a punchy, first-person advisory style rather than a formal research format.
 
 ---
 
@@ -754,7 +754,7 @@ This is a strategic competitor analysis document, primarily focused on ScoutEdge
 
 **ScoutEdge Deep-Dive**
 
-ScoutEdge's positioning: _"India doesn't have a talent problem. It has a discovery problem."_ — almost identical to SportX's framing, which makes this the most important competitor to understand.
+ScoutEdge's positioning: _"India doesn't have a talent problem. It has a discovery problem."_ — almost identical to AthlasX's framing, which makes this the most important competitor to understand.
 
 Their claimed traction: 10,000+ players, 500+ scouts/coaches/recruiters, AI-powered infrastructure, focus on grassroots and Tier 2/3 regions.
 
@@ -796,7 +796,7 @@ The document argues ScoutEdge is actually building a 4-phase company: Player pro
 
 **Category 3 — Cricket-specific:**
 
-- **Ludimos:** Strongest cricket tech company. AI video analysis, player development, academy management, progress tracking. Focuses on development over scouting — described as the company to study most closely when building SportX
+- **Ludimos:** Strongest cricket tech company. AI video analysis, player development, academy management, progress tracking. Focuses on development over scouting — described as the company to study most closely when building AthlasX
 - **CricVision:** AI coaching + batting analysis + technical feedback. Development-focused, not recruiting
 - **Crickslab:** Match scoring + tournaments + academy infrastructure
 
@@ -818,21 +818,21 @@ The document argues ScoutEdge is actually building a 4-phase company: Player pro
 
 ---
 
-**SportX Strategic Differentiation (5 recommended differentiators)**
+**AthlasX Strategic Differentiation (5 recommended differentiators)**
 
 1. **Development Engine** — after analysis, system generates a 90-day growth plan. Players return weekly. This drives recurring engagement vs. a pure scouting platform (visited only during exposure/recruitment)
 2. **Multi-Persona Evaluation** — same player, different views for Batting Coach (technique), Selector (selection readiness), Scout (recruitability), Franchise (future potential). Score becomes: "Batting Coach: 88 / Fitness Coach: 67 / Selector: 79 / Franchise Potential: 91" instead of just "Player = 82"
 3. **Verified Cricket Identity** — LinkedIn verification for cricket. Trust as a moat
 4. **Career Pathway Intelligence / "Cricket GPS"** — input: Age 15, Delhi, fast bowler → output: recommended next tournament, academy, trainer, trial. "Google Maps for cricket careers"
-5. **Scout Workspace** — world-class scout UX: save players, compare, watchlists, notes, track development, receive improvement alerts ("Player improved SportX Score by 11 points in 60 days")
+5. **Scout Workspace** — world-class scout UX: save players, compare, watchlists, notes, track development, receive improvement alerts ("Player improved AthlasX Score by 11 points in 60 days")
 
 **What NOT to build (explicitly listed):** Coaching marketplace, social media feed, messaging system, sponsorship marketplace, fantasy cricket, NIL marketplace, multi-sport expansion. Stay cricket only.
 
 ---
 
-**The Long-Term Moat** The document ends with SportX's ultimate strategic asset: _"The world's largest dataset of how cricket players progress from age 12 to professional cricket."_
+**The Long-Term Moat** The document ends with AthlasX's ultimate strategic asset: _"The world's largest dataset of how cricket players progress from age 12 to professional cricket."_
 
-If SportX tracks profile + training + performance + growth + selection outcomes for hundreds of thousands of players, it can eventually answer: _"Which 14-year-old fast bowlers have the highest probability of playing Ranji Trophy in five years?"_ — intelligence that franchises, state associations, and academies will pay significant money for.
+If AthlasX tracks profile + training + performance + growth + selection outcomes for hundreds of thousands of players, it can eventually answer: _"Which 14-year-old fast bowlers have the highest probability of playing Ranji Trophy in five years?"_ — intelligence that franchises, state associations, and academies will pay significant money for.
 
 Final positioning recommendation: **Don't build a better ScoutEdge. Build the operating system that guides a player from aspiring cricketer → district → state → Ranji → IPL.**
 
@@ -922,7 +922,7 @@ Profiles saved as "Drafts" until all 4 screens complete — invisible to scout d
 - **Str8bat** — IoT smart bat sensor hardware, raised $3.5M Series A; too expensive for rural players
 - **RCB's in-house AI** — computer vision for bowling mechanics; walled garden serving only RCB
 
-SportX's strategic sweet spot: _CricHeroes has stats, ScoutEdge has AI video, RCT has physical trials — SportX combines all three: cleaned stats + verified video + direct trial dispatch._
+AthlasX's strategic sweet spot: _CricHeroes has stats, ScoutEdge has AI video, RCT has physical trials — AthlasX combines all three: cleaned stats + verified video + direct trial dispatch._
 
 ---
 
@@ -961,7 +961,7 @@ Notable V1 design decision: Player names hidden behind structural IDs (e.g. `#B
 
 **Notable strengths:** By far the most detailed engineering and operational document in the folder. The scraping architecture, 4-screen UX flow, ground normalisation formula, and "Pure Raw Talent" protocol are production-level specs. The 7.2M zero-footprint player opportunity is the most interesting market insight in the entire folder — this population is completely ignored by every other document and every competitor. The WhatsApp-PE-teacher GTM strategy is creative and practically grounded.
 
-**Notable gaps:** This document was likely written with a different scope than the current SportX strategy — it targets L5 grassroots players (not L4 district players), uses scraping of CricHeroes (which Files 4 and 2 explicitly rule out in favour of player-exported CSVs), and proposes a price point of ₹8–12L/year for IPL franchises (vs the ₹999/month scout subscription in other documents). There is a clear strategic inconsistency between this document and the rest of the folder that needs reconciling before the team aligns on a single product strategy.
+**Notable gaps:** This document was likely written with a different scope than the current AthlasX strategy — it targets L5 grassroots players (not L4 district players), uses scraping of CricHeroes (which Files 4 and 2 explicitly rule out in favour of player-exported CSVs), and proposes a price point of ₹8–12L/year for IPL franchises (vs the ₹999/month scout subscription in other documents). There is a clear strategic inconsistency between this document and the rest of the folder that needs reconciling before the team aligns on a single product strategy.
 
 ---
 
@@ -975,11 +975,11 @@ Read file content
 
 Read file content
 
-### 📄 File 10 — SportX_Personas_Verification.docx
+### 📄 File 10 — AthlasX_Personas_Verification.docx
 
 **Summary**
 
-This is the definitive reference document for SportX's trust and verification system — a detailed, structured specification covering all 8 personas, their individual verification pipelines, the trust weights of every source, the tier system, cross-persona interaction flows, and a complete matrix showing who contributes, receives, and administers each verification source. It is the most precisely engineered document in the folder outside of the Age Verification Module.
+This is the definitive reference document for AthlasX's trust and verification system — a detailed, structured specification covering all 8 personas, their individual verification pipelines, the trust weights of every source, the tier system, cross-persona interaction flows, and a complete matrix showing who contributes, receives, and administers each verification source. It is the most precisely engineered document in the folder outside of the Age Verification Module.
 
 ---
 
@@ -1054,7 +1054,7 @@ Eight sources, additive up to 15-point cap:
 
 |Source|By|Points|Key Constraint|
 |---|---|---|---|
-|Coach/Scout Confirmation|P4/P5|+5|Coach must hold verified SportX account; can revoke anytime|
+|Coach/Scout Confirmation|P4/P5|+5|Coach must hold verified AthlasX account; can revoke anytime|
 |Academy Admin Verification|P5|+2|Additive with coach; institutional accountability via paid account|
 |Peer Cross-Verify|P1/P2|+3/match (max +6)|2+ teammates independently confirm; same-device rejections automatic|
 |Scorecard OCR|P1/P2|+3/match (max +6)|80% confidence gate; below → P8 manual review|
@@ -1138,13 +1138,13 @@ This is a formal internal market intelligence report covering what professional 
 
 #### Structure Overview
 
-**Section 1 — Executive Summary** One key finding drives everything else: _"Every tool in the market — CricViz, Catapult, Hawk-Eye, SAP HANA — is built team-inward. They help professional franchises analyse players they already know about. None of them help an unknown player from Bihar get discovered. SportX is the missing layer."_
+**Section 1 — Executive Summary** One key finding drives everything else: _"Every tool in the market — CricViz, Catapult, Hawk-Eye, SAP HANA — is built team-inward. They help professional franchises analyse players they already know about. None of them help an unknown player from Bihar get discovered. AthlasX is the missing layer."_
 
 Five headline insights:
 
 1. Professional scouting tools cost tens of thousands of dollars — completely inaccessible at grassroots level
-2. CWI just launched a national scouting AMS in 2025 — the closest structural analogue to SportX in the world
-3. IPL scouts hire by role (death bowler, powerplay opener, finisher), not by "good player" — validates SportX's role-specific scoring
+2. CWI just launched a national scouting AMS in 2025 — the closest structural analogue to AthlasX in the world
+3. IPL scouts hire by role (death bowler, powerplay opener, finisher), not by "good player" — validates AthlasX's role-specific scoring
 4. Industry-wide consensus: qualitative + quantitative together, not stats alone — CWI explicitly stated: _"data-driven does not only equate to stats-based"_
 5. Predictive identification happening at ages 13–14 already — Jaiswal, Tilak Varma, Rinku Singh, Bumrah all identified early via data trends
 
@@ -1165,9 +1165,9 @@ Five headline insights:
 
 - **CVAT** — open-source video annotation for building ML training datasets
 - **Cricbuzz/ESPNcricinfo** — used by scouts as baseline data lookup; freely accessible
-- **AMS (Athlete Management System)** — CWI's structural model; SportX backend equivalent
+- **AMS (Athlete Management System)** — CWI's structural model; AthlasX backend equivalent
 
-**Tier 3 (Grassroots Discovery):** _Does not exist yet. SportX creates this category._
+**Tier 3 (Grassroots Discovery):** _Does not exist yet. AthlasX creates this category._
 
 ---
 
@@ -1194,15 +1194,15 @@ Five headline insights:
 
 **Section 4 — CWI Model (Closest Structural Analogue)** CWI's 2025 national scouting system has: a Director of Cricket, two Senior Talent Managers (men's + women's), 6 Territorial Talent Identifiers (one per Caribbean region — including Ramnaresh Sarwan for Guyana), 4 regional scouts, and an AMS as the central data platform.
 
-**AMS-to-SportX mapping table:**
+**AMS-to-AthlasX mapping table:**
 
 - Technical skills assessment → Scout annotation layer (future)
 - Physical attributes → Fitness scale (NCA-BCCI 1–5)
 - Mental strength rating → Pressure/consistency rating (self-reported; scout-verified layer planned)
 - Depth charts by position/role → National leaderboard by role, format, state
-- Player progression over time → SportX Score trend chart (planned)
+- Player progression over time → AthlasX Score trend chart (planned)
 
-CWI Director Miles Bascombe direct quote validates SportX's dual-layer approach: _"We are moving beyond just relying on what we see on scorecard. Data-driven does not only equate to stats-based."_
+CWI Director Miles Bascombe direct quote validates AthlasX's dual-layer approach: _"We are moving beyond just relying on what we see on scorecard. Data-driven does not only equate to stats-based."_
 
 ---
 
@@ -1219,7 +1219,7 @@ CWI Director Miles Bascombe direct quote validates SportX's dual-layer approach:
 - Coachability
 - Movement quality
 
-**SportX implication:** These signals are currently unserved by any platform. The self-reported mindset score (1–5) is the right starting point; a scout-verified qualitative layer is the medium-term priority.
+**AthlasX implication:** These signals are currently unserved by any platform. The self-reported mindset score (1–5) is the right starting point; a scout-verified qualitative layer is the medium-term priority.
 
 **Physical/Athletic (growing in professional importance):** Bowling velocity, sprint speed, max rotation, recovery metrics — all require Catapult or equivalent wearables. NCA-BCCI fitness scale (1–5) confirmed as the correct proxy for MVP; wearable integration is Year 2.
 
@@ -1227,7 +1227,7 @@ CWI Director Miles Bascombe direct quote validates SportX's dual-layer approach:
 
 **Section 6 — Predictive Analytics** IPL and BBL franchises identify players at 13–14 using trajectory models. The key question is not "is this player good now?" but "is this player on the curve that past elite players were on at this age?"
 
-**6 key predictive signals mapped to current SportX gaps:**
+**6 key predictive signals mapped to current AthlasX gaps:**
 
 - Technique consistency across pitch conditions — partial
 - Economy/SR trend over time — **no** (single-point score only, no trend history)
@@ -1236,17 +1236,17 @@ CWI Director Miles Bascombe direct quote validates SportX's dual-layer approach:
 - Performance at progressively higher tournament levels — partial
 - Age-adjusted performance benchmarking — **no** (age captured but not used in scoring)
 
-Product implication: _"The current SportX Score is a point-in-time snapshot. The next evolution is a trajectory score — 'projected SportX Score at age 21 based on current improvement rate.'"_
+Product implication: _"The current AthlasX Score is a point-in-time snapshot. The next evolution is a trajectory score — 'projected AthlasX Score at age 21 based on current improvement rate.'"_
 
 ---
 
 **Section 7 — Cross-Sport Intelligence** Cricket is 2–3 years behind football and basketball on the analytics adoption curve. Five-stage adoption model mapped, with cricket at Stage 3 (video + stats) vs. football/NBA at Stage 5 (predictive ML).
 
-Cross-sport tool table covers Wyscout (football, acquired for ~EUR 30M), Hudl ($1B+ valuation), Second Spectrum/Synergy Sports (NBA), NFL Next Gen Stats, Catapult (originated in rugby/AFL). Key analogy: _"Wyscout started as a single-sport player database in one country (Italy). It became the global standard for professional football scouting. SportX is the same model applied to cricket."_
+Cross-sport tool table covers Wyscout (football, acquired for ~EUR 30M), Hudl ($1B+ valuation), Second Spectrum/Synergy Sports (NBA), NFL Next Gen Stats, Catapult (originated in rugby/AFL). Key analogy: _"Wyscout started as a single-sport player database in one country (Italy). It became the global standard for professional football scouting. AthlasX is the same model applied to cricket."_
 
 ---
 
-**Section 8 — Key Gaps SportX Can Own (10 gaps)** Prioritised gap table covering: player-facing discovery layer (core, done), standardised score for domestic/junior talent (core, done), role-specific evaluation (near-term), phase-split stats (near-term), qualitative signals (near-term), context metadata (medium-term), national talent graph (long-term), physical data proxy (medium-term), predictive trajectory scoring (long-term ML), and video annotation pipeline (Year 3).
+**Section 8 — Key Gaps AthlasX Can Own (10 gaps)** Prioritised gap table covering: player-facing discovery layer (core, done), standardised score for domestic/junior talent (core, done), role-specific evaluation (near-term), phase-split stats (near-term), qualitative signals (near-term), context metadata (medium-term), national talent graph (long-term), physical data proxy (medium-term), predictive trajectory scoring (long-term ML), and video annotation pipeline (Year 3).
 
 ---
 
@@ -1262,9 +1262,9 @@ Cross-sport tool table covers Wyscout (football, acquired for ~EUR 30M), Hudl ($
 
 ---
 
-**Notable strengths:** The highest-quality externally-cited research document in the folder. The CWI AMS analogy is the most powerful single piece of validation SportX has — a cricket board building exactly what SportX is building, but closed/internal. The 10-gap table in Section 8 is a complete product roadmap prioritisation framework. The Wyscout/Hudl cross-sport analogy is the strongest investor pitch framing available.
+**Notable strengths:** The highest-quality externally-cited research document in the folder. The CWI AMS analogy is the most powerful single piece of validation AthlasX has — a cricket board building exactly what AthlasX is building, but closed/internal. The 10-gap table in Section 8 is a complete product roadmap prioritisation framework. The Wyscout/Hudl cross-sport analogy is the strongest investor pitch framing available.
 
-**Notable gaps:** Phase-split stats are flagged as "near-term" here but are already described as implemented in Files 2 and 7 — a slight inconsistency suggesting this document may have been written slightly earlier than the product scope docs. The report covers men's cricket exclusively; the CWI system includes a Women's Talent Manager (Ann Browne-John) but no women's cricket implications are drawn for SportX — which is inconsistent with File 4's recommendation to build gender-neutral from day one.
+**Notable gaps:** Phase-split stats are flagged as "near-term" here but are already described as implemented in Files 2 and 7 — a slight inconsistency suggesting this document may have been written slightly earlier than the product scope docs. The report covers men's cricket exclusively; the CWI system includes a Women's Talent Manager (Ann Browne-John) but no women's cricket implications are drawn for AthlasX — which is inconsistent with File 4's recommendation to build gender-neutral from day one.
 
 ---
 
@@ -1282,7 +1282,7 @@ Read file content
 
 **Summary**
 
-This is the shortest and most action-oriented document in the folder — an internal research playbook rather than a finished deliverable. It reads as a structured guide for Phase 1 of SportX's intelligence-building work: how to understand cricket talent evaluation deeply enough to make it a product moat. It is written in a clean, direct advisory style — short sentences, zero padding — that suggests it was created as a thinking framework or internal memo rather than a formal document.
+This is the shortest and most action-oriented document in the folder — an internal research playbook rather than a finished deliverable. It reads as a structured guide for Phase 1 of AthlasX's intelligence-building work: how to understand cricket talent evaluation deeply enough to make it a product moat. It is written in a clean, direct advisory style — short sentences, zero padding — that suggests it was created as a thinking framework or internal memo rather than a formal document.
 
 ---
 
@@ -1290,7 +1290,7 @@ This is the shortest and most action-oriented document in the folder — an inte
 
 **The Central Thesis** _"You are essentially trying to decode: 'How does cricket talent evaluation actually work?' That knowledge becomes your product moat."_
 
-The document argues that SportX's competitive advantage is not just the technology — it is proprietary understanding of how scouts and selectors actually think. That understanding must be earned through research, interviews, and validation, not assumed.
+The document argues that AthlasX's competitive advantage is not just the technology — it is proprietary understanding of how scouts and selectors actually think. That understanding must be earned through research, interviews, and validation, not assumed.
 
 ---
 
@@ -1313,7 +1313,7 @@ Key interview questions organised by theme:
 
 **Action 4 — Study Existing Selection Systems** Reverse-engineer BCCI pathways (district → state → U16 → U19 → Ranji → IPL trials). Study IPL auction analysis, Cricbuzz analyst discussions, YouTube scouting breakdowns, ex-player interviews.
 
-**Action 5 — Watch Scouting Videos** Watch bowling action analyses, batting technique reviews, IPL talent scouting discussions. Key observation: experts rarely focus only on stats. They discuss technique, timing, composure, adaptability, movement quality. That insight is critical for what SportX should capture.
+**Action 5 — Watch Scouting Videos** Watch bowling action analyses, batting technique reviews, IPL talent scouting discussions. Key observation: experts rarely focus only on stats. They discuss technique, timing, composure, adaptability, movement quality. That insight is critical for what AthlasX should capture.
 
 **Action 6 — Build Position-Specific Evaluation Frameworks** Do NOT create generic profiles. Create separate frameworks for batter, fast bowler, spinner, wicketkeeper, all-rounder — each with different metrics. Fast bowler: pace, seam position, repeatability, yorker execution, bounce, endurance. Batter: footwork, spin handling, shot selection, strike rotation, power game.
 
@@ -1364,9 +1364,9 @@ That's all 13 files done! Ready to give you the **full cross-folder summary** 
 
 8:30 PM
 
-All 13 files have been covered — there were only 13 files in the SportX folder, and we've gone through all of them (files 1–12 plus the Scouting Intelligence doc which was file 13 in the actual folder).
+All 13 files have been covered — there were only 13 files in the AthlasX folder, and we've gone through all of them (files 1–12 plus the Scouting Intelligence doc which was file 13 in the actual folder).
 
-Ready to compile the **full cross-folder summary** — covering key themes, critical inconsistencies across documents, what's been built vs. what's missing, and the most important open questions for SportX? Just say the word.
+Ready to compile the **full cross-folder summary** — covering key themes, critical inconsistencies across documents, what's been built vs. what's missing, and the most important open questions for AthlasX? Just say the word.
 
 Replied to all of your comments but one of them can't be replied there so i am replying here: *What’s the cost and process for the one time process? We could start this process but use KYC API provider while the process is completing.* Short Answer: YES we can start with a KYC API provider immediately. Direct AUA registration costs Rs. 5-20 lakh upfront(based on number of transactions/year) + Rs. 25 lakh bank guarantee and takes 4-12 weeks. Using a KYC API provider costs Rs. 5-15 per verification with zero upfront investment. Long Answer: *Costs (Official UIDAI Circular No. 04 of 2023)* | Cost Component | Amount | Notes | | --------------------------------- | --------------------- | ----------------------------------------------------- | | **License Fee (2 years)** | **Rs. 5 lakh** | For up to 5 lakh transactions/year | | **License Fee (2 years)** | **Rs. 10 lakh** | For 5-20 lakh transactions/year | | **License Fee (2 years)** | **Rs. 20 lakh** | For 20+ lakh transactions/year | | **Performance Bank Guarantee** | **Rs. 25 lakh** | Valid for 10 years, refundable | | **Pre-Production (if delayed)** | **Rs. 5 lakh** | If not production-ready within 3 months of onboarding | | **Transaction Fee (per eKYC)** | **Rs. 20** | Charged by UIDAI per successful eKYC transaction | | **Transaction Fee (Yes/No auth)** | **Rs. 0.50** | Per authentication transaction | | **Legal & Documentation** | **Rs. 50,000-1 lakh** | Lawyer fees, notarization, compliance review | | **Infrastructure Setup** | **Rs. 2-5 lakh** | Servers, HSM, security audit, encryption | | **TOTAL UPFRONT COST** | **Rs. 32-51 lakh** | Minimum (Rs. 5L license + Rs. 25L BG + setup) | *Process & Timeline* | Step | Duration | Action Required | | ----------------------------------------- | -------------- | --------------------------------------------------------------------------------- | | 1. Prepare documentation | 1-2 weeks | Company registration, GST, PAN, board resolution, technical architecture document | | 2. Submit application to UIDAI | 1 week | Online application + physical documents to DD (Auth), UIDAI HQ, New Delhi | | 3. Technical evaluation | 2-3 weeks | UIDAI reviews technical capabilities, security posture, data handling | | 4. Agreement signing (AUA Agreement v4.0) | 1 week | Legal review + signing | | 5. Deposit license fee + bank guarantee | 1 week | Payment to UIDAI + bank guarantee from scheduled commercial bank | | 6. Pre-production access | 1-2 weeks | Sandbox testing, integration validation | | 7. Production go-live | 1 week | Final approval, production keys issued | | **TOTAL TIMELINE** | **6-10 weeks** | Best case: 6 weeks; typical: 8 weeks; worst case: 12+ weeks | *Key Requirements for Direct Registration* * Company must be registered in India (Pvt. Ltd. minimum) * Minimum 2 years of operational history (preferred) * Technical team capable of handling encryption, tokenization, audit trails * Physical office address verification * Compliance with Aadhaar (Authentication) Regulations, 2016 * Annual security audit by CERT-IN empanelled auditor * Data localization: all Aadhaar data must remain within India
 
@@ -1380,12 +1380,12 @@ This is a clean and complete answer — perfectly structured. Updating the Age V
 
 Start with a **KYC API provider (Surepass or Decentro)** immediately — zero upfront, ₹5–15/verification, live in days. Run it in parallel with **direct AUA registration** (₹32–51L upfront + 6–10 weeks). Once AUA is live, migrate to direct UIDAI integration for cost savings at scale (₹20/eKYC direct vs ₹5–15/API but with no overheads).
 
-The 2-year operational history requirement is worth flagging — SportX may not qualify for direct AUA registration at launch. The workaround is to either use a KYC API provider indefinitely until that threshold is met, or explore registering as a **sub-AUA** under an existing AUA (like a banking partner or fintech), which has no minimum operational history requirement and can be set up in 2–4 weeks.
+The 2-year operational history requirement is worth flagging — AthlasX may not qualify for direct AUA registration at launch. The workaround is to either use a KYC API provider indefinitely until that threshold is met, or explore registering as a **sub-AUA** under an existing AUA (like a banking partner or fintech), which has no minimum operational history requirement and can be set up in 2–4 weeks.
 
 **Sub-AUA path** (worth adding to the doc):
 
 - Partner with an existing AUA (banks, NBFCs, or KYC platforms like Signzy who are already AUAs)
-- SportX operates as a sub-AUA under their license
+- AthlasX operates as a sub-AUA under their license
 - No upfront cost, no bank guarantee, no 2-year history requirement
 - Slightly less control over SLA and data handling vs. direct AUA
 - Good bridge between "KYC API provider now" and "direct AUA later"
@@ -1404,7 +1404,7 @@ This.
 
 10:39 PM
 
-Clean diagram. This is the Player Lifecycle flow from File 2 (SportX_Application_Workflow.docx) visualised — all 7 phases are accurately represented.
+Clean diagram. This is the Player Lifecycle flow from File 2 (AthlasX_Application_Workflow.docx) visualised — all 7 phases are accurately represented.
 
 A few things I notice:
 

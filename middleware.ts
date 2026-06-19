@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
@@ -46,7 +46,7 @@ export async function middleware(req: NextRequest) {
   /* ── Admin ── */
   if (pathname.startsWith("/admin")) {
     if (!isAuthed) return redirectToLogin(req, pathname);
-    if (role !== "sportx_admin" && role !== "admin") {
+    if (role !== "athlasx_admin" && role !== "admin") {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
     return NextResponse.next();

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef } from "react";
 import StepShell from "@/components/onboarding/StepShell";
@@ -44,7 +44,7 @@ export default function StepRegister({ currentStep, completedSteps, readOnly }: 
         <div className="space-y-3">
           <h2 className="text-xl font-bold" style={{ color: "#E2E8F0" }}>Create your account</h2>
           <p style={{ color: "#94A3B8" }}>
-            You&rsquo;re registered. Your SportX account is the entry point for your verified player profile.
+            You&rsquo;re registered. Your AthlasX account is the entry point for your verified player profile.
           </p>
           <p className="text-sm" style={{ color: "#64748B" }}>
             Account-creation UI lives at <code>/auth/signup</code>. This step is auto-completed when you arrive here from signup.

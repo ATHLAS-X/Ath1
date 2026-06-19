@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-server";
 import { ok, fail } from "@/lib/onboarding-server";
 
@@ -22,12 +22,12 @@ export async function POST(req: Request) {
   `;
   // 3: Remove from scout search index.
   await sql`
-    UPDATE sportx_score
+    UPDATE athlasx_score
     SET elasticsearch_indexed = false, status = 'SUSPENDED'
     WHERE user_id = ${userId}
   `;
   // 4: Notify the affected user.
-  const msg = "Your SportX account has been suspended pending review. Contact support@sportx.in if you believe this is an error.";
+  const msg = "Your AthlasX account has been suspended pending review. Contact support@athlasx.in if you believe this is an error.";
   await sql`
     INSERT INTO admin_notifications (recipient_user_id, type, message)
     VALUES (${userId}, 'ACCOUNT_SUSPENDED', ${msg})

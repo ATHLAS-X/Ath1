@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import { ok, requireUserId } from "@/lib/onboarding-server";
 import { getUserOnboardingState } from "@/lib/onboarding";
 
@@ -26,7 +26,7 @@ export async function GET() {
     `,
     sql`
       SELECT total_score, status, profile_strength, trajectory_boost, verification_pts
-      FROM sportx_score WHERE user_id = ${userId} LIMIT 1
+      FROM athlasx_score WHERE user_id = ${userId} LIMIT 1
     `,
     getUserOnboardingState(userId),
   ]);

@@ -1,5 +1,5 @@
-/**
- * Server-side SportX Score calculator.
+﻿/**
+ * Server-side AthlasX Score calculator.
  *
  * Category caps:
  *   Performance   40
@@ -45,7 +45,7 @@ export interface ScoreResult {
 
 const clamp = (n: number, lo = 0, hi = Infinity) => Math.max(lo, Math.min(hi, n));
 
-export async function calculateSportXScore(userId: string): Promise<ScoreResult> {
+export async function calculateAthlasXScore(userId: string): Promise<ScoreResult> {
   // Pull every signal in one round-trip-ish.
   const stats = (await sql`
     SELECT format, matches, bpi, cbr
@@ -143,7 +143,7 @@ export async function calculateSportXScore(userId: string): Promise<ScoreResult>
 
   // ── Trajectory: compare with snapshot ~30 days ago ──────────────────────
   const prior = (await sql`
-    SELECT score_history FROM sportx_score WHERE user_id = ${userId} LIMIT 1
+    SELECT score_history FROM athlasx_score WHERE user_id = ${userId} LIMIT 1
   `) as unknown as Array<{ score_history: Array<{ at: string; total: number }> | null }>;
   const history = Array.isArray(prior[0]?.score_history) ? prior[0]!.score_history! : [];
   const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -207,9 +207,9 @@ export async function calculateSportXScore(userId: string): Promise<ScoreResult>
   const calculatedAt = new Date().toISOString();
   const updatedHistory = [...history, { at: calculatedAt, total }].slice(-50);
 
-  // Upsert sportx_score row
+  // Upsert athlasx_score row
   await sql`
-    INSERT INTO sportx_score
+    INSERT INTO athlasx_score
       (user_id, total_score, performance_score, experience_score, fitness_score,
        verification_score, mindset_score, profile_score, verification_pts,
        trajectory_boost, coach_verified, profile_strength, roadmap, score_history,

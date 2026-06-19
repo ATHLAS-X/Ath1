@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 /* Coach onboarding — V1 self-signup path (the doc's V2 row).
    Coaches added by academies redeem an invite at /coach/register?token=…
    and never see this wizard. Here we collect the same data: identity,
-   academy linkage, official certification, then submit for SportX review. */
+   academy linkage, official certification, then submit for AthlasX review. */
 
 interface FormState {
   coach_name: string;
@@ -32,7 +32,7 @@ const STEPS = [
 
 const STATUS_LABEL: Record<string, string> = {
   DRAFT:           "Draft",
-  PENDING_REVIEW:  "Awaiting SportX review",
+  PENDING_REVIEW:  "Awaiting AthlasX review",
   APPROVED:        "Verified",
   REJECTED:        "Rejected",
 };
@@ -138,7 +138,7 @@ export default function CoachOnboardingWizard(p: Props) {
                   </button>
                 ) : (
                   <button className="btn green" disabled={busy} onClick={submit}>
-                    {busy ? "Submitting…" : "Submit for SportX Review"}
+                    {busy ? "Submitting…" : "Submit for AthlasX Review"}
                   </button>
                 )}
               </div>
@@ -235,7 +235,7 @@ function Step3({ form, set }: {
         <span className="sect-title">Step 3 of 4</span>
         <h2 className="cw-h2">Certification</h2>
         <p className="cw-sub">
-          SportX reviews credentials before granting the&nbsp;
+          AthlasX reviews credentials before granting the&nbsp;
           <code>can_submit_evaluations</code> and&nbsp;
           <code>can_submit_fitness_assessments</code> flags. A verified coach&apos;s
           rating turns a player into <strong>Performance Verified</strong>.
@@ -270,7 +270,7 @@ function Step4({ form, submitted, userName, userEmail, status }: {
         <h2 className="cw-h2">{submitted ? "Submitted ✓" : "Review & Submit"}</h2>
         <p className="cw-sub">
           {submitted
-            ? "Your profile is now in the SportX admin review queue. You'll be notified when verification completes."
+            ? "Your profile is now in the AthlasX admin review queue. You'll be notified when verification completes."
             : "Double-check the details before submitting. After submit you can't edit until review completes."}
         </p>
       </div>
@@ -287,7 +287,7 @@ function Step4({ form, submitted, userName, userEmail, status }: {
 
       {!submitted && (
         <p className="cw-note">
-          ⓘ Submitting locks the profile until SportX (or the linked academy)
+          ⓘ Submitting locks the profile until AthlasX (or the linked academy)
           reviews your credentials. Both <code>can_submit_evaluations</code> and
           <code> can_submit_fitness_assessments</code> stay off until then.
         </p>
@@ -303,13 +303,13 @@ function SubmittedBanner({ status }: { status: string }) {
       <div className="cw-success-dot">{approved ? "✓" : "⏳"}</div>
       <div>
         <div className="cw-success-h">
-          {approved ? "Coach Verified" : "Awaiting SportX review"}
+          {approved ? "Coach Verified" : "Awaiting AthlasX review"}
         </div>
         <div className="cw-success-s">
           Current status: <strong>{STATUS_LABEL[status] ?? status}</strong>.
           {approved
             ? " Evaluation permissions are now active for your linked academy's players."
-            : " You'll get fitness + evaluation permissions once SportX (or your linked academy) approves."}
+            : " You'll get fitness + evaluation permissions once AthlasX (or your linked academy) approves."}
         </div>
       </div>
     </div>

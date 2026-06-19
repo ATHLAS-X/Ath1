@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 const AGE_GROUPS = ["U-10", "U-12", "U-14", "U-16", "U-19", "U-23", "Senior"];
 const FACILITIES = ["Indoor nets", "Outdoor nets", "Turf wicket", "Floodlights", "Gym", "Pool", "Hostel", "Video analysis", "Bowling machine"];

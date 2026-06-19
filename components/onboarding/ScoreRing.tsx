@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -7,7 +7,7 @@ export interface ScoreRingProps {
   score: number;
   /** sm = 80, md = 140, lg = 200 */
   size?: "sm" | "md" | "lg";
-  /** Show "SportX Score" label inside the ring */
+  /** Show "AthlasX Score" label inside the ring */
   showLabel?: boolean;
   /** Animate from 0 to the final value over 1500ms on mount */
   animate?: boolean;
@@ -104,7 +104,7 @@ export default function ScoreRing({
           fill="#94A3B8"
           letterSpacing="2"
         >
-          {(label ?? "SPORTX SCORE").toUpperCase()}
+          {(label ?? "ATHLASX SCORE").toUpperCase()}
         </text>
       )}
     </svg>

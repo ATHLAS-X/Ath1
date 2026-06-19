@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -151,7 +151,7 @@ export async function POST(req: Request) {
         LIMIT 1
       `) as unknown as Array<any>;
       if (existing.length > 0) {
-        results.push({ row_index: r + 2, status: "skipped", name: displayName, email, error: "Player already on SportX" });
+        results.push({ row_index: r + 2, status: "skipped", name: displayName, email, error: "Player already on AthlasX" });
         continue;
       }
     }
@@ -195,15 +195,15 @@ export async function POST(req: Request) {
       /* Best-effort notification — stubs log to console. */
       const claimUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/claim/${token}`;
       const messageBody =
-        `${academy.academy_name} has created a SportX profile for you.\n\n` +
+        `${academy.academy_name} has created a AthlasX profile for you.\n\n` +
         `Claim it here: ${claimUrl}\n\n` +
         `You'll fill in any missing details and submit for approval.`;
 
       if (email) {
-        await sendEmail({ to: email, subject: `Claim your SportX profile — ${academy.academy_name}`, body: messageBody });
+        await sendEmail({ to: email, subject: `Claim your AthlasX profile — ${academy.academy_name}`, body: messageBody });
       }
       if (phone) {
-        await sendSms(phone, `SportX: ${academy.academy_name} created a profile for you. Claim it at ${claimUrl}`);
+        await sendSms(phone, `AthlasX: ${academy.academy_name} created a profile for you. Claim it at ${claimUrl}`);
       }
 
       results.push({ row_index: r + 2, status: "created", name: displayName, email, player_profile_id: profileId, invite_token: token });

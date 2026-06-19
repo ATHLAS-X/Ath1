@@ -1,7 +1,7 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-server";
 import { ok, fail } from "@/lib/onboarding-server";
-import { calculateSportXScore } from "@/lib/score-engine";
+import { calculateAthlasXScore } from "@/lib/score-engine";
 
 export async function POST(req: Request) {
   const guard = await requireAdmin();
@@ -35,23 +35,23 @@ export async function POST(req: Request) {
     // 3a: coach_verified on player_profiles.
     await sql`UPDATE player_profiles SET coach_verified = true WHERE user_id = ${row.user_id}`;
 
-    // 3b: bump verification_score (cap 15) + coach_verified on sportx_score.
+    // 3b: bump verification_score (cap 15) + coach_verified on athlasx_score.
     await sql`
-      INSERT INTO sportx_score (user_id, coach_verified, verification_score)
+      INSERT INTO athlasx_score (user_id, coach_verified, verification_score)
       VALUES (${row.user_id}, true, 5)
       ON CONFLICT (user_id) DO UPDATE SET
         coach_verified = true,
-        verification_score = LEAST(15, COALESCE(sportx_score.verification_score, 0) + 5)
+        verification_score = LEAST(15, COALESCE(athlasx_score.verification_score, 0) + 5)
     `;
 
     // Snapshot score before recompute so we can report average delta.
     const before = (await sql`
-      SELECT total_score FROM sportx_score WHERE user_id = ${row.user_id} LIMIT 1
+      SELECT total_score FROM athlasx_score WHERE user_id = ${row.user_id} LIMIT 1
     `) as unknown as Array<{ total_score: number }>;
     const prevTotal = before[0]?.total_score ?? 0;
 
     // 3c + 3d: recompute everything (score-engine handles profile_strength).
-    const result = await calculateSportXScore(row.user_id);
+    const result = await calculateAthlasXScore(row.user_id);
     totalDelta += Math.max(0, result.total - prevTotal);
 
     // 3e: notify the player.

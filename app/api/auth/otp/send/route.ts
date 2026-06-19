@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   /* Stash the phone on the user row if it wasn't already set. */
   await sql`UPDATE users SET phone = ${phone} WHERE id = ${userId} AND phone IS NULL`;
 
-  await sendSms(phone, `Your SportX verification code is ${code}. Expires in 10 minutes.`);
+  await sendSms(phone, `Your AthlasX verification code is ${code}. Expires in 10 minutes.`);
 
   const payload: Record<string, unknown> = {
     success: true,

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { sql } from "@/lib/db";
 import { ROLES, type UserRole } from "@/lib/auth";
@@ -38,8 +38,8 @@ export async function POST(req: Request) {
   if (phone && !PHONE_RE.test(phone)) return err("Phone number is invalid", 400);
   if (!ROLES.includes(roleRaw as UserRole)) return err(`Unknown role: ${roleRaw}`, 400);
 
-  /* SportX Admin cannot self-register — must be promoted by an existing admin. */
-  if (roleRaw === "sportx_admin") return err("Admin accounts cannot self-register", 403);
+  /* AthlasX Admin cannot self-register — must be promoted by an existing admin. */
+  if (roleRaw === "athlasx_admin") return err("Admin accounts cannot self-register", 403);
 
   const existing = (await sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`) as unknown as {
     id: string;

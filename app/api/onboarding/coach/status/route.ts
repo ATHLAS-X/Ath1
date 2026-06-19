@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import { ok, requireUserId } from "@/lib/onboarding-server";
 
 // MVP: auto-approve any pending coach registration 5 seconds after submission.
@@ -25,13 +25,13 @@ export async function GET() {
   `) as unknown as Array<unknown>;
   if (approved.length) {
     await sql`UPDATE player_profiles SET coach_verified = true WHERE user_id = ${guard.userId}`;
-    // Award +5 in sportx_score (insert row if missing).
+    // Award +5 in athlasx_score (insert row if missing).
     await sql`
-      INSERT INTO sportx_score (user_id, coach_verified, verification_pts)
+      INSERT INTO athlasx_score (user_id, coach_verified, verification_pts)
       VALUES (${guard.userId}, true, 5)
       ON CONFLICT (user_id) DO UPDATE SET
         coach_verified = true,
-        verification_pts = GREATEST(sportx_score.verification_pts, 5)
+        verification_pts = GREATEST(athlasx_score.verification_pts, 5)
     `;
   }
 

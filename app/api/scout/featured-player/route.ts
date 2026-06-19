@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 
 export async function GET() {
@@ -22,7 +22,7 @@ export async function GET() {
         COALESCE(ps.innings, 0) AS innings,
         COALESCE(ps.highest_score, '0') AS highest_score,
         pp.avatar_url
-      FROM sportx_score ss
+      FROM athlasx_score ss
       JOIN users u ON ss.user_id = u.id
       LEFT JOIN cricket_profile cp ON u.id = cp.user_id
       LEFT JOIN player_profiles pp ON u.id = pp.user_id

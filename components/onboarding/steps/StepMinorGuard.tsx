@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -11,12 +11,12 @@ interface Props {
   readOnly: boolean;
 }
 
-const DISCLAIMER = `I am the legal guardian of the player named in this SportX profile. \
+const DISCLAIMER = `I am the legal guardian of the player named in this AthlasX profile. \
 I confirm that the player is under 18 years of age and that I provide informed consent on their behalf \
-for the collection, processing, and storage of the data captured during the SportX onboarding flow — \
+for the collection, processing, and storage of the data captured during the AthlasX onboarding flow — \
 including identity verification metadata, performance and fitness data, video submissions, and behavioural \
-assessment responses. I acknowledge that SportX does not share raw identity numbers with scouts or third \
-parties, and that I may withdraw this consent in writing at any time. I have read and accept the SportX \
+assessment responses. I acknowledge that AthlasX does not share raw identity numbers with scouts or third \
+parties, and that I may withdraw this consent in writing at any time. I have read and accept the AthlasX \
 Privacy Policy and Terms of Use, and I attach a valid government-issued ID (Aadhaar, PAN, or Voter ID) \
 to evidence my identity as the legal guardian.`;
 

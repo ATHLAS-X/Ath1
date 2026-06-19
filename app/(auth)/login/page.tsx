@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -58,14 +58,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#0A1628] flex flex-col">
       <header className="px-6 py-4">
-        <span className="text-xl font-extrabold tracking-tight text-white">SportX</span>
+        <span className="text-xl font-extrabold tracking-tight text-white">AthlasX</span>
       </header>
 
       <main className="flex flex-1 items-center justify-center px-4">
         <div className="w-full max-w-sm">
           <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 sm:p-8 shadow-2xl backdrop-blur">
             <h1 className="text-2xl font-bold text-white mb-1">Welcome back</h1>
-            <p className="text-sm text-slate-400 mb-6">Sign in to your SportX account</p>
+            <p className="text-sm text-slate-400 mb-6">Sign in to your AthlasX account</p>
 
             {verified && (
               <div className="mb-4 rounded-lg border border-[#1A6B3C]/40 bg-[#1A6B3C]/10 px-4 py-3 text-sm text-green-400">

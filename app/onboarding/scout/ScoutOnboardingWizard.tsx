@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 /* Scout Onboarding wizard — implements Part 1 of the V1 spec
-   (SportX_Onboarding_Workflows_Scout_Coach.docx).
+   (AthlasX_Onboarding_Workflows_Scout_Coach.docx).
    Four user-facing steps:
      1. Scout Profile         (Identity + Designation)
      2. Organization Affiliation (Org + Proof)
@@ -162,7 +162,7 @@ export default function ScoutOnboardingWizard(p: Props) {
                   </button>
                 ) : (
                   <button className="btn green" disabled={busy} onClick={submit}>
-                    {busy ? "Submitting…" : "Submit for SportX Review"}
+                    {busy ? "Submitting…" : "Submit for AthlasX Review"}
                   </button>
                 )}
               </div>
@@ -223,7 +223,7 @@ function Step2({ form, set }: {
         <span className="sect-title">Step 2 of 4</span>
         <h2 className="sw-h2">Organization &amp; Affiliation</h2>
         <p className="sw-sub">
-          Scouts must be tied to an organization. SportX admin verifies your
+          Scouts must be tied to an organization. AthlasX admin verifies your
           proof before granting search access (L1) — without proof your
           account stays at L0 (browse-only).
         </p>
@@ -281,7 +281,7 @@ function Step3({ form, toggle }: {
         <span className="sect-title">Step 3 of 4</span>
         <h2 className="sw-h2">Scouting Preferences</h2>
         <p className="sw-sub">
-          These don&apos;t restrict search — they help SportX surface the right
+          These don&apos;t restrict search — they help AthlasX surface the right
           players in your discovery feed. You can change them later.
         </p>
       </div>
@@ -332,7 +332,7 @@ function Step4({ form, submitted, userName, userEmail, verificationLevel }: {
         <h2 className="sw-h2">{submitted ? "Submitted ✓" : "Review &amp; Submit"}</h2>
         <p className="sw-sub">
           {submitted
-            ? "Your profile is with SportX admin. You'll be notified once your verification level changes."
+            ? "Your profile is with AthlasX admin. You'll be notified once your verification level changes."
             : "Double-check the details. After submission you cannot edit until admin review completes."}
         </p>
       </div>
@@ -353,7 +353,7 @@ function Step4({ form, submitted, userName, userEmail, verificationLevel }: {
 
       {!submitted && (
         <p className="sw-note">
-          ⓘ Submitting puts your profile in the SportX admin review queue.
+          ⓘ Submitting puts your profile in the AthlasX admin review queue.
           Adult-profile search unlocks immediately at <strong>L1 Verified</strong>; minor
           access (<strong>L2 Minor-Cleared</strong>) is requested separately later.
         </p>
@@ -367,7 +367,7 @@ function SubmittedBanner({ level }: { level: string }) {
     <div className="sw-success-banner">
       <div className="sw-success-dot">⏳</div>
       <div>
-        <div className="sw-success-h">Awaiting SportX review</div>
+        <div className="sw-success-h">Awaiting AthlasX review</div>
         <div className="sw-success-s">
           Current level: <strong>{level} · {LVL_LABEL[level] ?? "Pending"}</strong>.
           You&apos;ll be promoted to L1 (Adult Search) once an admin approves.

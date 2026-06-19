@@ -1,17 +1,17 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
-/* Marketing flow rendered below the hero. Sticks to the SportX design system
-   (sportx.css tokens) so it matches the rest of the app. Mirrors the
+/* Marketing flow rendered below the hero. Sticks to the AthlasX design system
+   (athlasx.css tokens) so it matches the rest of the app. Mirrors the
    /workflow page at a glance and ends with a per-role signup CTA. */
 
 const PHASES = [
   { i: "1", n: "Onboard",       d: "Sign up, claim your role, draft your profile.",      lvl: "L1" },
   { i: "2", n: "Verify Identity", d: "Aadhaar OTP with parent consent for minors.",     lvl: "L2" },
   { i: "3", n: "Capture Performance", d: "Stats, fitness scores, match videos, coach reviews." },
-  { i: "4", n: "Match Verify",  d: "SportX-reviewed scorecards from official tournaments.", lvl: "L3" },
+  { i: "4", n: "Match Verify",  d: "AthlasX-reviewed scorecards from official tournaments.", lvl: "L3" },
   { i: "5", n: "Discover",      d: "Verified scouts surface you in role-scoped search.", },
   { i: "6", n: "Endorse",       d: "Trial invites and scout endorsement unlock the highest tier.", lvl: "L4" },
 ];
@@ -19,7 +19,7 @@ const PHASES = [
 const LEVELS = [
   { n: "L1 · Self Registered",   d: "Profile created",                            col: "#6A746C" },
   { n: "L2 · Identity Verified", d: "Aadhaar checked, name & DOB match profile",  col: "#4D9FFF" },
-  { n: "L3 · Performance Verified", d: "Three scorecards approved by SportX",     col: "#2EE07B" },
+  { n: "L3 · Performance Verified", d: "Three scorecards approved by AthlasX",     col: "#2EE07B" },
   { n: "L4 · Scout Verified",    d: "Endorsed by a verified scout at trial / match", col: "#EAB308" },
 ];
 
@@ -47,7 +47,7 @@ export default function LandingSections() {
       {/* ── Workflow strip ─────────────────────────────────────────── */}
       <section className="ls-section">
         <div className="ls-shell">
-          <div className="ls-eyebrow">How SportX Works</div>
+          <div className="ls-eyebrow">How AthlasX Works</div>
           <h2 className="ls-h2">A six-phase pathway from sign-up to scout-verified.</h2>
           <p className="ls-sub">
             Every signal a scout sees has been verified by a different part of the network.
@@ -159,7 +159,7 @@ export default function LandingSections() {
       <footer className="ls-foot">
         <div className="ls-shell ls-foot-inner">
           <div className="ls-foot-brand">
-            <strong>SportX</strong>
+            <strong>AthlasX</strong>
             <span>India&apos;s Cricket Talent Discovery Platform</span>
           </div>
           <div className="ls-foot-links">

@@ -1,8 +1,8 @@
-# SportX V1 — Workflow Architecture
+﻿# AthlasX V1 — Workflow Architecture
 
 > Programmatic workflows, database state machines, and API surface for the four
 > core role pipelines: **Academy Admin / Coach**, **Scout**, **Tournament Organizer**,
-> and **SportX Admin**.
+> and **AthlasX Admin**.
 >
 > Grounded in the **live Neon schema** (`lib/schema.sql`) — which is what actually
 > runs — not the additive Prisma target (`prisma/schema.prisma`). The two diverge;
@@ -32,7 +32,7 @@ is the artifact each phase emits.
 | **Player** | Claim invite / self-register | OTP + Aadhaar + guardian consent → `Active` | Stats, media, fitness | Submit evidence | Toggle `Scout Visible` (gated) | Receive scout trial invites |
 | **Scout** | *(passive)* | *(passive)* | *(passive)* | *(passive)* | Compound filter search | Watchlist + private notes + trial invite |
 | **Tournament Org** | Create Match + scorecard | Auto-create placeholder profiles | Write `match_logs` rows | OCR confidence → review queue | *(passive)* | *(passive)* |
-| **SportX Admin** | *(passive)* | Approve identity (`level 1→2`) | *(passive)* | Approve evidence (`level →3`), gate visibility | Approve placeholder claims | Approve / Reject / Suspend any entity |
+| **AthlasX Admin** | *(passive)* | Approve identity (`level 1→2`) | *(passive)* | Approve evidence (`level →3`), gate visibility | Approve placeholder claims | Approve / Reject / Suspend any entity |
 | **Output rail** | Draft rows + tokens | `account_status=Active` | Assessment history | `verification_level↑` | Searchable index | Watchlist / trial / engagement |
 
 ---
@@ -309,7 +309,7 @@ POST /api/admin/claim-requests/[id]/approve | /reject
 
 ---
 
-## 4. SportX Admin — verification, visibility gating, account control
+## 4. AthlasX Admin — verification, visibility gating, account control
 
 ### 4.1 Verification level promotion
 
@@ -323,7 +323,7 @@ POST /api/admin/verifications/[id]/approve
   rules:
     require evidence_url IS NOT NULL                 -- can't promote without evidence
     require target_level == current_level + 1        -- no skipping levels
-    require reviewer.role == 'sportx_admin'
+    require reviewer.role == 'athlasx_admin'
   effect:
     verifications.status='Approved', reviewed_by, reviewed_at
     player_profiles.verification_level = target_level
@@ -364,7 +364,7 @@ POST /api/admin/users/[id]/status   { action: 'Approve'|'Reject'|'Suspend'|'Rein
   Reject    → account_status='pending', profile_status='Rejected'  (editable)
   Suspend   → account_status='suspended' (blocks login + hides from discovery)
   Reinstate → account_status='active'
-  guards: reviewer.role=='sportx_admin'; log to admin_notifications / fraud_flags
+  guards: reviewer.role=='athlasx_admin'; log to admin_notifications / fraud_flags
 ```
 
 ### 4.4 Validation rule engine (declarative)
@@ -402,12 +402,12 @@ function enforce(action, ctx) {
 | `/api/coach/*` | `coach` | `coach_status='APPROVED'` + owns player via academy |
 | `/api/scout/*` | `scout` | `scout_user_id == session.id` on every row |
 | `/api/tournament/*` | `tournament_organizer` | owns the match |
-| `/api/admin/*` | `sportx_admin` | — |
+| `/api/admin/*` | `athlasx_admin` | — |
 | `/api/claim/*`, `/api/auth/*` | public / claimer | token validity |
 
 > **Role-value gotcha (from memory):** the codebase carries dual admin role values
-> (`sportx_admin` vs legacy). Gate on a normalized set, e.g.
-> `['sportx_admin','admin'].includes(role)`, not a single literal.
+> (`athlasx_admin` vs legacy). Gate on a normalized set, e.g.
+> `['athlasx_admin','admin'].includes(role)`, not a single literal.
 
 ---
 

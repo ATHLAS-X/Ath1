@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import type { DashboardData } from "@/components/dashboard/types";
 
 export async function loadDashboardUser(userId: string) {
@@ -74,7 +74,7 @@ export async function loadDashboardData(
       SELECT total_score, performance_score, experience_score, fitness_score,
              verification_score, mindset_score, profile_score, verification_pts,
              trajectory_boost, coach_verified, profile_strength, roadmap, status
-      FROM sportx_score WHERE user_id = ${userId} LIMIT 1
+      FROM athlasx_score WHERE user_id = ${userId} LIMIT 1
     ` as unknown as Promise<any[]>, [] as any[]),
     safeSql(sql`SELECT age_verified, verified_dob, verification_pts FROM aadhaar_verification
         WHERE user_id = ${userId} ORDER BY created_at DESC LIMIT 1` as unknown as Promise<any[]>, [] as any[]),

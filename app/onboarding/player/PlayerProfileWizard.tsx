@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 interface StepMeta { n: number; name: string; optional?: boolean }
 const STEPS: readonly StepMeta[] = [
@@ -599,10 +599,10 @@ function Step8({ form, set, isMinor, age }: any) {
       )}
 
       {[
-        { k: "profile_visibility_ok", label: "I consent to my profile being visible to verified scouts when SportX makes it Live." },
+        { k: "profile_visibility_ok", label: "I consent to my profile being visible to verified scouts when AthlasX makes it Live." },
         { k: "media_upload_ok",       label: "I consent to media (videos, photos) being hosted and shown on my profile." },
         { k: "scout_contact_ok",      label: "I consent to verified scouts contacting me about trials and opportunities." },
-        { k: "data_usage_ok",         label: "I consent to my performance data being used by SportX's intelligence layer." },
+        { k: "data_usage_ok",         label: "I consent to my performance data being used by AthlasX's intelligence layer." },
       ].map((c) => (
         <label key={c.k} className="pw-consent">
           <input type="checkbox" checked={!!form[c.k]} onChange={(e) => set(c.k, e.target.checked)} />

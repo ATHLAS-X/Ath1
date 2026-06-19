@@ -1,13 +1,13 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { initials } from "@/components/sx/widgets";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 const ROLE_BADGE: Record<string, string> = {
   player: "green", parent: "ghost", academy_admin: "purple", coach: "blue",
-  scout: "amber", tournament_organizer: "blue", sportx_admin: "red",
+  scout: "amber", tournament_organizer: "blue", athlasx_admin: "red",
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -74,7 +74,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
               <option value="coach">Coach</option>
               <option value="scout">Scout</option>
               <option value="tournament_organizer">Tournament Organizer</option>
-              <option value="sportx_admin">SportX Admin</option>
+              <option value="athlasx_admin">AthlasX Admin</option>
             </select>
             <span style={{ marginLeft: "auto", alignSelf: "center", color: "var(--mut)", fontSize: 12 }}>
               {users.length} users
@@ -108,7 +108,7 @@ export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
                       {new Date(u.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })}
                     </td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      {u.role !== "sportx_admin" && (
+                      {u.role !== "athlasx_admin" && (
                         <>
                           {u.account_status !== "active" && (
                             <button className="btn sm green" disabled={busy === u.id}

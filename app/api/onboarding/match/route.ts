@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import { advanceStep } from "@/lib/onboarding";
 import { fail, ok, requireUserId, saveUpload } from "@/lib/onboarding-server";
 
@@ -17,7 +17,7 @@ const MQI_WEIGHTS: Record<string, number> = {
 //   3. If confidence >= 0.80 → ocr_status = 'VERIFIED' (auto-award pts).
 //      If confidence <  0.80 → ocr_status = 'MANUAL_REVIEW' (route to P8 review queue).
 //   4. Compare OCR values against user-entered runs/wickets; flag mismatches.
-//   5. On manual review approval, raise an event that re-runs the SportX score job.
+//   5. On manual review approval, raise an event that re-runs the AthlasX score job.
 
 export async function POST(req: Request) {
   const guard = await requireUserId();

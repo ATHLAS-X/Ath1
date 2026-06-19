@@ -1,9 +1,9 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 import { VERIFICATION_LEVELS } from "@/lib/profile-completion";
 import type { CompletionResult } from "@/lib/profile-completion";
 
@@ -200,7 +200,7 @@ export default function PlayerDashboardClient(p: Props) {
                 </>
               ) : REVIEWING_STATUSES.has(p.profileStatus) ? (
                 <p style={{ color: "var(--amber)", fontSize: 13 }}>
-                  ⏳ SportX Admin is reviewing your profile. You&apos;ll be notified
+                  ⏳ AthlasX Admin is reviewing your profile. You&apos;ll be notified
                   once it goes Live.
                 </p>
               ) : APPROVED_STATUSES.has(p.profileStatus) ? (

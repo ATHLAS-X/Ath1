@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -204,7 +204,7 @@ export default function StepCoachVerify({ currentStep, completedSteps, readOnly 
       ) : (
         <div className="p-4 rounded-lg" style={{ background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.3)" }}>
           <p className="text-sm" style={{ color: "#E2E8F0" }}>
-            No coach yet. Your profile will be discoverable once your SportX Score exceeds <strong style={{ color: "#F59E0B" }}>60</strong>.
+            No coach yet. Your profile will be discoverable once your AthlasX Score exceeds <strong style={{ color: "#F59E0B" }}>60</strong>.
           </p>
         </div>
       )}

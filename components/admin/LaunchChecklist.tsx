@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -92,7 +92,7 @@ export default function LaunchChecklist() {
               <ChevronLeft size={12} /> Back to admin
             </Link>
             <p className="text-[10px] uppercase tracking-widest mt-1" style={{ color: T.accent }}>
-              SportX V1
+              AthlasX V1
             </p>
             <h1 className="text-2xl font-extrabold">Launch Readiness Checklist</h1>
             {data && (

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Shared metadata for the 12-step onboarding journey.
  * Used by the layout, step router, StepShell timeline, and API routes.
  */
@@ -24,7 +24,7 @@ export const ONBOARDING_STEPS: OnboardingStepMeta[] = [
   { step: 8,  slug: "behaviour",      name: "Behaviour",       short: "Behaviour",  componentName: "StepBehaviour",   systemFields: ["behavioral_assessment.mcq_answers", "mental_rating", "mindset_score"] },
   { step: 9,  slug: "video-ai",       name: "Video AI",        short: "Video AI",   componentName: "StepVideoAI",     systemFields: ["video_analysis.batting_style", "wrist_movement", "foot_work", "strong_points", "weak_points"] },
   { step: 10, slug: "coach-verify",   name: "Coach Verify",    short: "Coach",      componentName: "StepCoachVerify", systemFields: ["coach_registry.coach_name", "official_id", "cert_url", "coach_status"] },
-  { step: 11, slug: "score",          name: "SportX Score",    short: "Score",      componentName: "StepScore",       systemFields: ["sportx_score.total_score", "profile_strength", "roadmap", "score_history"] },
+  { step: 11, slug: "score",          name: "AthlasX Score",    short: "Score",      componentName: "StepScore",       systemFields: ["athlasx_score.total_score", "profile_strength", "roadmap", "score_history"] },
   { step: 12, slug: "discover",       name: "Discover",        short: "Discover",   componentName: "StepDiscover",    systemFields: ["onboarding_progress.status = COMPLETED", "/dashboard"] },
 ];
 

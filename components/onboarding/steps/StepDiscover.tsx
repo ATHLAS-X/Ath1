@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -217,7 +217,7 @@ export default function StepDiscover({ currentStep, completedSteps, readOnly }: 
         className="p-3 rounded-md font-mono text-xs space-y-1"
         style={{ background: "#050D18", border: "1px solid #1E3A5F", color: "#86EFAC" }}
       >
-        <p>Fields: role · sportx_score · age · phase_specialty · district · coach_verified · profile_strength</p>
+        <p>Fields: role · athlasx_score · age · phase_specialty · district · coach_verified · profile_strength</p>
       </div>
       <p className="text-xs uppercase tracking-widest pt-1" style={{ color: "#64748B" }}>Ranking</p>
       <p className="text-xs" style={{ color: "#94A3B8" }}>
@@ -228,7 +228,7 @@ export default function StepDiscover({ currentStep, completedSteps, readOnly }: 
         WebSocket fan-out to scouts within a 60s SLA.
       </p>
       <p className="text-xs pt-2" style={{ color: "#64748B" }}>
-        Flips <code>sportx_score.status</code> to <strong>ACTIVE</strong> and <code>elasticsearch_indexed</code> to <strong>true</strong>.
+        Flips <code>athlasx_score.status</code> to <strong>ACTIVE</strong> and <code>elasticsearch_indexed</code> to <strong>true</strong>.
       </p>
     </div>
   );

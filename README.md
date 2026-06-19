@@ -1,4 +1,4 @@
-# Athlasx
+﻿# Athlasx
 India's cricket talent discovery platform.
 
 India's Cricket Talent Discovery Platform — Next.js 14 (App Router) + TypeScript + Tailwind, NeonDB Postgres, NextAuth (Credentials + JWT).
@@ -15,10 +15,10 @@ All required, set in `.env.local` for development and as Vercel Project Environm
 
 ## Local Setup
 
-Project location: `C:\Users\saura\SportX`
+Project location: `C:\Users\saura\AthlasX`
 
 ```powershell
-cd C:\Users\saura\SportX
+cd C:\Users\saura\AthlasX
 # Ensure .env.local has DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL set
 npm install
 npm run db:init   # applies lib/schema.sql to Neon
@@ -46,7 +46,7 @@ The academy admin surface (sign-up → onboarding wizard → dashboard → playe
 
 ### 1. Database setup
 
-SportX uses NeonDB Postgres. If you'd rather mirror the original Supabase-shaped prompts, the env keys are reserved in `.env.local.example` — wire up your own client and the surface code works as-is.
+AthlasX uses NeonDB Postgres. If you'd rather mirror the original Supabase-shaped prompts, the env keys are reserved in `.env.local.example` — wire up your own client and the surface code works as-is.
 
 - Create a Neon project at https://neon.tech and copy the pooled connection string into `DATABASE_URL` (or your equivalent Supabase URL + service-role key).
 - The default schema lives at `lib/schema.sql`.

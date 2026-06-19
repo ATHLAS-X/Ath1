@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS users (
+﻿CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(100) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS users_account_status_idx ON users(account_status);
 
 -- Allowed roles (CHECK enforced softly via app layer; CHECK constraint
 -- avoided here so old rows with legacy values don't block migrations):
---   player, parent, academy_admin, coach, scout, tournament_organizer, sportx_admin
+--   player, parent, academy_admin, coach, scout, tournament_organizer, athlasx_admin
 -- Allowed account_status values: pending, active, suspended
 
 -- Phone OTP table — short-lived 6-digit codes
@@ -370,7 +370,7 @@ CREATE TABLE IF NOT EXISTS coach_registry (
 );
 CREATE INDEX IF NOT EXISTS coach_registry_user_id_idx ON coach_registry(user_id);
 
-CREATE TABLE IF NOT EXISTS sportx_score (
+CREATE TABLE IF NOT EXISTS athlasx_score (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   total_score INTEGER DEFAULT 0,
@@ -388,7 +388,7 @@ CREATE TABLE IF NOT EXISTS sportx_score (
   score_history JSONB DEFAULT '[]',
   updated_at TIMESTAMP DEFAULT NOW()
 );
-CREATE UNIQUE INDEX IF NOT EXISTS sportx_score_user_id_uidx ON sportx_score(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS athlasx_score_user_id_uidx ON athlasx_score(user_id);
 
 -- Score-weight configuration captured at Step 4 (role).
 ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS score_weights JSONB;
@@ -418,10 +418,10 @@ ALTER TABLE coach_registry ADD COLUMN IF NOT EXISTS invite_id UUID REFERENCES co
 ALTER TABLE coach_registry ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
 
 -- Score / discovery surface added in Steps 11 + 12.
-ALTER TABLE sportx_score ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'IN_PROGRESS';
-ALTER TABLE sportx_score ADD COLUMN IF NOT EXISTS elasticsearch_indexed BOOLEAN DEFAULT false;
-ALTER TABLE sportx_score ADD COLUMN IF NOT EXISTS calculated_at TIMESTAMP;
-ALTER TABLE sportx_score ADD COLUMN IF NOT EXISTS activated_at TIMESTAMP;
+ALTER TABLE athlasx_score ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'IN_PROGRESS';
+ALTER TABLE athlasx_score ADD COLUMN IF NOT EXISTS elasticsearch_indexed BOOLEAN DEFAULT false;
+ALTER TABLE athlasx_score ADD COLUMN IF NOT EXISTS calculated_at TIMESTAMP;
+ALTER TABLE athlasx_score ADD COLUMN IF NOT EXISTS activated_at TIMESTAMP;
 
 -- Player avatar (uploaded photo for the profile card).
 ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500);

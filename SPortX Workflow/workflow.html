@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>SportX Player Workflow</title>
+﻿<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>AthlasX Player Workflow</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{--g:#22C55E;--gd:#0F2419;--gm:#1A3A28;--bg:#050505;--card:#0C0C0C;--card2:#111111;--border:#1E1E1E;--text:#FFFFFF;--muted:#A1A1AA;--dim:#52525B;--fe:#0A1A2E;--be:#0E1F16;}
@@ -225,12 +225,12 @@ fe:`<div class="panel-label fe-l"><div class="dot-fe"></div>FRONTEND &mdash; Ver
 <div class="vsrc active"><div class="vsrc-icon" style="background:var(--gm);">&#128104;&#8205;&#127979;</div><div><div class="vsrc-title">Coach Confirmation</div><div class="vsrc-sub">Ramesh Verma confirmed student status via SMS link</div></div><div class="vsrc-pts">+5</div></div>`,
 be:`<div class="panel-label be-l"><div class="dot-be"></div>BACKEND &mdash; Verification Engine</div>
 <div class="be-step"><div class="be-num">1</div><div class="be-text"><b>SMS peer:</b> Twilio WhatsApp sends YES/NO to teammate's phone. Reply logged. Phone stored as trust anchor (Aadhaar-linked SIM).</div></div>
-<div class="be-step"><div class="be-num">2</div><div class="be-text"><b>CricHeroes CSV:</b> Player downloads their own export. SportX parses it. Avg diff = 3% (&lt;15%) &rarr; EXPORT_VERIFIED. +4 pts.</div></div>
+<div class="be-step"><div class="be-num">2</div><div class="be-text"><b>CricHeroes CSV:</b> Player downloads their own export. AthlasX parses it. Avg diff = 3% (&lt;15%) &rarr; EXPORT_VERIFIED. +4 pts.</div></div>
 <div class="be-step"><div class="be-num">3</div><div class="be-text"><b>Coach:</b> Coach receives SMS link, confirms student. +5 pts. Tier engine recalculates: 11 pts &rarr; Tier 1.</div></div>
 <div class="code-block"><span class="n">total</span>: sms(<span class="k">2</span>)+ch(<span class="k">4</span>)+coach(<span class="k">5</span>)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span class="n">11</span> pts<br><span class="k">tierEngine</span>(11) &rarr; <span class="n">TIER_1</span></div>`,
 flow:"Trust Points",data:[["SMS Peers","+2 pts"],["CricHeroes","+4 pts"],["Coach","+5 pts"],["Total","11/15 pts"],["Tier","1 — Verified"]]},
 
-{label:"Score",title:"SportX Score Calculation",sub:"BPI &middot; CBR &middot; MQI-Weighted &middot; 6 Categories &middot; Live Pipeline",
+{label:"Score",title:"AthlasX Score Calculation",sub:"BPI &middot; CBR &middot; MQI-Weighted &middot; 6 Categories &middot; Live Pipeline",
 fe:`<div class="panel-label fe-l"><div class="dot-fe"></div>FRONTEND &mdash; Score Display</div>
 <div style="display:flex;align-items:center;gap:18px;margin-bottom:8px;">
 <div class="score-ring"><svg viewBox="0 0 86 86" width="86" height="86"><circle class="ring-track" cx="43" cy="43" r="38"/><circle class="ring-fill" cx="43" cy="43" r="38" style="stroke-dashoffset:72"/></svg><div class="score-num">79<span>/100</span></div></div>
@@ -257,7 +257,7 @@ fe:`<div class="panel-label fe-l"><div class="dot-fe"></div>FRONTEND &mdash; Pro
 <div style="font-size:.58rem;color:var(--muted);margin-top:5px;">Visible in all scout searches &middot; Priority ranking</div>
 </div>
 <div style="display:flex;gap:8px;justify-content:center;">
-<div style="text-align:center;padding:8px 14px;border-radius:10px;background:var(--gm);border:1px solid rgba(34,197,94,.3);"><div style="font-size:1rem;font-weight:800;color:var(--g);">79</div><div style="font-size:.52rem;color:var(--muted);">SportX Score</div></div>
+<div style="text-align:center;padding:8px 14px;border-radius:10px;background:var(--gm);border:1px solid rgba(34,197,94,.3);"><div style="font-size:1rem;font-weight:800;color:var(--g);">79</div><div style="font-size:.52rem;color:var(--muted);">AthlasX Score</div></div>
 <div style="text-align:center;padding:8px 14px;border-radius:10px;background:var(--gm);border:1px solid rgba(34,197,94,.3);"><div style="font-size:1rem;font-weight:800;color:var(--g);">78%</div><div style="font-size:.52rem;color:var(--muted);">IPL Readiness</div></div>
 <div style="text-align:center;padding:8px 14px;border-radius:10px;background:var(--gm);border:1px solid rgba(34,197,94,.3);"><div style="font-size:1rem;font-weight:800;color:var(--g);">#247</div><div style="font-size:.52rem;color:var(--muted);">Openers &middot; UP</div></div>
 </div>`,

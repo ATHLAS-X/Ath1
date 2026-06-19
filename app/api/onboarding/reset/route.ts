@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import { fail, ok, requireUserId } from "@/lib/onboarding-server";
 
 /**
@@ -23,7 +23,7 @@ export async function POST() {
   await sql`DELETE FROM video_analysis WHERE user_id = ${u}`;
   await sql`DELETE FROM coach_registry WHERE user_id = ${u}`;
   await sql`DELETE FROM coach_invites WHERE user_id = ${u}`;
-  await sql`DELETE FROM sportx_score WHERE user_id = ${u}`;
+  await sql`DELETE FROM athlasx_score WHERE user_id = ${u}`;
   await sql`
     UPDATE player_profiles
     SET coach_verified = false, score_weights = NULL

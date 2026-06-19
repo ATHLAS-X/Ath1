@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -303,7 +303,7 @@ export default function StepBehaviour({ currentStep, completedSteps, readOnly }:
         rule-based analysis so the flow still completes.
       </p>
       <p className="text-xs" style={{ color: "#86EFAC" }}>
-        Mindset contributes <strong>10%</strong> of your SportX Score.
+        Mindset contributes <strong>10%</strong> of your AthlasX Score.
       </p>
       <p className="text-xs" style={{ color: "#64748B" }}>Persisted to <code>behavioral_assessment</code>.</p>
     </div>

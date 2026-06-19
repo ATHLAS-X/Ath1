@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Typed dashboard data layer — one contract per role.
  *
  * Every dashboard page (Player / Scout / Coach / Admin) reads its props from
@@ -25,7 +25,7 @@
 
 // ─── Shared primitives ──────────────────────────────────────────────────────
 
-export type Role = "player" | "coach" | "scout" | "academy_admin" | "sportx_admin";
+export type Role = "player" | "coach" | "scout" | "academy_admin" | "athlasx_admin";
 
 export type VerificationLevel = 1 | 2 | 3 | 4;
 export type ProfileStatus = "Draft" | "Pending Approval" | "Approved" | "Rejected";
@@ -302,7 +302,7 @@ export async function loadDashboard(role: Role, userId: string) {
     case "player":         return loadPlayerDashboard(userId);
     case "coach":          return loadCoachDashboard(userId);
     case "scout":          return loadScoutDashboard(userId);
-    case "sportx_admin":   return loadAdminDashboard(userId);
+    case "athlasx_admin":   return loadAdminDashboard(userId);
     case "academy_admin":  return loadAdminDashboard(userId); // separate loader can replace this
   }
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -289,7 +289,7 @@ export default function StepFitness({ currentStep, completedSteps, readOnly }: P
         </table>
       </div>
       <p className="text-xs" style={{ color: "#86EFAC" }}>
-        Fitness contributes <strong>15%</strong> of your SportX Score.
+        Fitness contributes <strong>15%</strong> of your AthlasX Score.
       </p>
       <p className="text-xs" style={{ color: "#64748B" }}>Persisted to <code>fitness_data</code>.</p>
     </div>

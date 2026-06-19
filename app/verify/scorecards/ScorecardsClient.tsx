@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -162,7 +162,7 @@ export default function ScorecardsClient({ identityVerified, initialMatches }: P
             )}
           </VCCard>
 
-          <VCCard title="Submit Scorecard" action={<span className="bdg ghost">Reviewed by SportX</span>}>
+          <VCCard title="Submit Scorecard" action={<span className="bdg ghost">Reviewed by AthlasX</span>}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 12px" }}>
               <div style={{ gridColumn: "1 / -1" }}>
                 <VCField label="Tournament / League">
@@ -256,7 +256,7 @@ export default function ScorecardsClient({ identityVerified, initialMatches }: P
           </VCCard>
 
           <VCCard title="Review Process">
-            <div className="vc-li"><span className="m n">1</span><span>SportX verification team checks the scorecard (2–3 days)</span></div>
+            <div className="vc-li"><span className="m n">1</span><span>AthlasX verification team checks the scorecard (2–3 days)</span></div>
             <div className="vc-li"><span className="m n">2</span><span>Cross-checked with the tournament organizer where possible</span></div>
             <div className="vc-li"><span className="m n">3</span><span>Approved figures merge into your verified match history</span></div>
           </VCCard>

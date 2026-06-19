@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { motion } from "framer-motion";
-import SportXLogo from "@/components/SportXLogo";
+import AthlasXLogo from "@/components/AthlasXLogo";
 
 const SUBHEADLINE = "Discover. Verify. Scout.";
 
@@ -45,7 +45,7 @@ export default function HeroOverlay() {
       {/* Wordmark */}
       <header className="flex items-center justify-between p-6 pointer-events-auto">
         <div className="flex items-center gap-3">
-          <SportXLogo size="md" />
+          <AthlasXLogo size="md" />
         </div>
         <Link href="/auth/login" className="text-sm text-white/70 hover:text-white transition-colors">
           Login
@@ -56,7 +56,7 @@ export default function HeroOverlay() {
       <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
         <h1 className="relative font-extrabold tracking-tight leading-tight" style={{ textShadow: "0 2px 16px rgba(0,0,0,0.85), 0 1px 4px rgba(0,0,0,0.9)" }}>
           <span className="block text-[52px] sm:text-[80px]">
-            <span className="hero-word inline-block text-white">SportX</span>
+            <span className="hero-word inline-block text-white">AthlasX</span>
           </span>
           <span className="block text-[28px] sm:text-[42px] font-semibold tracking-wide">
             <span

@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 interface Invite {
   id: string;
@@ -96,7 +96,7 @@ export default function BulkUploadClient({ academyName, academyStatus, recentInv
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "sportx-player-template.csv";
+    a.download = "athlasx-player-template.csv";
     a.click();
     URL.revokeObjectURL(url);
   }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -189,7 +189,7 @@ export default function StepScore({ currentStep, completedSteps, readOnly }: Pro
 
   const backend = (
     <div className="space-y-3 text-sm" style={{ color: "#94A3B8" }}>
-      <h3 className="text-base font-semibold" style={{ color: "#E2E8F0" }}>SportX Score formula</h3>
+      <h3 className="text-base font-semibold" style={{ color: "#E2E8F0" }}>AthlasX Score formula</h3>
       <div
         className="p-3 rounded-md font-mono text-xs space-y-1"
         style={{ background: "#050D18", border: "1px solid #1E3A5F", color: "#86EFAC" }}
@@ -208,7 +208,7 @@ export default function StepScore({ currentStep, completedSteps, readOnly }: Pro
       <p className="text-xs" style={{ color: "#94A3B8" }}>
         Score +5pts in 30 days → ×1.2 in search ranking.
       </p>
-      <p className="text-xs pt-2" style={{ color: "#64748B" }}>Persisted to <code>sportx_score</code>.</p>
+      <p className="text-xs pt-2" style={{ color: "#64748B" }}>Persisted to <code>athlasx_score</code>.</p>
     </div>
   );
 

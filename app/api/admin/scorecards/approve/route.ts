@@ -1,7 +1,7 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-server";
 import { ok, fail } from "@/lib/onboarding-server";
-import { calculateSportXScore } from "@/lib/score-engine";
+import { calculateAthlasXScore } from "@/lib/score-engine";
 
 export async function POST(req: Request) {
   const guard = await requireAdmin();
@@ -46,13 +46,13 @@ export async function POST(req: Request) {
   `) as unknown as Array<{ total_pts: number }>;
   const newVerificationPts = Math.min(15, sums[0]?.total_pts ?? 0);
   await sql`
-    INSERT INTO sportx_score (user_id, verification_score)
+    INSERT INTO athlasx_score (user_id, verification_score)
     VALUES (${playerId}, ${newVerificationPts})
     ON CONFLICT (user_id) DO UPDATE SET verification_score = ${newVerificationPts}
   `;
 
   // 5: Recompute total via the score engine (handles the full breakdown).
-  const result = await calculateSportXScore(playerId);
+  const result = await calculateAthlasXScore(playerId);
 
   // 6:
   return ok({

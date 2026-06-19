@@ -1,4 +1,4 @@
-// SportX V1 Data Model — Prisma schema
+﻿// AthlasX V1 Data Model — Prisma schema
 // Generated from "MVP flows and data model.docx"
 //
 // Conventions:
@@ -29,7 +29,7 @@ enum UserRole {
   COACH
   SCOUT
   TOURNAMENT_ORGANIZER
-  SPORTX_ADMIN
+  ATHLASX_ADMIN
 }
 
 enum AccountStatus {

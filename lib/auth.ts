@@ -1,4 +1,4 @@
-import type { NextAuthOptions } from "next-auth";
+﻿import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { sql } from "@/lib/db";
@@ -11,7 +11,7 @@ export const ROLES = [
   "coach",
   "scout",
   "tournament_organizer",
-  "sportx_admin",
+  "athlasx_admin",
 ] as const;
 export type UserRole = (typeof ROLES)[number];
 

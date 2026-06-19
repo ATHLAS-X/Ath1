@@ -1,10 +1,10 @@
-{
+﻿{
   "permissions": {
     "allow": [
       "Bash(npm run *)",
-      "Bash(Test-Path \"C:/Users/saura/OneDrive - UPES/SportX/.env.local\")",
+      "Bash(Test-Path \"C:/Users/saura/OneDrive - UPES/AthlasX/.env.local\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
-      "Bash(mkdir -p \"C:/Users/saura/OneDrive - UPES/SportX/.claude\")",
+      "Bash(mkdir -p \"C:/Users/saura/OneDrive - UPES/AthlasX/.claude\")",
       "mcp__Claude_Preview__preview_start",
       "mcp__Claude_in_Chrome__list_connected_browsers"
     ]

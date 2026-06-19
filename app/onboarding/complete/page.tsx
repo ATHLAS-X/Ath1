@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -52,7 +52,7 @@ export default function OnboardingCompletePage() {
         <CheckCircle2 size={56} style={{ color: "#22C55E", margin: "0 auto" }} />
         <h1 className="text-3xl font-extrabold">You&rsquo;re discoverable!</h1>
         <p style={{ color: "#94A3B8" }}>
-          Your SportX profile is live and visible to scouts across India. Redirecting you to your dashboard…
+          Your AthlasX profile is live and visible to scouts across India. Redirecting you to your dashboard…
         </p>
         <div className="flex justify-center">
           <ScoreRing score={score} size="lg" animate />

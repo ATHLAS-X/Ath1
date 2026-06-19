@@ -1,4 +1,4 @@
-**SportX**
+﻿**AthlasX**
 
 **Cricket Ecosystem Research & Strategic Foundation**
 
@@ -10,7 +10,7 @@ Version 1.0  |  June 2026  |  Internal — Confidential
 
 # 1. The Indian Cricket Ecosystem
 
-India's cricket structure operates across six distinct levels. Understanding each level — its players, structure, data availability, and relationship to the next — is the foundation of SportX's product strategy.
+India's cricket structure operates across six distinct levels. Understanding each level — its players, structure, data availability, and relationship to the next — is the foundation of AthlasX's product strategy.
 
 ## 1.1 Level Overview
 
@@ -51,9 +51,9 @@ Private cricket academies are the most important talent-development layer in Ind
 
 •        This is the level where family investment is highest (families spend ₹15,000–₹2,00,000+ per year on coaching), and where the emotional and financial stakes of not being discovered are greatest.
 
-## 1.4 District Level (Level 4) — The Primary SportX Target
+## 1.4 District Level (Level 4) — The Primary AthlasX Target
 
-This is the most strategically important level for SportX's MVP. District cricket is the first point of official, structured competition in India's cricket pathway.
+This is the most strategically important level for AthlasX's MVP. District cricket is the first point of official, structured competition in India's cricket pathway.
 
 •        Governed by District Cricket Associations (DCAs), which are registered units under BCCI-affiliated state associations. There are 700+ DCAs across India.
 
@@ -77,15 +77,15 @@ State cricket is where the official BCCI pathway begins. Players at this level a
 
 •        Data at this level is fully public: scorecards are on Cricinfo, ESPNcricinfo, and BCCI.tv. Players have formal BCCI registration IDs.
 
-•        IPL franchises employ 10–30 scouts who monitor all televised domestic T20 and List A matches. The discovery problem is largely solved at this level — SportX's role here shifts from discovery to analytics.
+•        IPL franchises employ 10–30 scouts who monitor all televised domestic T20 and List A matches. The discovery problem is largely solved at this level — AthlasX's role here shifts from discovery to analytics.
 
   
 
-# 2. Where SportX Creates Maximum Impact
+# 2. Where AthlasX Creates Maximum Impact
 
 ## 2.1 The Critical Gap: Level 4 → Level 3
 
-The most significant, most solvable, and most commercially attractive gap in Indian cricket is between district-level players (Level 4) and the national pathway (Level 3). This is SportX's primary opportunity.
+The most significant, most solvable, and most commercially attractive gap in Indian cricket is between district-level players (Level 4) and the national pathway (Level 3). This is AthlasX's primary opportunity.
 
 |**Dimension**|**Level 5 (Academy/Grassroots)**|**Level 4 (District)**|**Level 2→1 (Domestic→IPL)**|
 |---|---|---|---|
@@ -96,7 +96,7 @@ The most significant, most solvable, and most commercially attractive gap in Ind
 |Scout/buyer motivation|Low|High (state selectors)|Very high (IPL) but served|
 |CricHeroes overlap|Low penetration|40–60% penetration|Full public data|
 |Partnership dependency|Very high|Manageable|None needed|
-|SportX's role|Post-MVP expansion|Discovery platform — MVP|Analytics tool — V2|
+|AthlasX's role|Post-MVP expansion|Discovery platform — MVP|Analytics tool — V2|
 
 ## 2.2 The Level 4 Opportunity in Detail
 
@@ -108,7 +108,7 @@ The most significant, most solvable, and most commercially attractive gap in Ind
 
 •        The IPL has demonstrated demand: CricHeroes' query to find T20 tournaments in April revealed matches in Nellore, Palakkad, and Hooghly — districts the scouting community has almost zero visibility on.
 
-•        One confirmed IPL scout publicly stated: 'I long for the day when all the games taped by the BCCI are put up on an online server that every franchise can access.' That server doesn't exist at district level. That is SportX.
+•        One confirmed IPL scout publicly stated: 'I long for the day when all the games taped by the BCCI are put up on an online server that every franchise can access.' That server doesn't exist at district level. That is AthlasX.
 
   
 
@@ -156,7 +156,7 @@ The most significant, most solvable, and most commercially attractive gap in Ind
 
 •        Under-resourced selectors: State selection panels are volunteer-run in many states. They don't have the bandwidth to systematically scout all 700+ DCAs in their state. They rely on trusted intermediaries (coaches, ex-players) — which recreates the network-dependency problem.
 
-•        Women's pathway near-invisible: Despite BCCI's investment in women's cricket, the female talent pipeline at district and academy level is almost entirely undocumented. A significant opportunity SportX should not ignore.
+•        Women's pathway near-invisible: Despite BCCI's investment in women's cricket, the female talent pipeline at district and academy level is almost entirely undocumented. A significant opportunity AthlasX should not ignore.
 
   
 
@@ -164,7 +164,7 @@ The most significant, most solvable, and most commercially attractive gap in Ind
 
 ## 4.1 Official / Semi-Official Databases
 
-|**Source**|**Level**|**Data Type**|**Accessibility**|**Reliability**|**SportX Use**|
+|**Source**|**Level**|**Data Type**|**Accessibility**|**Reliability**|**AthlasX Use**|
 |---|---|---|---|---|---|
 |BCCI Player Registration|L2–L3|Official ID, age, state affiliation|Restricted (official partner only)|Very high|Auto-verify L2/L3 players — Tier 0|
 |ESPNcricinfo / Cricinfo|L2–L3|Full scorecards, player stats, career records|Public|High|Cross-reference L2/L3 stats|
@@ -178,7 +178,7 @@ The most significant, most solvable, and most commercially attractive gap in Ind
 
 ## 4.2 CricHeroes as the Primary L4 Data Backbone
 
-CricHeroes is the single most important external data source for SportX at Level 4. Key facts about the platform:
+CricHeroes is the single most important external data source for AthlasX at Level 4. Key facts about the platform:
 
 •        40 million+ registered cricketers on the platform — the largest grassroots cricket database in the world.
 
@@ -186,17 +186,17 @@ CricHeroes is the single most important external data source for SportX at Level
 
 •        Covers tournament scoring, live streaming, player profiles, team management, ground management, and academy listings.
 
-•        Primary competitive risk: CricHeroes has the data AND the distribution but has not built a scout-facing discovery product. Their business model is ad-supported community product, not B2B scouting tool. This is SportX's structural opening.
+•        Primary competitive risk: CricHeroes has the data AND the distribution but has not built a scout-facing discovery product. Their business model is ad-supported community product, not B2B scouting tool. This is AthlasX's structural opening.
 
-•        Partnership strategy: SportX should pursue CricHeroes data integration (API or data-sharing agreement) rather than trying to replicate their data collection. The scout-side product is SportX's moat, not the scoring data.
+•        Partnership strategy: AthlasX should pursue CricHeroes data integration (API or data-sharing agreement) rather than trying to replicate their data collection. The scout-side product is AthlasX's moat, not the scoring data.
 
-## 4.3 Data Gaps SportX Must Bridge
+## 4.3 Data Gaps AthlasX Must Bridge
 
 •        ~40–60% of Level 4 players are not on CricHeroes — paper scorecard OCR pipeline is essential for these players.
 
 •        Video evidence exists informally (WhatsApp, YouTube) but is not linked to verified player identities. A structured video submission system with identity verification is a significant gap.
 
-•        Contextual data (pitch conditions, opposition quality, tournament level) is almost never captured. Without context, a 50-run innings is uninterpretable. SportX should capture this at the match-registration level.
+•        Contextual data (pitch conditions, opposition quality, tournament level) is almost never captured. Without context, a 50-run innings is uninterpretable. AthlasX should capture this at the match-registration level.
 
   
 
@@ -214,7 +214,7 @@ CricHeroes is the single most important external data source for SportX at Level
 
 ## 5.2 Verification Tiers
 
-SportX should implement a four-tier trust system rather than a binary verified/unverified flag:
+AthlasX should implement a four-tier trust system rather than a binary verified/unverified flag:
 
 •        Tier 0 (Auto-Verified): BCCI-registered players with confirmed domestic records. Trust granted automatically via ID cross-check. Applies to L2 and L3 players.
 
@@ -246,19 +246,19 @@ SportX should implement a four-tier trust system rather than a binary verified/u
 
 ## 6.1 Canonical Pathways
 
-SportX should support four primary progression pathways. Each has different data requirements and different SportX touchpoints.
+AthlasX should support four primary progression pathways. Each has different data requirements and different AthlasX touchpoints.
 
 ### Pathway A: School → Academy → District → State
 
 The most common pathway for players who start cricket young (before age 14). Most current domestic cricketers followed this route.
 
-•        School stage (Age 8–14): Inter-house → inter-school → district school games (SGFI). SportX role: capture SGFI data, create pre-profile for school-level stars to give them a head start when they enter the formal pathway.
+•        School stage (Age 8–14): Inter-house → inter-school → district school games (SGFI). AthlasX role: capture SGFI data, create pre-profile for school-level stars to give them a head start when they enter the formal pathway.
 
-•        Academy stage (Age 12–18): Enrolment in registered academy, internal trials, city leagues. SportX role: academy admin (P5) onboards the player; profile created with coaching history and match records.
+•        Academy stage (Age 12–18): Enrolment in registered academy, internal trials, city leagues. AthlasX role: academy admin (P5) onboards the player; profile created with coaching history and match records.
 
-•        District stage (Age 16–22): DCA registration, official district matches. SportX role: core activation. Coach confirmation, CricHeroes sync, scorecard uploads, SportX Score calculation. Profile becomes scout-visible.
+•        District stage (Age 16–22): DCA registration, official district matches. AthlasX role: core activation. Coach confirmation, CricHeroes sync, scorecard uploads, AthlasX Score calculation. Profile becomes scout-visible.
 
-•        State stage (Age 18–25): State trials, age-group selection, senior domestic cricket. SportX role: auto-verification upgrade, benchmark comparison against state squad averages, analytics dashboard for scouts.
+•        State stage (Age 18–25): State trials, age-group selection, senior domestic cricket. AthlasX role: auto-verification upgrade, benchmark comparison against state squad averages, analytics dashboard for scouts.
 
 ### Pathway B: Academy → District → State (Skipping Formal School)
 
@@ -268,7 +268,7 @@ Common for players who were identified early by academies but did not play forma
 
 •        Critical gap: These players often lack age-verified documentation. Aadhaar becomes the primary age anchor. If Aadhaar age does not match DCA registration age, conflict resolution is required.
 
-•        SportX role: P5 Academy Admin is the trust anchor. Without academy admin verification, these players can only reach Tier 2.
+•        AthlasX role: P5 Academy Admin is the trust anchor. Without academy admin verification, these players can only reach Tier 2.
 
 ### Pathway C: District → State → Higher Levels (Late Identifiers)
 
@@ -276,7 +276,7 @@ Players who were not identified at school or academy level but emerged through o
 
 •        Data typically exists on CricHeroes for these players. Verification is relatively straightforward.
 
-•        The benchmarking problem is most acute here: these players have no coaches to advocate for them and no academy backing. The SportX Score is their only objective comparison tool.
+•        The benchmarking problem is most acute here: these players have no coaches to advocate for them and no academy backing. The AthlasX Score is their only objective comparison tool.
 
 •        Scout-facing profile is the critical deliverable for this pathway. A compelling, verified, data-rich profile is the difference between being invisible and getting a trial invitation.
 
@@ -286,14 +286,14 @@ Players discovered through talent hunts, open nets sessions, or viral video — 
 
 •        These are the hardest cases to verify. The platform must rely on intensive P4/P5 confirmation, video identity verification, and a longer Tier 2 probationary period before Tier 1.
 
-•        SportX should not create a direct pipeline for this pathway at MVP — it creates too much verification overhead. The Opportunity Marketplace (scouts posting open trials) is the right mechanism for this player type at MVP.
+•        AthlasX should not create a direct pipeline for this pathway at MVP — it creates too much verification overhead. The Opportunity Marketplace (scouts posting open trials) is the right mechanism for this player type at MVP.
 
-## 6.2 SportX Workflow by Level
+## 6.2 AthlasX Workflow by Level
 
 |**Stage**|**Player Action**|**Platform Action**|**Scout Visibility**|
 |---|---|---|---|
 |Registration|Sign up with phone OTP + Aadhaar|Create Tier 3 profile (hidden from scouts)|Not visible|
-|Basic Profile|Enter playing role, age, district, stats summary|Calculate preliminary SportX Score|Not visible|
+|Basic Profile|Enter playing role, age, district, stats summary|Calculate preliminary AthlasX Score|Not visible|
 |CricHeroes Sync|Link CricHeroes profile|Pull match history, check 15% tolerance|Not visible|
 |Coach Confirmation|Request confirmation from registered coach (P4)|Coach receives notification + approves|Not visible|
 |Scorecard Upload|Upload 3+ match scorecards|OCR processing, confidence gate (80%+)|Not visible|
@@ -308,7 +308,7 @@ Players discovered through talent hunts, open nets sessions, or viral video — 
 
 ## 7.1 IPL Franchise Scouting (Level 2 → Level 1)
 
-IPL franchises represent the most sophisticated scouting operations in Indian cricket. Understanding their methodology informs SportX's product design — but also confirms that this level is largely served.
+IPL franchises represent the most sophisticated scouting operations in Indian cricket. Understanding their methodology informs AthlasX's product design — but also confirms that this level is largely served.
 
 •        Scale: Franchises employ between 10 scouts (Rajasthan Royals' data analyst team) and 'as many as needed' (Mumbai Indians). KKR has approximately 25–30 scouts.
 
@@ -342,10 +342,10 @@ IPL franchises represent the most sophisticated scouting operations in Indian cr
 
 ## 7.4 Where the Existing Process Breaks Down — Summary
 
-|**Breakdown Point**|**Root Cause**|**SportX Solution**|
+|**Breakdown Point**|**Root Cause**|**AthlasX Solution**|
 |---|---|---|
 |District players invisible to state selectors|No unified database. No digital scorecards in one place.|Verified player profiles with searchable stats, role-based filters, location filters|
-|Selection based on connections not merit|WhatsApp recommendations = social network problem|Objective SportX Score as a merit index, visible to all verified scouts|
+|Selection based on connections not merit|WhatsApp recommendations = social network problem|Objective AthlasX Score as a merit index, visible to all verified scouts|
 |Video exists but not verified|WhatsApp/YouTube video not linked to player identity|Video submission linked to verified profile; coach confirms player identity in video|
 |No benchmark for players|No public comparison tool for sub-domestic level|IPL Benchmark Match feature: 'You are at 68% of IPL benchmark for your role'|
 |Open trial announcements reach limited players|Announced through informal networks only|Opportunity Marketplace: scouts post trials, all Tier 1 players in relevant geography notified|
@@ -408,13 +408,13 @@ Based on research into what IPL scouts and state selectors actually value:
 
   
 
-# 9. Value SportX Provides to Each Stakeholder
+# 9. Value AthlasX Provides to Each Stakeholder
 
 ## 9.1 Players
 
 •        Visibility without connections: A verified, data-rich profile that is discoverable by state selectors, academy scouts, and franchise analysts regardless of which city the player is from or which coach they know.
 
-•        Benchmarking: SportX Score and IPL Benchmark Match give a player objective, data-driven feedback on where they stand relative to professional standards. Currently, players have no way to know this.
+•        Benchmarking: AthlasX Score and IPL Benchmark Match give a player objective, data-driven feedback on where they stand relative to professional standards. Currently, players have no way to know this.
 
 •        Portable career record: A persistent, verified career history that travels with the player across academies, clubs, and districts — not locked in any single institution's records.
 
@@ -430,21 +430,21 @@ Based on research into what IPL scouts and state selectors actually value:
 
 •        Scout connection: Verified coaches on the platform become a trusted node in the discovery network. Scouts who trust a coach's confirmations will return to that coach's recommended players.
 
-•        Revenue from confirmed players: If a player from their roster gets a trial or selection through SportX, the coach gains platform credibility that drives new student enrolment.
+•        Revenue from confirmed players: If a player from their roster gets a trial or selection through AthlasX, the coach gains platform credibility that drives new student enrolment.
 
 ## 9.3 Academies
 
 •        Digital roster management: P5 Academy Admin can onboard their entire player roster to the platform, replacing paper registers with verified digital profiles.
 
-•        Institutional credibility: Academies that produce players who progress through the SportX Tier system build a verifiable track record of player development — a marketing asset for student acquisition.
+•        Institutional credibility: Academies that produce players who progress through the AthlasX Tier system build a verifiable track record of player development — a marketing asset for student acquisition.
 
 •        Batch verification authority: Academies gain the highest trust-granting power on the platform (immediate +7 verification point boost on enrollment confirmation) — incentivising early adoption.
 
-•        Talent retention: Players who see their SportX Score improve and gain scout visibility are more likely to continue at the academy long-term.
+•        Talent retention: Players who see their AthlasX Score improve and gain scout visibility are more likely to continue at the academy long-term.
 
 ## 9.4 Scouts & Selectors
 
-•        Replacement for WhatsApp scouting: A structured, searchable database of verified player profiles with standardised statistics — filters by role, age, district, batting style, bowling type, SportX Score, and IPL readiness.
+•        Replacement for WhatsApp scouting: A structured, searchable database of verified player profiles with standardised statistics — filters by role, age, district, batting style, bowling type, AthlasX Score, and IPL readiness.
 
 •        Remote talent sourcing: A scout sitting in Mumbai can search for 'left-arm fast bowlers under 21 from Bihar with economy under 7.0' and get verified results within seconds. Currently impossible.
 
@@ -462,7 +462,7 @@ Based on research into what IPL scouts and state selectors actually value:
 
 •        Transition control: Parent account automatically transitions to full player control on the player's 18th birthday (automated cron job).
 
-•        Visibility without scam exposure: Currently, parents are targeted by fraudulent 'India trials' on Instagram. The SportX Opportunity Marketplace is a verified alternative — only certified scouts and academies can post trial invitations.
+•        Visibility without scam exposure: Currently, parents are targeted by fraudulent 'India trials' on Instagram. The AthlasX Opportunity Marketplace is a verified alternative — only certified scouts and academies can post trial invitations.
 
   
 
@@ -470,9 +470,9 @@ Based on research into what IPL scouts and state selectors actually value:
 
 ## 10.1 Platform Comparison
 
-|**Platform**|**Focus**|**Strengths**|**Weaknesses**|**Gap SportX Addresses**|
+|**Platform**|**Focus**|**Strengths**|**Weaknesses**|**Gap AthlasX Addresses**|
 |---|---|---|---|---|
-|CricHeroes|Grassroots scoring & community (L4–L5)|40M users, world's largest cricket database, free, deeply embedded in local cricket|No scout-facing discovery product, player-side only, community app not B2B tool|Scout dashboard, verified profiles, SportX Score, Opportunity Marketplace|
+|CricHeroes|Grassroots scoring & community (L4–L5)|40M users, world's largest cricket database, free, deeply embedded in local cricket|No scout-facing discovery product, player-side only, community app not B2B tool|Scout dashboard, verified profiles, AthlasX Score, Opportunity Marketplace|
 |CricViz / Centurion|Elite analytics (L1–L2)|Best-in-class ball-by-ball analysis, ICC/IPL franchise clients, broadcast overlays|Only covers televised matches, inaccessible to grassroots, costs tens of thousands of dollars|Grassroots analytics, accessible pricing, verification layer|
 |Catapult|Physical performance (L1–L2)|Wearable-based GPS and load monitoring, used by national boards|Hardware-dependent, enterprise pricing, no discovery function|No overlap at MVP level|
 |Hawk-Eye|Ball tracking (L1–L2)|Official ICC technology, physics-grade accuracy|Requires installed infrastructure, no player discovery function|No overlap at MVP level|
@@ -481,15 +481,15 @@ Based on research into what IPL scouts and state selectors actually value:
 |ScoutFlix|Generic sports scouting platform|AI-powered athlete profiles across multiple sports|Not cricket-specific, no India grassroots focus, no verification system|Cricket-specific, India-specific, verified data, trust tiers|
 |Khelo India (Govt)|Government talent hunt (all sports)|Government backing, database of young athletes being built|Bureaucratic, not cricket-specific, not a product for discovery at scale|Commercial product, scout-grade UX, real-time data|
 
-## 10.2 SportX's Structural Differentiation
+## 10.2 AthlasX's Structural Differentiation
 
 The core differentiation is not features — it is the combination of three things that no existing platform provides together:
 
 1.     Trust architecture: An independently verified player profile with multi-persona confirmation, OCR scorecards, and Aadhaar-based age verification. CricHeroes has the data but not the trust layer. CricViz has the trust but not the data at grassroots level.
 
-2.     Scout-side B2B product: A purpose-built discovery dashboard for state selectors, academy scouts, and pathway coaches — with role-based filters, SportX Score ranking, and trial invitation workflow. No platform in the market has built this for the Level 4 population.
+2.     Scout-side B2B product: A purpose-built discovery dashboard for state selectors, academy scouts, and pathway coaches — with role-based filters, AthlasX Score ranking, and trial invitation workflow. No platform in the market has built this for the Level 4 population.
 
-3.     Longitudinal career record: A portable player profile that captures the full progression from Academy → District → State. This longitudinal data becomes a unique asset over time — SportX will have tracked players before anyone else knew their names.
+3.     Longitudinal career record: A portable player profile that captures the full progression from Academy → District → State. This longitudinal data becomes a unique asset over time — AthlasX will have tracked players before anyone else knew their names.
 
 ## 10.3 The CricHeroes Relationship
 
@@ -497,21 +497,21 @@ CricHeroes is simultaneously the most important data partner and the most signif
 
 •        CricHeroes is a community and scoring product. Their user is the local cricketer who wants to track his match stats and share them with friends. Their business model is ad-supported.
 
-•        SportX is a talent discovery and verification product. Our user is the state selector who needs to find the best U-19 fast bowler in Assam. Our business model is B2B subscription.
+•        AthlasX is a talent discovery and verification product. Our user is the state selector who needs to find the best U-19 fast bowler in Assam. Our business model is B2B subscription.
 
-•        These are compatible, not competitive, as long as SportX does not try to replicate CricHeroes' scoring app. The right move is to build on top of CricHeroes data, not around it.
+•        These are compatible, not competitive, as long as AthlasX does not try to replicate CricHeroes' scoring app. The right move is to build on top of CricHeroes data, not around it.
 
 •        Partnership priority: Pursue a CricHeroes data integration as a top-3 business development priority in the first 6 months. The alternative — building a competing scoring app — is a 2-year detour that plays into CricHeroes' core strength.
 
   
 
-# 11. Strategic Recommendations for SportX
+# 11. Strategic Recommendations for AthlasX
 
 ## 11.1 MVP Scope (Based on Research)
 
 The research confirms the Level 4 → Level 3 thesis. The MVP should be scoped around a single proof-of-concept transaction:
 
-**_One district-level player gets shortlisted for a state trial through SportX — without a personal connection to the selector._**
+**_One district-level player gets shortlisted for a state trial through AthlasX — without a personal connection to the selector._**
 
 Every product decision should be evaluated against this test.
 
@@ -527,13 +527,13 @@ Every product decision should be evaluated against this test.
 
 ## 11.3 Women's Cricket — Do Not Ignore
 
-All existing documents in the SportX folder have entirely omitted women's cricket. This is a strategic oversight. Key facts:
+All existing documents in the AthlasX folder have entirely omitted women's cricket. This is a strategic oversight. Key facts:
 
 •        BCCI has invested heavily in women's cricket since 2018 — Women's IPL (WPL) launched in 2023, with growing franchise spending on scouting.
 
 •        Women's talent at district level is arguably even more invisible than men's — the existing scouting infrastructure for women's cricket below state level is almost non-existent.
 
-•        WPL franchise scouts are actively looking for discovery tools for women's cricket specifically. This is an underserved B2B buyer that SportX can own.
+•        WPL franchise scouts are actively looking for discovery tools for women's cricket specifically. This is an underserved B2B buyer that AthlasX can own.
 
 •        Recommendation: Build the product as gender-neutral from day one. Separate female player profiles and female scout filters from the outset — do not bolt women's cricket on as an afterthought post-launch.
 
@@ -555,7 +555,7 @@ All existing documents in the SportX folder have entirely omitted women's cricke
 
 ## A. Indian Cricket Level Summary
 
-|**Level**|**Name**|**Players**|**Tournaments**|**SportX Role**|
+|**Level**|**Name**|**Players**|**Tournaments**|**AthlasX Role**|
 |---|---|---|---|---|
 |L1|Elite Professional|150–200|IPL, National Team|Analytics tool (V2+)|
 |L2|Senior Domestic|~950|Ranji, SMAT, VHT|Auto-verified + analytics (V2)|
@@ -577,4 +577,4 @@ All existing documents in the SportX folder have entirely omitted women's cricke
 |Scout Video Confirm (P4)|+2|Identity verification in media. Capped at 1 per scout.|
 |Parental OTP (P7)|+1|Identity confidence signal. No impact on performance data.|
 
-_End of Document — SportX Cricket Ecosystem Research v1.0 — June 2026 — Internal Confidential_
+_End of Document — AthlasX Cricket Ecosystem Research v1.0 — June 2026 — Internal Confidential_

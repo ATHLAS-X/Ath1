@@ -1,7 +1,7 @@
-/**
+﻿/**
  * Reusable background snippets. The default light Component is the verbatim
  * copy of the source. ComponentDark is the same idea adapted for the dark
- * SportX dashboard (white-on-black grid + violet glow).
+ * AthlasX dashboard (white-on-black grid + violet glow).
  *
  * Drop either component inside a relatively-positioned wrapper:
  *
