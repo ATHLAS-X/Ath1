@@ -86,7 +86,12 @@ export async function POST(req: Request) {
   if (!videoId) return fail("Provide a valid YouTube URL");
 
   let analysis: VideoAnalysis | null = null;
-  if (process.env.GEMINI_API_KEY) {
+  // NOTE: Gemini cannot fetch YouTube URLs directly — real video analysis
+  // requires downloading frames and sending them as inline bytes, or using the
+  // File API for uploads. That work belongs in apps/compute (Mrigank's lane).
+  // For now this route always uses the deterministic fallback; the GEMINI_API_KEY
+  // branch is left stubbed so it's easy to wire up once compute is ready.
+  if (process.env.GEMINI_API_KEY && false) {
     try {
       const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
       const model = genai.getGenerativeModel({ model: MODEL, systemInstruction: SYSTEM_PROMPT });
@@ -102,7 +107,7 @@ export async function POST(req: Request) {
       console.warn("[video] Gemini call failed; using fallback:", e?.message);
     }
   } else {
-    console.log("[video] GEMINI_API_KEY not set; using fallback analysis.");
+    console.log("[video] Using deterministic fallback — real analysis via compute service (TODO).");
   }
   if (!analysis) analysis = fallback(url);
 
