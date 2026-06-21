@@ -33,7 +33,7 @@ services:
 
   compute:
     build:
-      context: ../apps/compute
+      context: ../Backend/AI
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
@@ -42,7 +42,7 @@ services:
 
   compute-worker:
     build:
-      context: ../apps/compute
+      context: ../Backend/AI
       dockerfile: Dockerfile.worker
     restart: unless-stopped
     env_file: .env
