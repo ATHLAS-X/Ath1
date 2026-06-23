@@ -1,7 +1,7 @@
 import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-server";
 import { ok, fail } from "@/lib/onboarding-server";
-import { calculateSportXScore } from "@/lib/score-engine";
+import { calculateAthlasXScore } from "@/lib/score-engine";
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const guard = await requireAdmin();
@@ -28,6 +28,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     INSERT INTO player_notifications (user_id, kind, title, body)
     VALUES (${m.user_id}, 'SCORECARD_REJECTED', 'Scorecard rejected', ${reason})
   `;
-  await calculateSportXScore(m.user_id);
+  await calculateAthlasXScore(m.user_id);
   return ok({ status: "REJECTED" });
 }

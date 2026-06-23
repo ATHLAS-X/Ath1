@@ -44,8 +44,8 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   /* TODO replace with real email sender (Resend/SendGrid Edge Function). */
   console.log("[academy.invite] (stub) email:", {
     to: player.email ?? "(no email on file — share the claim link directly)",
-    subject: `${playerName}, claim your SportX profile`,
-    body: `Your academy has set up a SportX profile for you. Claim it here: ${claimUrl}`,
+    subject: `${playerName}, claim your AthlasX profile`,
+    body: `Your academy has set up an AthlasX profile for you. Claim it here: ${claimUrl}`,
   });
 
   return NextResponse.json({

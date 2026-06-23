@@ -1,7 +1,7 @@
 import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-server";
 import { ok, fail } from "@/lib/onboarding-server";
-import { calculateSportXScore } from "@/lib/score-engine";
+import { calculateAthlasXScore } from "@/lib/score-engine";
 
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const guard = await requireAdmin();
@@ -25,7 +25,6 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
             ${`Your match vs ${m.opponent} has been verified. +3 verification points awarded.`})
   `;
 
-  // Recompute SportX score.
-  await calculateSportXScore(m.user_id);
+  await calculateAthlasXScore(m.user_id);
   return ok({ status: "VERIFIED" });
 }
