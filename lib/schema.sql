@@ -510,3 +510,24 @@ CREATE TABLE IF NOT EXISTS admin_notifications (
   read BOOLEAN DEFAULT false
 );
 CREATE INDEX IF NOT EXISTS admin_notifications_recipient_idx ON admin_notifications(recipient_user_id);
+
+-- ── Coach evaluations (written by approved self-registered coaches) ─────────
+-- One row per coach-player pair; updated in place on re-submission.
+CREATE TABLE IF NOT EXISTS coach_evaluations (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coach_user_id     UUID REFERENCES users(id) ON DELETE CASCADE,
+  player_user_id    UUID REFERENCES users(id) ON DELETE CASCADE,
+  discipline        INTEGER CHECK (discipline BETWEEN 1 AND 10),
+  coachability      INTEGER CHECK (coachability BETWEEN 1 AND 10),
+  work_ethic        INTEGER CHECK (work_ethic BETWEEN 1 AND 10),
+  leadership        INTEGER CHECK (leadership BETWEEN 1 AND 10),
+  mental_toughness  INTEGER CHECK (mental_toughness BETWEEN 1 AND 10),
+  communication     INTEGER CHECK (communication BETWEEN 1 AND 10),
+  notes             TEXT,
+  coaching_tip      TEXT,
+  created_at        TIMESTAMPTZ DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (coach_user_id, player_user_id)
+);
+CREATE INDEX IF NOT EXISTS coach_evaluations_coach_idx  ON coach_evaluations(coach_user_id);
+CREATE INDEX IF NOT EXISTS coach_evaluations_player_idx ON coach_evaluations(player_user_id);
