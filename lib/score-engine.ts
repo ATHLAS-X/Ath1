@@ -169,9 +169,12 @@ export async function calculateAthlasXScore(userId: string): Promise<ScoreResult
   } else {
     fitnessRaw = fitnessData[0]?.fitness_score ?? 0;
   }
-  // Supervised → full 15 pts. Self-reported → max 8 pts (access-bias guard).
-  const fitnessCap = fitnessIsSupervised ? 15 : 8;
-  const fitness = Math.round(clamp((fitnessRaw / 100) * fitnessCap, 0, fitnessCap));
+  // Only supervised academy assessments count toward the score.
+  // Self-reported data is stored and shown on the profile for scouts but scores zero —
+  // unverified numbers are gameable and create false differentiation.
+  const fitness = fitnessIsSupervised
+    ? Math.round(clamp((fitnessRaw / 100) * 15, 0, 15))
+    : 0;
 
   // ── Verification (max 15) ───────────────────────────────────────────────
   const aadhaarPts  = (aadhaar[0]?.verification_pts  ?? 0) || 0;
