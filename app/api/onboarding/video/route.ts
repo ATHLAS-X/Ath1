@@ -93,7 +93,7 @@ export async function POST(req: Request) {
   // branch is left stubbed so it's easy to wire up once compute is ready.
   if (process.env.GEMINI_API_KEY && false) {
     try {
-      const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
       const model = genai.getGenerativeModel({ model: MODEL, systemInstruction: SYSTEM_PROMPT });
       const resp = await model.generateContent(
         `Analyse the cricket technique in this YouTube video: ${url}. ` +

@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MailCheck, AlertCircle, RefreshCw } from "lucide-react";
-import { useState } from "react";
 
 const ERROR_MESSAGES: Record<string, string> = {
   missing:  "Verification link is missing a token.",
@@ -11,7 +11,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   expired:  "This link has expired. Please request a new one.",
 };
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const params = useSearchParams();
   const errorKey = params.get("error");
   const [resent, setResent] = useState(false);
@@ -19,7 +19,6 @@ export default function VerifyEmailPage() {
 
   const resend = async () => {
     setResending(true);
-    // In production, call an API route that re-sends the verification email.
     await new Promise(r => setTimeout(r, 800));
     setResent(true);
     setResending(false);
@@ -72,14 +71,14 @@ export default function VerifyEmailPage() {
           </div>
           <h1 className="text-xl font-bold text-white mb-2">Check your inbox</h1>
           <p className="text-sm text-slate-400 mb-6">
-            We've sent a verification link to your email address. Click the link to activate your
+            We&rsquo;ve sent a verification link to your email address. Click the link to activate your
             AthlasX Academy account.
           </p>
 
           <div className="rounded-lg border border-slate-700 bg-slate-800/40 px-4 py-3 text-xs text-slate-400 text-left space-y-1 mb-6">
             <p>• The link expires in <span className="text-white font-medium">24 hours</span></p>
-            <p>• Check your spam/junk folder if you don't see it</p>
-            <p>• After verifying, you'll be redirected to set up your academy profile</p>
+            <p>• Check your spam/junk folder if you don&rsquo;t see it</p>
+            <p>• After verifying, you&rsquo;ll be redirected to set up your academy profile</p>
           </div>
 
           {!resent ? (
@@ -104,5 +103,13 @@ export default function VerifyEmailPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

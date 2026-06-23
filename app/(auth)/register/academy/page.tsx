@@ -54,7 +54,7 @@ const step2Schema = z.object({
 
 const step3Schema = z.object({
   age_groups:  z.array(z.string()).min(1, "Select at least one"),
-  facilities:  z.array(z.string()).default([]),
+  facilities:  z.array(z.string()),
   specialties: z.array(z.string()).min(1, "Select at least one"),
 });
 
