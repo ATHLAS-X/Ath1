@@ -5,7 +5,7 @@ import { sql } from "@/lib/db";
 
 /* Manual Level-2 (Identity Verified) bump by an academy admin who's
    confirmed the player's identity by phone OTP or ID document.
-   Levels 3 and 4 are NOT settable from here — those flow through SportX
+   Levels 3 and 4 are NOT settable from here — those flow through AthlasX
    internal review. */
 
 export async function POST(req: Request, ctx: { params: { id: string } }) {

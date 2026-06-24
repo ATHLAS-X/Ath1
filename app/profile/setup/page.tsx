@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -130,7 +130,7 @@ function EditProfileHubInner() {
           <h1 className="text-3xl font-bold">Edit Profile</h1>
           <p style={{ color: "var(--muted)" }}>
             One flow, four chapters. Pick any step to update — your dashboard, public profile, and
-            SportX Score refresh as soon as you save.
+            AthlasX Score refresh as soon as you save.
           </p>
         </header>
 
@@ -139,7 +139,7 @@ function EditProfileHubInner() {
           name={name}
           avatarUrl={me?.profile?.avatar_url ?? null}
           handle={handle}
-          caption={role ? `${role}${locationStr ? ` · ${locationStr}` : ""}` : (locationStr ?? "SportX Player")}
+          caption={role ? `${role}${locationStr ? ` · ${locationStr}` : ""}` : (locationStr ?? "AthlasX Player")}
           role={role}
           location={locationStr}
           score={score?.total_score ?? null}

@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
 
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 /* Loading state used by app/profile/[userId]/page.tsx while server data
    fetches. Tracks the real player-profile layout (hero → 3-column main),
-   uses sportx.css tokens (no off-theme navy blue), and runs a single subtle
+   uses athlasx.css tokens (no off-theme navy blue), and runs a single subtle
    pulse rather than the heavy shimmer sweep. */
 
 export default function DashboardSkeleton() {

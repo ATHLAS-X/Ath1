@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -22,7 +22,7 @@ export async function POST() {
 
   try {
     await sql`
-      UPDATE sportx_score
+      UPDATE athlasx_score
       SET roadmap = ${JSON.stringify(roadmap)}::jsonb
       WHERE user_id = ${userId}
     `;

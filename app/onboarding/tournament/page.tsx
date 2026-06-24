@@ -1,4 +1,4 @@
-import OnboardingStub from "../_components/OnboardingStub";
+﻿import OnboardingStub from "../_components/OnboardingStub";
 
 export default function TournamentOnboarding() {
   return (
@@ -9,7 +9,7 @@ export default function TournamentOnboarding() {
         "Tournament name + format (T20 / ODI / List-A)",
         "Hosting body + registration number",
         "Tournament schedule + venues",
-        "Submit for SportX verification — you'll be able to upload scorecards once approved",
+        "Submit for AthlasX verification — you'll be able to upload scorecards once approved",
       ]}
     />
   );

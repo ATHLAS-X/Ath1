@@ -1,6 +1,7 @@
 import { sql } from "@/lib/db";
 import { advanceStep } from "@/lib/onboarding";
 import { ageFromDob, fail, ok, requireUserId } from "@/lib/onboarding-server";
+import { tokenizeAadhaar } from "@/lib/aadhaar";
 
 // TODO: Production — Surepass confirm-OTP:
 //   POST https://kyc-api.surepass.io/api/v1/aadhaar-v2/submit-otp
@@ -27,7 +28,10 @@ export async function POST(req: Request) {
     ? sim
     : new Date(new Date().setFullYear(new Date().getFullYear() - 17));
   const masked = `XXXX-XXXX-${aadhaar.slice(-4)}`;
-  const token = `mvp_${aadhaar.slice(-4)}_${Date.now()}`;
+  /* Keyed HMAC of the full number — deterministic per-Aadhaar so duplicate
+     detection below still works, but not reversible without the server
+     secret (see lib/aadhaar.ts). */
+  const token = tokenizeAadhaar(aadhaar);
 
   // Discrepancy: > 6 months between declared and verified DOB.
   let discrepancy = false;

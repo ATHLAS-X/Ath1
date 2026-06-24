@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -304,7 +304,7 @@ export default function AcademyRegisterPage() {
   return (
     <div className="min-h-screen bg-[#0A1628] flex flex-col">
       <header className="px-6 py-4">
-        <span className="text-xl font-extrabold tracking-tight text-white">SportX</span>
+        <span className="text-xl font-extrabold tracking-tight text-white">AthlasX</span>
       </header>
       <main className="flex flex-1 items-center justify-center px-4 py-10">
         <div className="w-full max-w-lg">

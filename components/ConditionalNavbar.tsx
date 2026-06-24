@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import Navbar from "./Navbar";
 
 /* Dashboards with their own full sidebar — Navbar would duplicate navigation */
-const HIDE_PREFIXES = ["/scout", "/admin", "/verify", "/workflow", "/academy"];
+const HIDE_PREFIXES = ["/scout", "/admin", "/verify", "/workflow", "/academy", "/onboarding"];
 
 export default function ConditionalNavbar() {
   const pathname = usePathname() ?? "";

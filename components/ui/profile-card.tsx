@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+﻿/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import Link from "next/link";
@@ -16,7 +16,7 @@ export interface ProfileCardProps {
   role?: string | null;
   /** Location string (city, state). */
   location?: string | null;
-  /** Total SportX score (0–100). */
+  /** Total AthlasX score (0–100). */
   score?: number | null;
   /** Profile-strength label. */
   strength?: "STRONG" | "MID" | "WEAK" | null;
@@ -207,7 +207,7 @@ export function ProfileCard({
                   style={{ color: "#fff" }}
                 >
                   <span className="text-[10px] uppercase tracking-widest" style={{ color: "#cbd5e1" }}>
-                    SportX Score
+                    AthlasX Score
                   </span>
                   <span className="text-3xl font-extrabold leading-none">{score}</span>
                 </div>

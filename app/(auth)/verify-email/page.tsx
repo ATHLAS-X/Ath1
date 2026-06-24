@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useSearchParams } from "next/navigation";
 import { MailCheck, AlertCircle, RefreshCw } from "lucide-react";
@@ -29,7 +29,7 @@ export default function VerifyEmailPage() {
     return (
       <div className="min-h-screen bg-[#0A1628] flex flex-col">
         <header className="px-6 py-4">
-          <span className="text-xl font-extrabold tracking-tight text-white">SportX</span>
+          <span className="text-xl font-extrabold tracking-tight text-white">AthlasX</span>
         </header>
         <main className="flex flex-1 items-center justify-center px-4">
           <div className="w-full max-w-sm rounded-2xl border border-red-500/30 bg-slate-900/70 p-8 shadow-2xl text-center">
@@ -50,7 +50,7 @@ export default function VerifyEmailPage() {
             )}
             <p className="mt-6 text-xs text-slate-500">
               Need help?{" "}
-              <a href="mailto:support@sportx.in" className="text-[#1A6B3C] hover:underline">
+              <a href="mailto:support@athlasx.in" className="text-[#1A6B3C] hover:underline">
                 Contact support
               </a>
             </p>
@@ -63,7 +63,7 @@ export default function VerifyEmailPage() {
   return (
     <div className="min-h-screen bg-[#0A1628] flex flex-col">
       <header className="px-6 py-4">
-        <span className="text-xl font-extrabold tracking-tight text-white">SportX</span>
+        <span className="text-xl font-extrabold tracking-tight text-white">AthlasX</span>
       </header>
       <main className="flex flex-1 items-center justify-center px-4">
         <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900/70 p-8 shadow-2xl text-center">
@@ -73,7 +73,7 @@ export default function VerifyEmailPage() {
           <h1 className="text-xl font-bold text-white mb-2">Check your inbox</h1>
           <p className="text-sm text-slate-400 mb-6">
             We've sent a verification link to your email address. Click the link to activate your
-            SportX Academy account.
+            AthlasX Academy account.
           </p>
 
           <div className="rounded-lg border border-slate-700 bg-slate-800/40 px-4 py-3 text-xs text-slate-400 text-left space-y-1 mb-6">

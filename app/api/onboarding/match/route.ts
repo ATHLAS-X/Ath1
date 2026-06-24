@@ -1,6 +1,9 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import { advanceStep } from "@/lib/onboarding";
 import { fail, ok, requireUserId, saveUpload } from "@/lib/onboarding-server";
+import { IMAGE_OR_PDF_ALLOWLIST, UploadValidationError, readAndValidateUpload } from "@/lib/upload-validation";
+
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
 const FORMATS = new Set(["T20", "ODI", "List-A"]);
 const MQI_WEIGHTS: Record<string, number> = {
@@ -17,7 +20,7 @@ const MQI_WEIGHTS: Record<string, number> = {
 //   3. If confidence >= 0.80 → ocr_status = 'VERIFIED' (auto-award pts).
 //      If confidence <  0.80 → ocr_status = 'MANUAL_REVIEW' (route to P8 review queue).
 //   4. Compare OCR values against user-entered runs/wickets; flag mismatches.
-//   5. On manual review approval, raise an event that re-runs the SportX score job.
+//   5. On manual review approval, raise an event that re-runs the AthlasX score job.
 
 export async function POST(req: Request) {
   const guard = await requireUserId();
@@ -43,7 +46,14 @@ export async function POST(req: Request) {
   if (mqiWeight == null) return fail("Unknown MQI tag");
   if (!file) return fail("Scorecard upload is required");
 
-  const scorecardUrl = await saveUpload(guard.userId, file, "matches");
+  let upload;
+  try {
+    upload = await readAndValidateUpload(file, MAX_BYTES, IMAGE_OR_PDF_ALLOWLIST);
+  } catch (e) {
+    if (e instanceof UploadValidationError) return fail(e.message);
+    throw e;
+  }
+  const scorecardUrl = await saveUpload(guard.userId, upload, "matches");
 
   // MVP simulated OCR — always auto-verified.
   const ocrStatus = "VERIFIED";

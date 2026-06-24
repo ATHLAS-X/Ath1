@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState, useCallback } from "react";
 import { initials, Ring, Vlvl } from "@/components/sx/widgets";
 import { AVA_COLORS, roleColor } from "@/lib/score-utils";
 import type { CoachDashboardData, CoachAssignedPlayer, CoachSubmission } from "@/lib/dashboard-data";
-import SportXLogo from "@/components/SportXLogo";
-import "@/app/sportx.css";
+import AthlasXLogo from "@/components/AthlasXLogo";
+import "@/app/athlasx.css";
 
 const NAV = [
   { n: "Dashboard",  href: "/dashboard/coach",                      ic: '<rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1"/><rect x="8" y="1.5" width="4.5" height="4.5" rx="1"/><rect x="1.5" y="8" width="4.5" height="4.5" rx="1"/><rect x="8" y="8" width="4.5" height="4.5" rx="1"/>' },
@@ -69,14 +69,22 @@ export default function CoachDashboardClient({ data }: Props) {
 
   const quickLog = useCallback(async (playerId: string, kind: "fitness" | "behaviour") => {
     setBusy(playerId + kind);
-    // Endpoint per architecture doc — does not exist yet, falls back silently.
-    await fetch(`/api/coach/${kind}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ player_user_id: playerId }),
-    }).catch(() => {});
+    try {
+      const res = await fetch(`/api/coach/${kind}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_user_id: playerId }),
+      });
+      if (res.ok) {
+        setToast(`Logged ${kind} for ${playerId.slice(0, 6)}…`);
+      } else {
+        const data = await res.json().catch(() => null);
+        setToast(data?.error ?? `Couldn't log ${kind} (${res.status})`);
+      }
+    } catch {
+      setToast(`Couldn't log ${kind} — network error`);
+    }
     setBusy(null);
-    setToast(`Opened ${kind} form for ${playerId.slice(0, 6)}…`);
     setTimeout(() => setToast(null), 2200);
   }, []);
 
@@ -98,7 +106,7 @@ export default function CoachDashboardClient({ data }: Props) {
         {/* ════ SIDEBAR ════ */}
         <aside className="sidebar">
           <div className="logo-row">
-            <SportXLogo />
+            <AthlasXLogo />
           </div>
 
           <nav className="nav">

@@ -1,0 +1,19 @@
+[project]
+name = "athlasx-compute"
+version = "0.1.0"
+description = "ATHLASX FastAPI compute service — AI video analysis, psychological assessment, and scorecard OCR."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "live_api: tests that call the REAL Gemini API (cost money / quota). Skipped by default. Run with: pytest -m live_api",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

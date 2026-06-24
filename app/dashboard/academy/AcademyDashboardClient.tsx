@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 const AVA_COLORS = ["#22C55E","#3B82F6","#F59E0B","#8B5CF6","#EC4899","#14B8A6","#EAB308","#F97316"];
 function initials(name: string) { return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(); }

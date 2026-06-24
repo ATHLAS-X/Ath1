@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import WorkflowClient from "./WorkflowClient";
@@ -13,7 +13,7 @@ export default async function WorkflowPage() {
      their role through so the back-to-dashboard link goes to the right
      surface. */
   const backHref =
-    role === "sportx_admin" ? "/admin"
+    role === "athlasx_admin" ? "/admin"
     : role === "scout" ? "/scout/dashboard"
     : role === "academy_admin" ? "/dashboard/academy"
     : "/dashboard/player";

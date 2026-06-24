@@ -1,9 +1,9 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { sql } from "@/lib/db";
 import { advanceStep } from "@/lib/onboarding";
 import { fail, ok, requireUserId } from "@/lib/onboarding-server";
 
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "gemini-2.5-flash";
 const SYSTEM_PROMPT =
   "You are a cricket sports psychologist. Analyse these MCQ answers and free text from a cricket player. " +
   "Return ONLY valid JSON (no markdown): {strengths: string[], gaps: string[], mental_rating: number (0-100), coaching_tip: string}";
@@ -68,28 +68,21 @@ export async function POST(req: Request) {
 
   let analysis: AnalysisResult | null = null;
 
-  if (process.env.ANTHROPIC_API_KEY) {
+  if (process.env.GEMINI_API_KEY) {
     try {
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-      const resp = await client.messages.create({
-        model: MODEL,
-        max_tokens: 600,
-        system: SYSTEM_PROMPT,
-        messages: [{
-          role: "user",
-          content: `MCQ answers: ${JSON.stringify(answers)}. Free text: ${freeText}`,
-        }],
-      });
-      const text = resp.content
-        .map((b: any) => (b.type === "text" ? b.text : ""))
-        .join("");
+      const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genai.getGenerativeModel({ model: MODEL, systemInstruction: SYSTEM_PROMPT });
+      const resp = await model.generateContent(
+        `MCQ answers: ${JSON.stringify(answers)}. Free text: ${freeText}`
+      );
+      const text = resp.response.text();
       analysis = parseJsonResponse(text);
-      if (!analysis) console.warn("[behaviour] Claude returned unparseable JSON, falling back:", text.slice(0, 200));
+      if (!analysis) console.warn("[behaviour] Gemini returned unparseable JSON, falling back:", text.slice(0, 200));
     } catch (e: any) {
-      console.warn("[behaviour] Anthropic call failed, using fallback:", e?.message);
+      console.warn("[behaviour] Gemini call failed, using fallback:", e?.message);
     }
   } else {
-    console.log("[behaviour] ANTHROPIC_API_KEY not set — using deterministic fallback analysis.");
+    console.log("[behaviour] GEMINI_API_KEY not set — using deterministic fallback analysis.");
   }
 
   if (!analysis) analysis = fallbackAnalysis(answers, freeText);

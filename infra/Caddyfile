@@ -1,0 +1,16 @@
+{
+  auto_https off
+  admin off
+}
+
+:80 {
+  # FastAPI compute service
+  handle /api/v1/compute/* {
+    reverse_proxy compute:8000
+  }
+
+  # Next.js web app (everything else)
+  handle {
+    reverse_proxy web:3000
+  }
+}

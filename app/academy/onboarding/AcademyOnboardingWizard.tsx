@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 /* Post-registration academy wizard.
    4 steps: Logo → First Coach → First Players (CSV or single) → Complete.
@@ -394,7 +394,7 @@ function CsvTab({ onCountChange, onError }: { onCountChange: (n: number) => void
   const downloadTemplate = () => {
     const blob = new Blob([CSV_HEADERS.join(",") + "\n"], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "sportx-players-template.csv";
+    const a = document.createElement("a"); a.href = url; a.download = "athlasx-players-template.csv";
     a.click(); URL.revokeObjectURL(url);
   };
 
@@ -502,7 +502,7 @@ function CsvTab({ onCountChange, onError }: { onCountChange: (n: number) => void
       {summary && (
         <div className="ao-banner ao-banner--ok" style={{ marginTop: 14 }}>
           ✓ {summary.created} player{summary.created === 1 ? "" : "s"} imported successfully.
-          {summary.skipped > 0 && <> {summary.skipped} skipped (already on SportX).</>}
+          {summary.skipped > 0 && <> {summary.skipped} skipped (already on AthlasX).</>}
           {summary.errors > 0 && <> {summary.errors} failed.</>}
         </div>
       )}
@@ -644,7 +644,7 @@ function StepReview({ academyName, logoUrl, coachCount, playerCount }: {
       </div>
 
       <p className="ao-note">
-        ⏳ Your academy profile will be reviewed by SportX within
+        ⏳ Your academy profile will be reviewed by AthlasX within
         <strong> 48 hours </strong> before going live.
       </p>
     </div>

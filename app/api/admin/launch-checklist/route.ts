@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-server";
 import { ok } from "@/lib/onboarding-server";
 
@@ -186,7 +186,7 @@ async function flowChecks(): Promise<CheckResult[]> {
 
   // Player signup → profile → score: did any player complete the full path in the last 7 days?
   const players = (await sql`
-    SELECT COUNT(*)::int AS n FROM sportx_score
+    SELECT COUNT(*)::int AS n FROM athlasx_score
     WHERE total_score > 0 AND updated_at > NOW() - INTERVAL '7 days'
   `) as unknown as Array<{ n: number }>;
   const n1 = players[0]?.n ?? 0;

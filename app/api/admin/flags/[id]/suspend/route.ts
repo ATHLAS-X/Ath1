@@ -14,7 +14,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   await sql`UPDATE users SET status = 'SUSPENDED' WHERE id = ${flag.user_id}`;
   await sql`
-    UPDATE sportx_score SET elasticsearch_indexed = false, status = 'SUSPENDED'
+    UPDATE athlasx_score SET elasticsearch_indexed = false, status = 'SUSPENDED'
     WHERE user_id = ${flag.user_id}
   `;
   await sql`
@@ -25,7 +25,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   await sql`
     INSERT INTO player_notifications (user_id, kind, title, body)
     VALUES (${flag.user_id}, 'ACCOUNT_SUSPENDED', 'Account suspended',
-            'Your SportX account has been suspended pending review. Contact support to appeal.')
+            'Your AthlasX account has been suspended pending review. Contact support to appeal.')
   `;
   return ok({ suspended: true });
 }

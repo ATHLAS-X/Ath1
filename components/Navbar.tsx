@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { LayoutDashboard, User, Video, Upload, LogOut, Menu, X } from "lucide-react";
-import SportXLogo from "@/components/SportXLogo";
+import AthlasXLogo from "@/components/AthlasXLogo";
 
 const HIDDEN_PATHS = new Set(["/", "/auth/login", "/auth/signup"]);
 
@@ -50,7 +50,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
         {/* Wordmark */}
         <Link href="/dashboard" className="flex items-center">
-          <SportXLogo />
+          <AthlasXLogo />
         </Link>
 
         {/* Desktop links */}

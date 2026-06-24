@@ -1,5 +1,8 @@
 import { sql } from "@/lib/db";
 import { fail, ok, saveUpload, clientIp } from "@/lib/onboarding-server";
+import { IMAGE_OR_PDF_ALLOWLIST, UploadValidationError, readAndValidateUpload } from "@/lib/upload-validation";
+
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
 /**
  * Coach lands here from /coach/register?token=… and submits identity + cert.
@@ -30,7 +33,14 @@ export async function POST(req: Request) {
   if (!invite) return fail("Invalid or expired invite token", 404);
   if (invite.status !== "PENDING") return fail("Invite has already been used", 410);
 
-  const certUrl = await saveUpload(invite.user_id, cert, "coach-certs");
+  let upload;
+  try {
+    upload = await readAndValidateUpload(cert, MAX_BYTES, IMAGE_OR_PDF_ALLOWLIST);
+  } catch (e) {
+    if (e instanceof UploadValidationError) return fail(e.message);
+    throw e;
+  }
+  const certUrl = await saveUpload(invite.user_id, upload, "coach-certs");
 
   await sql`
     INSERT INTO coach_registry

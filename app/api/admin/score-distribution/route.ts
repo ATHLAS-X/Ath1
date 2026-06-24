@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin-server";
 import { sql } from "@/lib/db";
 
@@ -14,7 +14,7 @@ export async function GET() {
         COUNT(*) FILTER (WHERE total_score BETWEEN 50 AND 69)::int  AS band_50,
         COUNT(*) FILTER (WHERE total_score BETWEEN 30 AND 49)::int  AS band_30,
         COUNT(*) FILTER (WHERE total_score BETWEEN 0  AND 29)::int  AS band_0
-      FROM sportx_score
+      FROM athlasx_score
     `) as any[];
     const r = rows[0] ?? {};
     return NextResponse.json([

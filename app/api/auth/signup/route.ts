@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { sql } from "@/lib/db";
 import { ROLES, type UserRole } from "@/lib/auth";
+import { clientIp } from "@/lib/onboarding-server";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 interface SignupBody {
   name?: string;
@@ -19,6 +21,10 @@ function err(message: string, status: number) {
 }
 
 export async function POST(req: Request) {
+  const ip = clientIp(req);
+  const limit = await rateLimit("signup", ip, 10, 60 * 60);
+  if (!limit.success) return rateLimitResponse(limit);
+
   let body: SignupBody;
   try {
     body = (await req.json()) as SignupBody;
@@ -38,8 +44,8 @@ export async function POST(req: Request) {
   if (phone && !PHONE_RE.test(phone)) return err("Phone number is invalid", 400);
   if (!ROLES.includes(roleRaw as UserRole)) return err(`Unknown role: ${roleRaw}`, 400);
 
-  /* SportX Admin cannot self-register — must be promoted by an existing admin. */
-  if (roleRaw === "sportx_admin") return err("Admin accounts cannot self-register", 403);
+  /* AthlasX Admin cannot self-register — must be promoted by an existing admin. */
+  if (roleRaw === "athlasx_admin") return err("Admin accounts cannot self-register", 403);
 
   const existing = (await sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`) as unknown as {
     id: string;

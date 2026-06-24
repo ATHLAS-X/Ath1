@@ -1,4 +1,4 @@
-# Athlasx
+﻿# Athlasx
 India's cricket talent discovery platform.
 
 India's Cricket Talent Discovery Platform — Next.js 14 (App Router) + TypeScript + Tailwind, NeonDB Postgres, NextAuth (Credentials + JWT).
@@ -12,13 +12,15 @@ All required, set in `.env.local` for development and as Vercel Project Environm
 | `DATABASE_URL` | NeonDB Postgres connection string (`postgresql://user:pass@host/db?sslmode=require`) |
 | `NEXTAUTH_SECRET` | 32+ byte random secret. Generate with `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | Public site URL. `http://localhost:3000` locally, `https://<your-app>.vercel.app` in prod |
+| `UPSTASH_REDIS_REST_URL` | Optional. Upstash Redis REST URL for shared rate limiting across instances. Falls back to an in-memory limiter (single-process, dev-only) if unset. |
+| `UPSTASH_REDIS_REST_TOKEN` | Optional. Upstash Redis REST token, paired with `UPSTASH_REDIS_REST_URL`. |
 
 ## Local Setup
 
-Project location: `C:\Users\saura\SportX`
+Project location: `C:\Users\saura\AthlasX`
 
 ```powershell
-cd C:\Users\saura\SportX
+cd C:\Users\saura\AthlasX
 # Ensure .env.local has DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL set
 npm install
 npm run db:init   # applies lib/schema.sql to Neon
@@ -46,7 +48,7 @@ The academy admin surface (sign-up → onboarding wizard → dashboard → playe
 
 ### 1. Database setup
 
-SportX uses NeonDB Postgres. If you'd rather mirror the original Supabase-shaped prompts, the env keys are reserved in `.env.local.example` — wire up your own client and the surface code works as-is.
+AthlasX uses NeonDB Postgres. If you'd rather mirror the original Supabase-shaped prompts, the env keys are reserved in `.env.local.example` — wire up your own client and the surface code works as-is.
 
 - Create a Neon project at https://neon.tech and copy the pooled connection string into `DATABASE_URL` (or your equivalent Supabase URL + service-role key).
 - The default schema lives at `lib/schema.sql`.
@@ -57,6 +59,11 @@ SportX uses NeonDB Postgres. If you'd rather mirror the original Supabase-shaped
 npx tsx scripts/migrations/players-page.ts         # invite tokens + perf summary + fitness assessments
 npx tsx scripts/migrations/coaches-fitness-pages.ts # soft-delete on academy_coaches
 ```
+
+### Auth/security hardening (rate limiting + Aadhaar OTP)
+
+- `prisma/0003_aadhaar_otps.sql` adds the `aadhaar_otps` table (hashed OTPs for the Aadhaar verify step, mirroring `phone_otps`). Run it once against your DB, or re-run `npm run db:init` (it's folded into `lib/schema.sql` too — both are idempotent).
+- Login, signup, phone-OTP-send, and Aadhaar-OTP-initiate are now rate-limited. Without `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` set, limits are enforced in-memory per process — fine for local dev, but not shared across multiple server instances or serverless cold starts. Set the Upstash env vars in production for a shared limiter.
 
 Each script is idempotent — re-run safely after pulling new code.
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
@@ -48,7 +48,7 @@ export default function OnboardingStub({ role, title, lines }: Props) {
           }}
         >
           🚧 This flow is being built. Your account is in <strong>PENDING</strong> status.
-          Discovery features unlock once SportX Admin reviews and activates your account.
+          Discovery features unlock once AthlasX Admin reviews and activates your account.
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
           <Link

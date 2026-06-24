@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS users (
+﻿CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(100) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
@@ -19,8 +19,21 @@ CREATE INDEX IF NOT EXISTS users_account_status_idx ON users(account_status);
 
 -- Allowed roles (CHECK enforced softly via app layer; CHECK constraint
 -- avoided here so old rows with legacy values don't block migrations):
---   player, parent, academy_admin, coach, scout, tournament_organizer, sportx_admin
+--   player, parent, academy_admin, coach, scout, tournament_organizer, athlasx_admin
 -- Allowed account_status values: pending, active, suspended
+
+-- ── OAuth (Google) sign-in ────────────────────────────────────────────────
+-- Idempotent ALTERs so this can run against existing databases.
+-- password_hash becomes nullable: OAuth-created users never have one. role
+-- is already nullable (no NOT NULL constraint) — a fresh Google sign-up's
+-- INSERT explicitly passes role = NULL (an explicit NULL always overrides
+-- the column's `DEFAULT 'player'`, which we leave untouched for the
+-- credentials signup path) until the post-login role picker runs.
+ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(20);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_id       VARCHAR(255);
+CREATE UNIQUE INDEX IF NOT EXISTS users_oauth_uidx ON users(oauth_provider, oauth_id)
+  WHERE oauth_provider IS NOT NULL AND oauth_id IS NOT NULL;
 
 -- Phone OTP table — short-lived 6-digit codes
 CREATE TABLE IF NOT EXISTS phone_otps (
@@ -35,6 +48,20 @@ CREATE TABLE IF NOT EXISTS phone_otps (
 );
 CREATE INDEX IF NOT EXISTS phone_otps_user_phone_idx ON phone_otps(user_id, phone);
 CREATE INDEX IF NOT EXISTS phone_otps_expires_idx ON phone_otps(expires_at);
+
+-- Aadhaar OTP table — short-lived 6-digit codes for the Aadhaar verify step
+CREATE TABLE IF NOT EXISTS aadhaar_otps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  aadhaar_last4 VARCHAR(4) NOT NULL,
+  code_hash VARCHAR(255) NOT NULL,
+  attempts INTEGER DEFAULT 0,
+  expires_at TIMESTAMPTZ NOT NULL,
+  consumed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS aadhaar_otps_user_id_idx ON aadhaar_otps(user_id);
+CREATE INDEX IF NOT EXISTS aadhaar_otps_expires_idx ON aadhaar_otps(expires_at);
 
 -- ── player profile spec-aligned additions ───────────────────────────────
 ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS first_name        VARCHAR(80);
@@ -370,7 +397,7 @@ CREATE TABLE IF NOT EXISTS coach_registry (
 );
 CREATE INDEX IF NOT EXISTS coach_registry_user_id_idx ON coach_registry(user_id);
 
-CREATE TABLE IF NOT EXISTS sportx_score (
+CREATE TABLE IF NOT EXISTS athlasx_score (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   total_score INTEGER DEFAULT 0,
@@ -388,7 +415,7 @@ CREATE TABLE IF NOT EXISTS sportx_score (
   score_history JSONB DEFAULT '[]',
   updated_at TIMESTAMP DEFAULT NOW()
 );
-CREATE UNIQUE INDEX IF NOT EXISTS sportx_score_user_id_uidx ON sportx_score(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS athlasx_score_user_id_uidx ON athlasx_score(user_id);
 
 -- Score-weight configuration captured at Step 4 (role).
 ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS score_weights JSONB;
@@ -418,10 +445,10 @@ ALTER TABLE coach_registry ADD COLUMN IF NOT EXISTS invite_id UUID REFERENCES co
 ALTER TABLE coach_registry ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP;
 
 -- Score / discovery surface added in Steps 11 + 12.
-ALTER TABLE sportx_score ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'IN_PROGRESS';
-ALTER TABLE sportx_score ADD COLUMN IF NOT EXISTS elasticsearch_indexed BOOLEAN DEFAULT false;
-ALTER TABLE sportx_score ADD COLUMN IF NOT EXISTS calculated_at TIMESTAMP;
-ALTER TABLE sportx_score ADD COLUMN IF NOT EXISTS activated_at TIMESTAMP;
+ALTER TABLE athlasx_score ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'IN_PROGRESS';
+ALTER TABLE athlasx_score ADD COLUMN IF NOT EXISTS elasticsearch_indexed BOOLEAN DEFAULT false;
+ALTER TABLE athlasx_score ADD COLUMN IF NOT EXISTS calculated_at TIMESTAMP;
+ALTER TABLE athlasx_score ADD COLUMN IF NOT EXISTS activated_at TIMESTAMP;
 
 -- Player avatar (uploaded photo for the profile card).
 ALTER TABLE player_profiles ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500);

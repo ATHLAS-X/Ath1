@@ -1,4 +1,4 @@
-export default function SuspendedPage() {
+﻿export default function SuspendedPage() {
   return (
     <div
       className="sx-root"
@@ -19,11 +19,11 @@ export default function SuspendedPage() {
           Access disabled
         </h1>
         <p style={{ color: "var(--mut)", fontSize: 13, marginBottom: 20 }}>
-          Your account has been suspended by SportX Admin. Contact support to
+          Your account has been suspended by AthlasX Admin. Contact support to
           appeal or learn more.
         </p>
         <a
-          href="mailto:support@sportx.in"
+          href="mailto:support@athlasx.in"
           className="btn"
           style={{ display: "inline-flex", width: "100%", justifyContent: "center", textDecoration: "none" }}
         >

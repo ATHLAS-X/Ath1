@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState } from "react";
 import Link from "next/link";
@@ -106,7 +106,7 @@ export default function AadhaarVerifyClient({ profile, verified, maskedAadhaar }
                 <label style={{ display: "flex", gap: 9, alignItems: "flex-start", margin: "10px 0 16px", fontSize: 12, color: "var(--mut)", lineHeight: 1.5, cursor: "pointer" }}>
                   <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ accentColor: "var(--green)", marginTop: 2 }} />
                   <span>
-                    I consent to SportX verifying my identity with UIDAI. For
+                    I consent to AthlasX verifying my identity with UIDAI. For
                     players under 18, this action must be completed by a parent
                     or guardian.
                   </span>

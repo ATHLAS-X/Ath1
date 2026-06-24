@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { sql } from "@/lib/db";
@@ -75,8 +75,8 @@ export async function POST(req: NextRequest) {
 
   await sendEmail({
     to: d.email,
-    subject: "Verify your SportX Academy account",
-    body: `Hi ${d.contact_name},\n\nWelcome to SportX! Please verify your email:\n\n${verifyUrl}\n\nThis link expires in 24 hours.\n\nThe SportX Team`,
+    subject: "Verify your AthlasX Academy account",
+    body: `Hi ${d.contact_name},\n\nWelcome to AthlasX! Please verify your email:\n\n${verifyUrl}\n\nThis link expires in 24 hours.\n\nThe AthlasX Team`,
   });
 
   return NextResponse.json({ success: true });

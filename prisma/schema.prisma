@@ -1,4 +1,4 @@
-// SportX V1 Data Model — Prisma schema
+﻿// AthlasX V1 Data Model — Prisma schema
 // Generated from "MVP flows and data model.docx"
 //
 // Conventions:
@@ -29,7 +29,7 @@ enum UserRole {
   COACH
   SCOUT
   TOURNAMENT_ORGANIZER
-  SPORTX_ADMIN
+  ATHLASX_ADMIN
 }
 
 enum AccountStatus {
@@ -136,14 +136,16 @@ enum ScoutType {
 model User {
   id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email             String         @unique
-  password_hash     String
+  password_hash     String?
   phone             String?        @unique
   email_verified_at DateTime?      @db.Timestamptz(6)
   phone_verified_at DateTime?      @db.Timestamptz(6)
-  role              UserRole       @default(PLAYER)
+  role              UserRole?      @default(PLAYER)
   account_status    AccountStatus  @default(PENDING)
   source_channel    SourceChannel  @default(INDEPENDENT_PLAYER)
   display_name      String?
+  oauth_provider    String?
+  oauth_id          String?
   created_at        DateTime       @default(now()) @db.Timestamptz(6)
   updated_at        DateTime       @updatedAt @db.Timestamptz(6)
 
@@ -161,6 +163,12 @@ model User {
 
   @@index([role])
   @@index([account_status])
+  // Prisma's DSL can't express a partial index (WHERE x IS NOT NULL); the
+  // actual constraint — unique only when both columns are non-null — lives
+  // in lib/schema.sql's users_oauth_uidx. This is the closest declarative
+  // equivalent for schema-diffing purposes (per MIGRATION_NOTES.md, this
+  // schema isn't applied to the live DB anyway).
+  @@unique([oauth_provider, oauth_id])
   @@map("users")
 }
 
@@ -180,6 +188,24 @@ model PhoneOtp {
   @@index([user_id, phone])
   @@index([expires_at])
   @@map("phone_otps")
+}
+
+// ─── AADHAAR OTP ────────────────────────────────────────────────────────────
+// Short-lived 6-digit codes for the Aadhaar verify step.
+
+model AadhaarOtp {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String?   @db.Uuid
+  aadhaar_last4 String
+  code_hash     String
+  attempts      Int       @default(0)
+  expires_at    DateTime  @db.Timestamptz(6)
+  consumed_at   DateTime? @db.Timestamptz(6)
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id])
+  @@index([expires_at])
+  @@map("aadhaar_otps")
 }
 
 // ─── 2. PLAYER PROFILE ────────────────────────────────────────────────────

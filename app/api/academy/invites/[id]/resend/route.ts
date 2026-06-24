@@ -28,12 +28,12 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   const claimUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/claim/${inv.token}`;
   const body =
-    `${inv.academy_name} has created a SportX profile for you.\n\n` +
+    `${inv.academy_name} has created an AthlasX profile for you.\n\n` +
     `Claim it here: ${claimUrl}\n\n` +
     `You'll fill in any missing details and submit for approval.`;
 
-  if (inv.email) await sendEmail({ to: inv.email, subject: `Claim your SportX profile — ${inv.academy_name}`, body });
-  if (inv.phone) await sendSms(inv.phone, `SportX: ${inv.academy_name} created a profile for you. Claim it at ${claimUrl}`);
+  if (inv.email) await sendEmail({ to: inv.email, subject: `Claim your AthlasX profile — ${inv.academy_name}`, body });
+  if (inv.phone) await sendSms(inv.phone, `AthlasX: ${inv.academy_name} created a profile for you. Claim it at ${claimUrl}`);
 
   await sql`UPDATE player_invites SET sent_at = NOW(), status = 'Sent' WHERE id = ${inv.id}`;
   return NextResponse.json({ success: true });

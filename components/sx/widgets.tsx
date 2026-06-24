@@ -1,4 +1,4 @@
-/* SX helper widgets — React ports of sportx-fx.js (ring, verification level, initials) */
+﻿/* SX helper widgets — React ports of athlasx-fx.js (ring, verification level, initials) */
 
 export function initials(name: string): string {
   return name

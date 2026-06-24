@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-server";
 import { ok } from "@/lib/onboarding-server";
 
@@ -9,7 +9,7 @@ export async function GET() {
   const rows = (await sql`
     SELECT
       (SELECT COUNT(*) FROM users WHERE COALESCE(role,'player') = 'player')::int  AS total_players,
-      (SELECT COUNT(*) FROM sportx_score WHERE coach_verified = true)::int        AS verified_players,
+      (SELECT COUNT(*) FROM athlasx_score WHERE coach_verified = true)::int        AS verified_players,
       (SELECT COUNT(*) FROM users WHERE role = 'scout')::int                      AS active_scouts,
       (SELECT COUNT(*) FROM match_logs WHERE ocr_status = 'PENDING')::int          AS pending_scorecards,
       (SELECT COUNT(*) FROM coach_registry WHERE coach_status = 'PENDING_REVIEW')::int AS pending_coaches,

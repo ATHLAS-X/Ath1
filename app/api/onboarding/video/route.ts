@@ -1,10 +1,10 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { sql } from "@/lib/db";
 import { advanceStep } from "@/lib/onboarding";
 import { fail, ok, requireUserId } from "@/lib/onboarding-server";
 import { extractYouTubeId } from "@/lib/youtube";
 
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "gemini-2.5-flash";
 
 const SYSTEM_PROMPT =
   "You are an expert cricket technique analyst. Analyse the cricket batting/bowling technique shown in this video. " +
@@ -22,26 +22,28 @@ interface VideoAnalysis {
   technique_notes: string;
 }
 
-function fallback(url: string): VideoAnalysis {
+/**
+ * Placeholder analysis — NOT derived from the submitted video. Gemini
+ * cannot fetch a YouTube URL directly (see the route's NOTE below); real
+ * per-video analysis needs frame extraction or routing through Backend/AI,
+ * neither of which is wired up yet. This exists so onboarding step 9 has
+ * something to show while that's built, not to be presented as a real
+ * finding — callers must surface `preliminary: true` (see POST handler)
+ * rather than letting the UI imply this came from the user's footage.
+ */
+function fallback(): VideoAnalysis {
   return {
-    batting_style: "Orthodox front-foot dominant",
-    wrist_movement: "Top-hand controlled; closing late through contact",
-    foot_work: "Slight lateral movement into the line; back-foot triggers well-timed",
-    bowling_action: "Not clearly visible in this angle",
-    strong_points: [
-      "Stable head position at delivery release",
-      "Balanced base — weight transferred forward cleanly",
-      "Bat swing path stays close to the body line",
-    ],
-    weak_points: [
-      "Wrist closes slightly early on the cover drive",
-      "Backlift drifts towards gully on quicker deliveries",
-    ],
-    style_classification: "Top-order anchor with hands-led timing",
+    batting_style: "Pending full review",
+    wrist_movement: "Pending full review",
+    foot_work: "Pending full review",
+    bowling_action: "Pending full review",
+    strong_points: ["Full technique breakdown pending manual/automated review"],
+    weak_points: ["Full technique breakdown pending manual/automated review"],
+    style_classification: "Preliminary — full review pending",
     technique_notes:
-      "Setup is balanced and reactive against fuller lengths; transitioning to shorter deliveries shows a marginal head-fall to the off side. " +
-      "Recommend drills that delay the front-foot trigger by 80–120ms to recover against length variation. (Auto-fallback analysis for " +
-      url + ")",
+      "This is a placeholder, not an analysis of your video — automated per-video technique " +
+      "breakdown isn't live yet. A coach or the platform will follow up with real feedback once " +
+      "it is.",
   };
 }
 
@@ -86,31 +88,31 @@ export async function POST(req: Request) {
   if (!videoId) return fail("Provide a valid YouTube URL");
 
   let analysis: VideoAnalysis | null = null;
-  if (process.env.ANTHROPIC_API_KEY) {
+  // NOTE: Gemini cannot fetch YouTube URLs directly — real video analysis
+  // requires downloading frames and sending them as inline bytes, or using the
+  // File API for uploads. That work belongs in apps/compute (Mrigank's lane).
+  // For now this route always uses the deterministic fallback; the GEMINI_API_KEY
+  // branch is left stubbed so it's easy to wire up once compute is ready.
+  if (process.env.GEMINI_API_KEY && false) {
     try {
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-      const resp = await client.messages.create({
-        model: MODEL,
-        max_tokens: 900,
-        system: SYSTEM_PROMPT,
-        messages: [{
-          role: "user",
-          content:
-            `Analyse the cricket technique in this YouTube video: ${url}. ` +
-            `Provide detailed technical feedback on the player's batting stance, grip, footwork, wrist position, ` +
-            `follow-through, and bowling action if visible.`,
-        }],
-      });
-      const text = resp.content.map((b: any) => (b.type === "text" ? b.text : "")).join("");
+      const genai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genai.getGenerativeModel({ model: MODEL, systemInstruction: SYSTEM_PROMPT });
+      const resp = await model.generateContent(
+        `Analyse the cricket technique in this YouTube video: ${url}. ` +
+        `Provide detailed technical feedback on the player's batting stance, grip, footwork, wrist position, ` +
+        `follow-through, and bowling action if visible.`
+      );
+      const text = resp.response.text();
       analysis = parseJson(text);
-      if (!analysis) console.warn("[video] Claude returned unparseable JSON; falling back. Preview:", text.slice(0, 200));
+      if (!analysis) console.warn("[video] Gemini returned unparseable JSON; falling back. Preview:", text.slice(0, 200));
     } catch (e: any) {
-      console.warn("[video] Anthropic call failed; using fallback:", e?.message);
+      console.warn("[video] Gemini call failed; using fallback:", e?.message);
     }
   } else {
-    console.log("[video] ANTHROPIC_API_KEY not set; using fallback analysis.");
+    console.log("[video] Using deterministic fallback — real analysis via compute service (TODO).");
   }
-  if (!analysis) analysis = fallback(url);
+  const preliminary = analysis === null;
+  if (!analysis) analysis = fallback();
 
   await sql`DELETE FROM video_analysis WHERE user_id = ${guard.userId}`;
   await sql`
@@ -125,5 +127,5 @@ export async function POST(req: Request) {
   `;
 
   const state = await advanceStep(guard.userId, 9);
-  return ok({ ...analysis, youtube_video_id: videoId, onboarding: state });
+  return ok({ ...analysis, youtube_video_id: videoId, preliminary, onboarding: state });
 }

@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 
 /* Final submit for self-signup coach. Flips coach_status to PENDING_REVIEW
-   so SportX admin sees it in the review queue. */
+   so AthlasX admin sees it in the review queue. */
 
 export async function POST() {
   const session = await getServerSession(authOptions);

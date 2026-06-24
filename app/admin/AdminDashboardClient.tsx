@@ -1,11 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { initials, Ring, Vlvl } from "@/components/sx/widgets";
-import SportXLogo from "@/components/SportXLogo";
-import "@/app/sportx.css";
+import AthlasXLogo from "@/components/AthlasXLogo";
+import "@/app/athlasx.css";
 
 const NAV = [
   { n: "Overview",            href: "/admin",          ic: '<rect x="1.5" y="1.5" width="11" height="11" rx="2"/><path d="M1.5 5.5H12.5M5.5 5.5V12.5"/>' },
@@ -174,7 +174,7 @@ export default function AdminDashboardClient(p: Props) {
         {/* ═══ SIDEBAR ═══ */}
         <aside className="sidebar">
           <div className="logo-row">
-            <SportXLogo />
+            <AthlasXLogo />
           </div>
           <div className="admin-lbl">Admin Panel</div>
           <nav>

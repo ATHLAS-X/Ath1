@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { VERIFICATION_LEVELS } from "@/lib/profile-completion";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 interface ChromeProps {
   title: string;

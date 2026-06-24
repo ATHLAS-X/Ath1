@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState } from "react";
-import "@/app/sportx.css";
+import "@/app/athlasx.css";
 
 interface Props {
   backHref: string;
@@ -14,7 +14,7 @@ const PHASES: Phase[] = [
   { i: "P1", n: "Onboard",         s: "Sign up · Profile draft", level: "L1" },
   { i: "P2", n: "Verify Identity", s: "Aadhaar OTP · Consent",   level: "L2" },
   { i: "P3", n: "Capture Perf.",   s: "Stats · Videos · Fitness" },
-  { i: "P4", n: "Match Verify",    s: "Scorecards · SportX review", level: "L3" },
+  { i: "P4", n: "Match Verify",    s: "Scorecards · AthlasX review", level: "L3" },
   { i: "P5", n: "Discover",        s: "Scout search · Watchlist" },
   { i: "P6", n: "Endorse",         s: "Trial · Scout verify",       level: "L4" },
 ];
@@ -119,7 +119,7 @@ export default function WorkflowClient({ backHref, role }: Props) {
         <div className="arch-top">
           <div>
             <div className="sect-title">User Workflow</div>
-            <div className="arch-h1">How SportX moves a player from sign-up to scout-verified</div>
+            <div className="arch-h1">How AthlasX moves a player from sign-up to scout-verified</div>
           </div>
           <div className="arch-spacer" />
           <div className="arch-links">
@@ -199,11 +199,11 @@ export default function WorkflowClient({ backHref, role }: Props) {
           <div className="card arch-card" id="intel">
             <div className="arch-chead">
               <span className="sect-title">Intelligence Streams</span>
-              <span className="bdg green">SportX Score</span>
+              <span className="bdg green">AthlasX Score</span>
             </div>
             <div className="cb">
               <p className="arch-note">
-                Six weighted streams produce the SportX Score. Weights sum to
+                Six weighted streams produce the AthlasX Score. Weights sum to
                 100; each stream is sourced from a different verification path.
               </p>
               <div className="intel-list">

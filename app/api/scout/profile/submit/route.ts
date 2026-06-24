@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 
-/* Scout submits onboarding for SportX admin review.
+/* Scout submits onboarding for AthlasX admin review.
    Per the V1 spec (Part 1, Step 5): row sits at "Pending Approval" with
    verification_level='L0' until an admin promotes them to L1 (Verified)
    or L2 (Minor-Cleared). Adult profiles are searchable from L0 already. */

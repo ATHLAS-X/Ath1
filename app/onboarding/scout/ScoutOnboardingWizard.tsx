@@ -1,12 +1,14 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import "@/app/sportx.css";
+import { anton, barlow, barlowSemiCondensed } from "@/components/landing/Hero/fonts";
+import { heroStyles } from "@/components/landing/Hero/styles";
+import StepTransition from "@/components/onboarding/StepTransition";
+import OnboardingShell from "@/components/onboarding/OnboardingShell";
 
 /* Scout Onboarding wizard — implements Part 1 of the V1 spec
-   (SportX_Onboarding_Workflows_Scout_Coach.docx).
+   (AthlasX_Onboarding_Workflows_Scout_Coach.docx).
    Four user-facing steps:
      1. Scout Profile         (Identity + Designation)
      2. Organization Affiliation (Org + Proof)
@@ -116,67 +118,46 @@ export default function ScoutOnboardingWizard(p: Props) {
     return false;
   })();
 
+  const stepBody = (
+    <StepTransition step={step}>
+      {step === 0 && <Step1 form={form} set={set} userName={p.userName} userEmail={p.userEmail} />}
+      {step === 1 && <Step2 form={form} set={set} />}
+      {step === 2 && <Step3 form={form} toggle={toggleInArray} />}
+      {step === 3 && <Step4 form={form} submitted={submitted} userName={p.userName} userEmail={p.userEmail} verificationLevel={p.verificationLevel} />}
+    </StepTransition>
+  );
+
   return (
-    <div className="sx-root sw-root">
+    <div className={`sw-root ${anton.variable} ${barlow.variable} ${barlowSemiCondensed.variable}`}>
+      <style dangerouslySetInnerHTML={{ __html: heroStyles }} />
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
       <div className="sw-shell">
-
-        {/* Status banner if already submitted */}
-        {submitted && step === 3 && (
-          <SubmittedBanner level={p.verificationLevel} />
-        )}
-
-        {/* Stepper */}
-        <div className="sw-stepper">
-          {STEPS.map((s, i) => (
-            <button key={s.n}
-              type="button"
-              className={`sw-step${i === step ? " on" : ""}${i < step ? " done" : ""}`}
-              onClick={() => i <= step && setStep(i)}>
-              <div className="sw-step-dot">{i < step ? "✓" : i + 1}</div>
-              <div className="sw-step-text">
-                <div className="sw-step-n">{s.n}</div>
-                <div className="sw-step-d">{s.d}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* Step content */}
-        <div className="card sw-card">
-          {step === 0 && <Step1 form={form} set={set} userName={p.userName} userEmail={p.userEmail} />}
-          {step === 1 && <Step2 form={form} set={set} />}
-          {step === 2 && <Step3 form={form} toggle={toggleInArray} />}
-          {step === 3 && <Step4 form={form} submitted={submitted} userName={p.userName} userEmail={p.userEmail} verificationLevel={p.verificationLevel} />}
-
-          {error && <p className="sw-error">{error}</p>}
-
-          {!submitted && (
-            <div className="sw-actions">
-              <button className="btn" disabled={busy || step === 0} onClick={prev}>← Back</button>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                {saved && <span style={{ fontSize: 12, color: "var(--green)" }}>✓ Saved</span>}
-                {step < 3 ? (
-                  <button className="btn green" disabled={busy || cantContinue} onClick={next}>
-                    {busy ? "Saving…" : "Save & Continue →"}
-                  </button>
-                ) : (
-                  <button className="btn green" disabled={busy} onClick={submit}>
-                    {busy ? "Submitting…" : "Submit for SportX Review"}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {submitted && (
-            <div className="sw-actions" style={{ justifyContent: "center" }}>
-              <Link href="/scout/dashboard" className="btn green" style={{ textDecoration: "none" }}>
-                Go to Scout Dashboard
-              </Link>
-            </div>
-          )}
-        </div>
+        <OnboardingShell
+          role="scout"
+          eyebrow="Scout Onboarding"
+          title={<>Discover India&apos;s <b>raw</b> talent.</>}
+          desc="Four steps. Adult-profile search is available immediately — verification levels unlock more."
+          steps={STEPS.map((s) => ({ label: s.n }))}
+          stepIdx={step}
+          onStepClick={(i) => i <= step && setStep(i)}
+          footMeta={`Step ${step + 1} of ${STEPS.length}`}
+          progressPct={((step + 1) / STEPS.length) * 100}
+          nextLabel={submitted ? "Go to Scout Dashboard" : busy ? (step < 3 ? "Saving…" : "Submitting…") : step < 3 ? "Save & Continue →" : "Submit for AthlasX Review"}
+          onNext={submitted ? () => router.push("/scout/dashboard") : step < 3 ? next : submit}
+          nextDisabled={!submitted && (busy || (step < 3 && cantContinue))}
+          onBack={prev}
+          backHidden={step === 0 || submitted}
+          userName={p.userName}
+          belowBody={
+            <>
+              {submitted && step === 3 && <SubmittedBanner level={p.verificationLevel} />}
+              {error && <p className="sw-error">{error}</p>}
+              {saved && <p style={{ fontSize: 12, color: "var(--hx-accent-bright)", marginTop: 10 }}>✓ Saved</p>}
+            </>
+          }
+        >
+          {stepBody}
+        </OnboardingShell>
       </div>
     </div>
   );
@@ -223,7 +204,7 @@ function Step2({ form, set }: {
         <span className="sect-title">Step 2 of 4</span>
         <h2 className="sw-h2">Organization &amp; Affiliation</h2>
         <p className="sw-sub">
-          Scouts must be tied to an organization. SportX admin verifies your
+          Scouts must be tied to an organization. AthlasX admin verifies your
           proof before granting search access (L1) — without proof your
           account stays at L0 (browse-only).
         </p>
@@ -281,7 +262,7 @@ function Step3({ form, toggle }: {
         <span className="sect-title">Step 3 of 4</span>
         <h2 className="sw-h2">Scouting Preferences</h2>
         <p className="sw-sub">
-          These don&apos;t restrict search — they help SportX surface the right
+          These don&apos;t restrict search — they help AthlasX surface the right
           players in your discovery feed. You can change them later.
         </p>
       </div>
@@ -332,7 +313,7 @@ function Step4({ form, submitted, userName, userEmail, verificationLevel }: {
         <h2 className="sw-h2">{submitted ? "Submitted ✓" : "Review &amp; Submit"}</h2>
         <p className="sw-sub">
           {submitted
-            ? "Your profile is with SportX admin. You'll be notified once your verification level changes."
+            ? "Your profile is with AthlasX admin. You'll be notified once your verification level changes."
             : "Double-check the details. After submission you cannot edit until admin review completes."}
         </p>
       </div>
@@ -353,7 +334,7 @@ function Step4({ form, submitted, userName, userEmail, verificationLevel }: {
 
       {!submitted && (
         <p className="sw-note">
-          ⓘ Submitting puts your profile in the SportX admin review queue.
+          ⓘ Submitting puts your profile in the AthlasX admin review queue.
           Adult-profile search unlocks immediately at <strong>L1 Verified</strong>; minor
           access (<strong>L2 Minor-Cleared</strong>) is requested separately later.
         </p>
@@ -367,7 +348,7 @@ function SubmittedBanner({ level }: { level: string }) {
     <div className="sw-success-banner">
       <div className="sw-success-dot">⏳</div>
       <div>
-        <div className="sw-success-h">Awaiting SportX review</div>
+        <div className="sw-success-h">Awaiting AthlasX review</div>
         <div className="sw-success-s">
           Current level: <strong>{level} · {LVL_LABEL[level] ?? "Pending"}</strong>.
           You&apos;ll be promoted to L1 (Adult Search) once an admin approves.
@@ -405,48 +386,70 @@ const LVL_LABEL: Record<string, string> = {
 };
 
 const STYLES = `
-.sw-root { min-height: 100vh; padding: 24px 18px 48px; }
-.sw-shell { max-width: 880px; margin: 0 auto; }
+.sw-root { min-height: 100vh; padding: 24px 18px 48px; background: var(--hx-bg); color: var(--hx-text); font-family: var(--font-barlow), system-ui, sans-serif; }
+
+/* athlasx.css's .sx-root .btn/.card no longer apply once this page drops
+   .sx-root — equivalents scoped under .sw-shell so the existing className
+   strings in the JSX below don't need to change. */
+.sw-shell .card { background: var(--hx-bg-soft); border: 1px solid var(--hx-card-border); border-radius: 12px; }
+.sw-shell .btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 30px; padding: 0 14px; border-radius: 8px;
+  font-family: var(--font-barlow-semi), sans-serif; font-size: 11.5px; font-weight: 600;
+  border: 1px solid var(--hx-card-border); background: var(--hx-bg-soft);
+  color: var(--hx-text); cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  text-decoration: none;
+}
+.sw-shell .btn:hover { border-color: var(--hx-text-dim); background: var(--hx-field-bg); }
+.sw-shell .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.sw-shell .btn.green { background: var(--hx-accent); border-color: var(--hx-accent); color: #1a0e02; }
+.sw-shell .btn.green:hover { background: var(--hx-accent-bright); border-color: var(--hx-accent-bright); }
+
+.sw-shell { width: 100%; }
 .sw-stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
-.sw-step { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 11px; background: var(--card-alt); border: 1px solid var(--line); cursor: pointer; text-align: left; transition: all 0.15s; min-width: 0; }
-.sw-step:hover:not(:disabled) { border-color: var(--line2); }
-.sw-step.done { background: linear-gradient(168deg, rgba(46,224,123,0.08), transparent); border-color: var(--green-bd); }
-.sw-step.on { background: linear-gradient(168deg, rgba(46,224,123,0.13), rgba(46,224,123,0.04)); border-color: var(--green-bd); box-shadow: 0 6px 18px -10px var(--green-glow); }
-.sw-step-dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-family: var(--num); font-size: 11.5px; font-weight: 700; background: var(--card-base); border: 1.5px solid var(--line2); color: var(--mut); flex-shrink: 0; }
-.sw-step.on .sw-step-dot { border-color: var(--green); color: var(--green); }
-.sw-step.done .sw-step-dot { background: radial-gradient(circle at 32% 28%, #46ff97, #0e6e33 75%); border-color: rgba(46,224,123,0.5); color: #04140a; }
+.sw-step { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 11px; background: var(--hx-field-bg); border: 1px solid var(--hx-card-border); cursor: pointer; text-align: left; transition: all 0.15s; min-width: 0; }
+.sw-step:hover:not(:disabled) { border-color: var(--hx-text-dim); }
+.sw-step.done { background: linear-gradient(168deg, var(--hx-overlay-accent-08), transparent); border-color: var(--hx-accent); }
+.sw-step.on { background: linear-gradient(168deg, var(--hx-overlay-accent-14), var(--hx-overlay-accent-08)); border-color: var(--hx-accent); box-shadow: 0 6px 18px -10px var(--hx-overlay-accent-22); }
+.sw-step-dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-barlow-semi), sans-serif; font-size: 11.5px; font-weight: 700; background: var(--hx-bg-soft); border: 1.5px solid var(--hx-card-border); color: var(--hx-text-dim); flex-shrink: 0; }
+.sw-step.on .sw-step-dot { border-color: var(--hx-accent); color: var(--hx-accent-bright); }
+.sw-step.done .sw-step-dot { background: var(--hx-accent); border-color: var(--hx-accent); color: #1a0e02; }
 .sw-step-text { min-width: 0; }
-.sw-step-n { font-family: var(--num); font-size: 12.5px; font-weight: 700; color: var(--text); }
-.sw-step-d { font-size: 10px; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sw-step-n { font-family: var(--font-barlow-semi), sans-serif; font-size: 12.5px; font-weight: 700; color: var(--hx-text); }
+.sw-step-d { font-size: 10px; color: var(--hx-text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .sw-card { padding: 28px 26px; }
 .sw-head { margin-bottom: 22px; }
-.sw-h2 { font-family: var(--num); font-size: 24px; font-weight: 700; margin: 6px 0 8px; }
-.sw-sub { font-size: 13px; color: var(--mut); line-height: 1.55; max-width: 620px; }
+.sw-h2 { font-family: var(--font-anton), sans-serif; text-transform: uppercase; font-weight: 400; font-size: 32px; margin: 6px 0 8px; }
+.sw-sub { font-size: 15px; color: var(--hx-text-dim); line-height: 1.55; max-width: 620px; }
+.sw-shell .sect-title { font-size: 11px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--hx-text-dim); font-family: var(--font-barlow-semi), sans-serif; font-weight: 600; }
+.sw-shell .sinput { height: 42px; padding: 0 14px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.25); border-radius: 8px; color: var(--hx-text); font-size: 15px; }
+.sw-shell .sinput:focus { border-color: var(--hx-accent); box-shadow: 0 0 8px rgba(255,138,30,0.22); background: rgba(255,255,255,0.08); }
+.sw-shell .sinput::placeholder { color: rgba(245,245,240,0.3); }
 
 .sw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 700px) { .sw-grid, .sw-stepper { grid-template-columns: 1fr; } }
 .sw-field { display: block; }
-.sw-hint { display: block; font-size: 11px; color: var(--mut); margin-top: 5px; }
+.sw-hint { display: block; font-size: 11px; color: var(--hx-text-dim); margin-top: 5px; }
 
 .sw-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-.sw-chip { height: 28px; padding: 0 12px; border-radius: 99px; background: var(--card-alt); border: 1px solid var(--line2); color: var(--lbl); font-family: var(--num); font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.13s; }
-.sw-chip:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
-.sw-chip.on { background: var(--green-bg); border-color: var(--green-bd); color: var(--green); box-shadow: 0 0 10px -3px var(--green-glow); }
+.sw-chip { height: 28px; padding: 0 12px; border-radius: 99px; background: var(--hx-field-bg); border: 1px solid var(--hx-card-border); color: var(--hx-text-dim); font-family: var(--font-barlow-semi), sans-serif; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.13s; }
+.sw-chip:hover { color: var(--hx-text); border-color: rgba(245,245,240,0.3); }
+.sw-chip.on { background: var(--hx-overlay-accent-14); border-color: var(--hx-accent); color: var(--hx-accent-bright); box-shadow: 0 0 10px -3px var(--hx-overlay-accent-22); }
 
-.sw-error { margin-top: 14px; padding: 10px 12px; border-radius: 9px; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--red); font-size: 12.5px; }
-.sw-note { margin-top: 16px; padding: 12px; border-radius: 10px; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); color: var(--amber); font-size: 12.5px; line-height: 1.55; }
+.sw-error { margin-top: 14px; padding: 10px 12px; border-radius: 9px; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: #F87171; font-size: 12.5px; }
+.sw-note { margin-top: 16px; padding: 12px; border-radius: 10px; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); color: #FBBF24; font-size: 12.5px; line-height: 1.55; }
 
-.sw-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.sw-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--hx-card-border); }
 
 .sw-review { display: flex; flex-direction: column; gap: 0; }
 .sw-rev-row { display: flex; gap: 12px; padding: 10px 0; align-items: flex-start; }
-.sw-rev-row + .sw-rev-row { border-top: 1px solid var(--line); }
-.sw-rev-k { width: 180px; flex-shrink: 0; font-size: 12px; color: var(--mut); }
-.sw-rev-v { flex: 1; font-size: 12.5px; font-weight: 600; color: var(--text); word-break: break-word; }
+.sw-rev-row + .sw-rev-row { border-top: 1px solid var(--hx-card-border); }
+.sw-rev-k { width: 180px; flex-shrink: 0; font-size: 12px; color: var(--hx-text-dim); }
+.sw-rev-v { flex: 1; font-size: 12.5px; font-weight: 600; color: var(--hx-text); word-break: break-word; }
 
-.sw-success-banner { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 12px; background: linear-gradient(168deg, rgba(46,224,123,0.12), rgba(46,224,123,0.04)); border: 1px solid var(--green-bd); margin-bottom: 18px; }
-.sw-success-dot { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: radial-gradient(circle at 32% 28%, #46ff97, #0e6e33 75%); box-shadow: 0 0 16px var(--green-glow); flex-shrink: 0; }
-.sw-success-h { font-family: var(--num); font-size: 16px; font-weight: 700; }
-.sw-success-s { font-size: 12.5px; color: var(--mut); line-height: 1.5; margin-top: 3px; }
+.sw-success-banner { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 12px; background: linear-gradient(168deg, var(--hx-overlay-accent-14), var(--hx-overlay-accent-08)); border: 1px solid var(--hx-accent); margin-bottom: 18px; }
+.sw-success-dot { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: var(--hx-accent); box-shadow: 0 0 16px var(--hx-overlay-accent-22); flex-shrink: 0; color: #1a0e02; }
+.sw-success-h { font-family: var(--font-barlow-semi), sans-serif; font-size: 16px; font-weight: 700; }
+.sw-success-s { font-size: 12.5px; color: var(--hx-text-dim); line-height: 1.5; margin-top: 3px; }
 `;

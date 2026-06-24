@@ -1,5 +1,5 @@
-/**
- * Cricket performance math used by Step 5 (StepStats) and the SportX scoring engine.
+﻿/**
+ * Cricket performance math used by Step 5 (StepStats) and the AthlasX scoring engine.
  */
 
 export interface BattingInputs {

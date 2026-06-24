@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { sendSms } from "@/lib/sms";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const PHONE_RE = /^\+?[0-9]{7,15}$/;
 const OTP_TTL_SECONDS = 10 * 60;
@@ -32,6 +33,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: "Valid phone number is required" }, { status: 400 });
   }
 
+  const limit = await rateLimit("otp-send", phone, 5, 60 * 60);
+  if (!limit.success) return rateLimitResponse(limit);
+
   /* 6-digit code, stored hashed; consumer compares with bcrypt. */
   const code = String(Math.floor(100000 + Math.random() * 900000));
   const code_hash = await bcrypt.hash(code, 8);
@@ -51,7 +55,7 @@ export async function POST(req: Request) {
   /* Stash the phone on the user row if it wasn't already set. */
   await sql`UPDATE users SET phone = ${phone} WHERE id = ${userId} AND phone IS NULL`;
 
-  await sendSms(phone, `Your SportX verification code is ${code}. Expires in 10 minutes.`);
+  await sendSms(phone, `Your AthlasX verification code is ${code}. Expires in 10 minutes.`);
 
   const payload: Record<string, unknown> = {
     success: true,

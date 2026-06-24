@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -126,7 +126,7 @@ export default function FitnessClient(p: Props) {
     const a = document.createElement("a");
     const stamp = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `sportx-fitness-assessments-${stamp}.csv`;
+    a.download = `athlasx-fitness-assessments-${stamp}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast.success(`Exported ${rows.length} assessment${rows.length === 1 ? "" : "s"}`);
@@ -181,7 +181,7 @@ export default function FitnessClient(p: Props) {
           <div className="fc-banner" role="note">
             <div className="fc-banner-icon" aria-hidden>ⓘ</div>
             <div className="fc-banner-text">
-              <strong>Coach-verified assessments contribute to a player&apos;s SportX
+              <strong>Coach-verified assessments contribute to a player&apos;s AthlasX
               Score.</strong> Self-reported entries are displayed but excluded
               from scoring.
             </div>

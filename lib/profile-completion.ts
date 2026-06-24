@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Profile completion model.
  *
  * Five required categories total to 100%. Optional categories give "bonus"
@@ -106,7 +106,7 @@ export function calcProfileCompletion(s: ProfileSnapshot): CompletionResult {
 export const VERIFICATION_LEVELS = [
   { level: 1, name: "Self Registered",     desc: "Profile created" },
   { level: 2, name: "Identity Verified",   desc: "Aadhaar verified" },
-  { level: 3, name: "Performance Verified", desc: "Scorecards approved by SportX" },
+  { level: 3, name: "Performance Verified", desc: "Scorecards approved by AthlasX" },
   { level: 4, name: "Scout Verified",      desc: "Endorsed by a verified scout" },
 ] as const;
 

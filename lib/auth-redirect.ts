@@ -1,10 +1,10 @@
-import type { UserRole, AccountStatus } from "./auth";
+﻿import type { UserRole, AccountStatus } from "./auth";
 
 /**
  * Where a user lands after login / signup based on (role, account_status).
  *
  * Pending users complete onboarding for their role. Active users go to their
- * dashboard. SportX Admin skips onboarding entirely.
+ * dashboard. AthlasX Admin skips onboarding entirely.
  */
 export function getRedirectByRole(user: {
   role?: UserRole | string | null;
@@ -13,7 +13,7 @@ export function getRedirectByRole(user: {
   const role = (user.role ?? "player") as UserRole;
   const status = (user.account_status ?? "pending") as AccountStatus;
 
-  if (role === "sportx_admin") return "/admin";
+  if (role === "athlasx_admin") return "/admin";
   if (status === "suspended") return "/auth/suspended";
 
   /* Pending → finish onboarding */
@@ -49,5 +49,5 @@ export const ROLE_DASHBOARD_PREFIX: Record<UserRole, string> = {
   coach:                "/dashboard/coach",
   scout:                "/dashboard/scout",
   tournament_organizer: "/dashboard/tournament",
-  sportx_admin:         "/admin",
+  athlasx_admin:         "/admin",
 };

@@ -29,6 +29,7 @@ export async function GET() {
     SELECT c.id, c.coach_name, c.specialization, c.years_experience,
            c.certifications, c.can_submit_fitness, c.can_submit_evaluations,
            c.coach_status, c.created_at,
+           c.user_id IS NOT NULL AS linked,
            COALESCE(fa.n, 0) AS assessment_count
     FROM academy_coaches c
     JOIN academies a ON a.id = c.academy_id
@@ -61,6 +62,7 @@ export async function POST(req: Request) {
   const certs = String(body.certifications ?? "").trim() || null;
   const canFitness = Boolean(body.can_submit_fitness);
   const canEval = Boolean(body.can_submit_evaluations);
+  const coachEmail = String(body.coach_email ?? "").trim().toLowerCase() || null;
 
   if (!name) return NextResponse.json({ success: false, error: "Coach name is required" }, { status: 400 });
   if (specialization && !SPECIALIZATIONS.has(specialization)) {
@@ -77,15 +79,34 @@ export async function POST(req: Request) {
   }
   const academyId = aRows[0].id;
 
+  /* Link this roster entry to a real coach login, if the academy provided
+     an email and an account with that email + role='coach' exists. Roster
+     entries with no email (or no matching account) stay unlinked — they're
+     name-only attribution records until someone claims them. */
+  let coachUserId: string | null = null;
+  if (coachEmail) {
+    const userRows = (await sql`
+      SELECT id FROM users WHERE email = ${coachEmail} AND role = 'coach' LIMIT 1
+    `) as unknown as Array<{ id: string }>;
+    coachUserId = userRows[0]?.id ?? null;
+  }
+
   const inserted = (await sql`
     INSERT INTO academy_coaches
       (academy_id, coach_name, specialization, years_experience, certifications,
-       can_submit_fitness, can_submit_evaluations, created_by_user_id)
+       can_submit_fitness, can_submit_evaluations, created_by_user_id, user_id)
     VALUES
       (${academyId}, ${name}, ${specialization || null}, ${years}, ${certs},
-       ${canFitness}, ${canEval}, ${userId})
+       ${canFitness}, ${canEval}, ${userId}, ${coachUserId})
     RETURNING id, coach_name
   `) as any[];
 
-  return NextResponse.json({ success: true, coach: inserted[0] });
+  return NextResponse.json({
+    success: true,
+    coach: inserted[0],
+    linked: coachUserId !== null,
+    ...(coachEmail && !coachUserId
+      ? { link_warning: "No coach account found with that email — roster entry created unlinked." }
+      : {}),
+  });
 }

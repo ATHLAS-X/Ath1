@@ -1,5 +1,6 @@
 import { sql } from "@/lib/db";
 import { fail, ok, requireUserId, saveUpload } from "@/lib/onboarding-server";
+import { IMAGE_ALLOWLIST, UploadValidationError, readAndValidateUpload } from "@/lib/upload-validation";
 
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
 
@@ -12,10 +13,16 @@ export async function POST(req: Request) {
   const form = await req.formData();
   const file = form.get("avatar") as File | null;
   if (!file) return fail("No file uploaded");
-  if (!file.type.startsWith("image/")) return fail("Only image files are allowed");
-  if (file.size > MAX_BYTES) return fail("Image must be under 5MB");
 
-  const url = await saveUpload(guard.userId, file, "avatar");
+  let upload;
+  try {
+    upload = await readAndValidateUpload(file, MAX_BYTES, IMAGE_ALLOWLIST);
+  } catch (e) {
+    if (e instanceof UploadValidationError) return fail(e.message);
+    throw e;
+  }
+
+  const url = await saveUpload(guard.userId, upload, "avatar");
 
   // Upsert player_profiles row (it might not exist yet for brand-new accounts).
   const existing = (await sql`

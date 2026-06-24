@@ -1,9 +1,9 @@
-/**
+﻿/**
  * Onboarding helpers for the 12-step player workflow.
  *
  * Tables touched: onboarding_progress, aadhaar_verification, guardian_consent,
  * cricket_profile, performance_stats, match_logs, fitness_data,
- * behavioral_assessment, video_analysis, coach_registry, sportx_score.
+ * behavioral_assessment, video_analysis, coach_registry, athlasx_score.
  *
  * All functions are server-only — they import `sql` from "@/lib/db", which
  * runs against NeonDB. Do not import this module from client components.

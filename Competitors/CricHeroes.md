@@ -1,10 +1,10 @@
-If SportX succeeds, the company most likely to notice first is not the BCCI or IPL franchises.
+﻿If AthlasX succeeds, the company most likely to notice first is not the BCCI or IPL franchises.
 
 It is **[CricHeroes](https://www.cricheroes.com/?utm_source=chatgpt.com)**.
 
 The important thing to understand is:
 
-> CricHeroes and SportX are not solving the same problem today.
+> CricHeroes and AthlasX are not solving the same problem today.
 > 
 > But they sit on the same part of the cricket ecosystem, which is why they can become competitors tomorrow.
 
@@ -180,7 +180,7 @@ As your document notes, CricHeroes has become one of the largest grassroots cric
 
 # What CricHeroes DOES NOT Solve
 
-This is where SportX enters.
+This is where AthlasX enters.
 
 Suppose I am a selector.
 
@@ -228,7 +228,7 @@ Not:
 
 ---
 
-# SportX's Core Customer
+# AthlasX's Core Customer
 
 ### Primary Users
 
@@ -267,7 +267,7 @@ Answer:
 
 ---
 
-## SportX
+## AthlasX
 
 Question:
 
@@ -275,7 +275,7 @@ Question:
 
 Answer:
 
-> SportX.
+> AthlasX.
 
 ---
 
@@ -298,7 +298,7 @@ Average: 39
 
 ---
 
-## SportX
+## AthlasX
 
 Provides decision intelligence.
 
@@ -318,13 +318,13 @@ That's a different product.
 
 ---
 
-# Where SportX Is Stronger
+# Where AthlasX Is Stronger
 
 ## 1. Verification
 
 CricHeroes records data.
 
-SportX proposes:
+AthlasX proposes:
 
 - Coach verification
     
@@ -347,7 +347,7 @@ CricHeroes answers:
 
 > "How did the player perform?"
 
-SportX answers:
+AthlasX answers:
 
 > "Should I scout this player?"
 
@@ -355,7 +355,7 @@ SportX answers:
 
 ## 3. Benchmarking
 
-SportX proposes:
+AthlasX proposes:
 
 - IPL benchmarks
     
@@ -370,7 +370,7 @@ A player knows where he stands.
 
 ## 4. Opportunity Marketplace
 
-SportX proposes:
+AthlasX proposes:
 
 - Trial invitations
     
@@ -387,7 +387,7 @@ This doesn't exist as a major workflow in CricHeroes.
 
 This is the part founders often underestimate.
 
-SportX is attacking a problem.
+AthlasX is attacking a problem.
 
 CricHeroes already owns the users.
 
@@ -421,7 +421,7 @@ Imagine this happens:
 
 ### Today
 
-SportX builds:
+AthlasX builds:
 
 - Scout dashboard
     
@@ -491,7 +491,7 @@ Revenue:
 
 ---
 
-### SportX
+### AthlasX
 
 Would be:
 
@@ -527,7 +527,7 @@ Many founders think:
 
 It usually isn't.
 
-For SportX, the moat could become:
+For AthlasX, the moat could become:
 
 ### 1. Verification Network
 
@@ -548,7 +548,7 @@ Hard to replicate.
 
 If players start saying:
 
-> "I got selected through SportX."
+> "I got selected through AthlasX."
 
 That becomes powerful.
 
@@ -556,7 +556,7 @@ That becomes powerful.
 
 ### 3. Scout Workflow
 
-If selectors use SportX every week:
+If selectors use AthlasX every week:
 
 - Search players
     
@@ -565,7 +565,7 @@ If selectors use SportX every week:
 - Invite trials
     
 
-Then SportX becomes infrastructure.
+Then AthlasX becomes infrastructure.
 
 ---
 
@@ -575,7 +575,7 @@ Your document correctly highlights this.
 
 Imagine:
 
-SportX tracked a player from:
+AthlasX tracked a player from:
 
 ```
 Age 13 → Academy
@@ -596,7 +596,7 @@ A better description is:
 
 > CricHeroes is the data infrastructure layer.
 > 
-> SportX wants to become the talent intelligence and discovery layer built on top of that infrastructure.
+> AthlasX wants to become the talent intelligence and discovery layer built on top of that infrastructure.
 
 However, CricHeroes is also the company most capable of becoming your direct competitor because they already own:
 
@@ -611,6 +611,6 @@ However, CricHeroes is also the company most capable of becoming your direct com
 
 The safest strategic assumption is:
 
-> Treat CricHeroes as a partner in the short term, but design SportX so that it can survive even if CricHeroes refuses API access or launches a competing scouting product in the future.
+> Treat CricHeroes as a partner in the short term, but design AthlasX so that it can survive even if CricHeroes refuses API access or launches a competing scouting product in the future.
 
 That assumption will force you to build a much stronger business.

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -76,7 +76,7 @@ export default function CoachRegisterPage() {
     <main className="min-h-screen px-4 py-10" style={{ background: "#050D18", color: "#E2E8F0" }}>
       <div className="max-w-lg mx-auto space-y-6">
         <header className="space-y-1">
-          <p className="text-xs uppercase tracking-widest" style={{ color: "#22C55E" }}>SportX Coach Registry</p>
+          <p className="text-xs uppercase tracking-widest" style={{ color: "#22C55E" }}>AthlasX Coach Registry</p>
           <h1 className="text-2xl font-bold">Register as a verifying coach</h1>
           <p className="text-sm" style={{ color: "#94A3B8" }}>
             Your endorsement unlocks your player&rsquo;s profile for scout discovery.

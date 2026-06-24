@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 const {
   Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
@@ -126,7 +126,7 @@ const children = [];
 children.push(new Paragraph({
   alignment: AlignmentType.CENTER,
   spacing: { after: 120 },
-  children: [new TextRun({ text: "SportX", bold: true, size: 56, color: "1F4E79" })],
+  children: [new TextRun({ text: "AthlasX", bold: true, size: 56, color: "1F4E79" })],
 }));
 children.push(new Paragraph({
   alignment: AlignmentType.CENTER,
@@ -137,7 +137,7 @@ children.push(new Paragraph({
   alignment: AlignmentType.CENTER,
   spacing: { after: 600 },
   children: [new TextRun({
-    text: "A complete walkthrough of the SportX web application from first visit to ongoing use.",
+    text: "A complete walkthrough of the AthlasX web application from first visit to ongoing use.",
     italics: true, color: "606060", size: 22,
   })],
 }));
@@ -147,7 +147,7 @@ children.push(new Table({
   width: { size: 9360, type: WidthType.DXA },
   columnWidths: [3120, 6240],
   rows: [
-    ["Product", "SportX — Player Profile & Video Showcase Platform"],
+    ["Product", "AthlasX — Player Profile & Video Showcase Platform"],
     ["Document", "User Workflow"],
     ["Audience", "Athletes / Players, Coaches, Scouts, Viewers"],
     ["Version", "1.0"],
@@ -176,7 +176,7 @@ children.push(new Paragraph({ children: [new PageBreak()] }));
 
 // 1. Overview
 children.push(h1("1. Overview"));
-children.push(p("SportX is a platform where athletes build a public player profile, showcase highlight videos from YouTube, and become discoverable to coaches and scouts. This document walks through the end-to-end user workflow — from landing on the site for the first time, to creating an account, completing a profile, uploading videos, and managing the profile over time."));
+children.push(p("AthlasX is a platform where athletes build a public player profile, showcase highlight videos from YouTube, and become discoverable to coaches and scouts. This document walks through the end-to-end user workflow — from landing on the site for the first time, to creating an account, completing a profile, uploading videos, and managing the profile over time."));
 children.push(h2("1.1 Primary User Roles"));
 children.push(bullet("Player — creates a profile, uploads videos, manages their showcase."));
 children.push(bullet("Viewer (Coach / Scout / Fan) — browses public player profiles and watches videos."));
@@ -192,19 +192,19 @@ children.push(new Paragraph({ children: [new PageBreak()] }));
 
 // 2. Landing
 children.push(h1("2. Landing Page"));
-children.push(p("The journey begins at the SportX landing page, which introduces the product and prompts the visitor to sign up or log in."));
+children.push(p("The journey begins at the AthlasX landing page, which introduces the product and prompts the visitor to sign up or log in."));
 children.push(h3("Actions available"));
 children.push(bullet("Click Sign Up to create a new account."));
 children.push(bullet("Click Log In to access an existing account."));
 children.push(bullet("Explore featured players (if shown)."));
 children.push(h3("Screenshot"));
-children.push(screenshotPlaceholder("SportX landing page (/)"));
+children.push(screenshotPlaceholder("AthlasX landing page (/)"));
 children.push(spacer());
 children.push(new Paragraph({ children: [new PageBreak()] }));
 
 // 3. Sign Up
 children.push(h1("3. Account Creation"));
-children.push(p("New users create an account by providing their basic credentials. SportX uses NextAuth for session management and bcrypt-hashed passwords for secure storage."));
+children.push(p("New users create an account by providing their basic credentials. AthlasX uses NextAuth for session management and bcrypt-hashed passwords for secure storage."));
 children.push(h2("3.1 Sign Up Flow"));
 children.push(step("Navigate to /auth/signup."));
 children.push(step("Enter full name, email address, and a password."));
@@ -433,7 +433,7 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then((buf) => {
-  const out = path.resolve(process.argv[2] || "SportX_User_Workflow.docx");
+  const out = path.resolve(process.argv[2] || "AthlasX_User_Workflow.docx");
   fs.writeFileSync(out, buf);
   console.log("Wrote", out);
 });

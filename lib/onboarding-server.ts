@@ -2,10 +2,12 @@
  * Server-side helpers used by /api/onboarding/* routes.
  */
 import { writeFile, mkdir } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import type { ValidatedUpload } from "@/lib/upload-validation";
 
 export async function requireUserId(): Promise<{ userId: string } | NextResponse> {
   const session = await getServerSession(authOptions);
@@ -23,21 +25,27 @@ export function fail(error: string, status = 400) {
 }
 
 /**
- * Persist an upload to public/uploads/<userId>/<filename> so Next can serve
- * it from /uploads/... . Returns the public URL.
+ * Persist an already-validated upload to public/uploads/<userId>/<filename>
+ * so Next can serve it from /uploads/... . Returns the public URL.
+ *
+ * Takes a `ValidatedUpload` (see lib/upload-validation.ts), not a raw File —
+ * the caller must run readAndValidateUpload() first. The filename is always
+ * built from the *detected* extension, never the client's original filename
+ * or its extension: this is what guarantees a file saved here can never be
+ * served as anything other than what its magic bytes actually are (no
+ * `.jpg.html`, no double-extension tricks, no relying on a sanitized-but-
+ * still-attacker-chosen name).
  */
 export async function saveUpload(
   userId: string,
-  file: File,
+  upload: ValidatedUpload,
   subfolder = "",
 ): Promise<string> {
   const root = path.join(process.cwd(), "public", "uploads", userId, subfolder).replace(/\\/g, "/");
   await mkdir(root, { recursive: true });
-  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filename = `${Date.now()}_${safe}`;
+  const filename = `${Date.now()}_${randomUUID()}.${upload.ext}`;
   const full = path.join(root, filename);
-  const bytes = Buffer.from(await file.arrayBuffer());
-  await writeFile(full, bytes);
+  await writeFile(full, upload.buffer);
   const rel = ["/uploads", userId, subfolder, filename].filter(Boolean).join("/");
   return rel.replace(/\/+/g, "/");
 }
