@@ -1,4 +1,4 @@
-﻿import type { NextAuthOptions } from "next-auth";
+import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
@@ -158,14 +158,14 @@ export const authOptions: NextAuthOptions = {
         const dbUser = rows[0];
         if (dbUser) {
           token.id = dbUser.id;
-          token.role = (dbUser.role ?? null) as UserRole | null;
+          token.role = (dbUser.role ?? undefined) as UserRole | undefined;
           token.account_status = (dbUser.account_status ?? "pending") as AccountStatus;
           token.phone_verified = !!dbUser.phone_verified_at;
         }
       } else if (user) {
         const u = user as any;
         token.id = u.id;
-        token.role = (u.role ?? null) as UserRole | null;
+        token.role = (u.role ?? undefined) as UserRole | undefined;
         token.account_status = (u.account_status ?? "pending") as AccountStatus;
         token.phone_verified = Boolean(u.phone_verified);
       }
@@ -178,7 +178,7 @@ export const authOptions: NextAuthOptions = {
           FROM users WHERE id = ${token.id as string} LIMIT 1
         `) as unknown as Array<{ role: string | null; account_status: string | null; phone_verified_at: Date | null }>;
         if (rows[0]) {
-          token.role = (rows[0].role ?? null) as UserRole | null;
+          token.role = (rows[0].role ?? undefined) as UserRole | undefined;
           token.account_status = (rows[0].account_status ?? "pending") as AccountStatus;
           token.phone_verified = !!rows[0].phone_verified_at;
         }
