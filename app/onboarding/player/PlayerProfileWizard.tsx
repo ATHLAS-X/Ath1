@@ -73,6 +73,10 @@ export default function PlayerProfileWizard({ userName }: { userName: string }) 
   const [aadhaarBusy, setAadhaarBusy] = useState(false);
   const [aadhaarError, setAadhaarError] = useState<string | null>(null);
   const [aadhaarResult, setAadhaarResult] = useState<AadhaarResult | null>(null);
+  /* /api/onboarding/aadhaar/initiate returns this in non-production only —
+     there's no real Surepass integration yet, so this IS the OTP; surfacing
+     it is what makes the dummy flow actually testable instead of a dead end. */
+  const [devOtp, setDevOtp] = useState<string | null>(null);
 
   /* Load existing draft on mount */
   useEffect(() => {
@@ -228,6 +232,7 @@ export default function PlayerProfileWizard({ userName }: { userName: string }) 
         return;
       }
       setOtpSent(true);
+      setDevOtp(data?.data?.dev_otp ?? null);
     } catch (e: any) {
       setAadhaarError(e?.message ?? "Network error");
     } finally {
@@ -298,6 +303,7 @@ export default function PlayerProfileWizard({ userName }: { userName: string }) 
           otp={otp} setOtp={setOtp} otpSent={otpSent}
           busy={aadhaarBusy} error={aadhaarError} result={aadhaarResult}
           initiate={initiateAadhaar} confirm={confirmAadhaar}
+          devOtp={devOtp}
         />
       )}
       {step === 3 && <Step3 form={form} set={set} />}
@@ -414,7 +420,7 @@ function Step1({ form, set, age }: any) {
   );
 }
 
-function Step2Aadhaar({ aadhaar, setAadhaar, otp, setOtp, otpSent, busy, error, result, initiate, confirm }: any) {
+function Step2Aadhaar({ aadhaar, setAadhaar, otp, setOtp, otpSent, busy, error, result, initiate, confirm, devOtp }: any) {
   const digits = aadhaar.replace(/\D/g, "");
   const displayMasked = maskAadhaar(aadhaar);
   const validAadhaar = digits.length === 12;
@@ -461,7 +467,14 @@ function Step2Aadhaar({ aadhaar, setAadhaar, otp, setOtp, otpSent, busy, error, 
 
       {otpSent && !result && (
         <div style={{ marginTop: 14 }}>
-          <Field label="OTP" hint="OTP sent to Aadhaar-linked mobile (MVP: any 6 digits work).">
+          <Field
+            label="OTP"
+            hint={
+              devOtp
+                ? `Dummy OTP for testing — use ${devOtp} (any 6 digits also work).`
+                : "OTP sent to Aadhaar-linked mobile (MVP: any 6 digits work)."
+            }
+          >
             <input
               type="text"
               inputMode="numeric"
@@ -812,6 +825,9 @@ function Step9({ form, set, isMinor, age }: any) {
 }
 
 const wizardStyles = `
+/* No max-width here — OnboardingShell now owns the full-bleed two-column
+   layout (rail + form, edge-to-edge like the Hero section); this wrapper
+   only scopes the pw-* field/step classes used inside it. */
 .pw-shell { width: 100%; }
 
 /* athlasx.css's .sx-root .btn/.bdg/.card no longer apply once this page
@@ -841,7 +857,7 @@ const wizardStyles = `
 .pw-shell .bdg.ghost { background: transparent; border: 1px solid var(--hx-card-border); color: var(--hx-text-dim); }
 
 .pw-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
-.pw-title { font-family: var(--font-anton), sans-serif; text-transform: uppercase; font-weight: 400; font-size: 32px; margin-top: 4px; }
+.pw-title { font-family: var(--font-anton), sans-serif; text-transform: uppercase; font-weight: 400; font-size: 28px; margin-top: 4px; }
 .pw-meta { font-size: 12px; color: var(--hx-text-dim); }
 .pw-stepper { list-style: none; padding: 0; margin: 0 0 16px; display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; counter-reset: step; }
 .pw-step { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 8px; border: 1px solid var(--hx-card-border); background: var(--hx-field-bg); position: relative; }
@@ -863,11 +879,14 @@ const wizardStyles = `
   .pw-stepper .pw-step:nth-child(n+5) { display: none; }
 }
 .pw-field { display: flex; flex-direction: column; gap: 4px; position: relative; }
-.pw-label { font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--hx-text-dim); font-family: var(--font-barlow-semi), sans-serif; font-weight: 600; }
-.pw-input { height: 42px; padding: 0 14px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.25); border-radius: 8px; color: var(--hx-text); font-family: inherit; font-size: 16px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
-.pw-input option { background: #1a1a1a; color: #f5f5f0; }
-.pw-input:focus { border-color: var(--hx-accent); box-shadow: 0 0 8px var(--hx-overlay-accent-22); background: rgba(255,255,255,0.08); }
-.pw-input::placeholder { color: rgba(245,245,240,0.3); }
+.pw-label { font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--hx-text-dim); font-family: var(--font-barlow-semi), sans-serif; font-weight: 600; }
+.pw-input { height: 34px; padding: 0 11px; background: var(--hx-field-bg); border: 1px solid var(--hx-card-border); border-radius: 8px; color: var(--hx-text); font-family: inherit; font-size: 13px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+.pw-input:focus { border-color: var(--hx-accent); box-shadow: 0 0 8px var(--hx-overlay-accent-22); }
+/* The dropdown popup list itself is OS-rendered, but Chromium/Firefox do
+   honor background/color set directly on <option> — without this the list
+   falls back to default white-on-black system colors that clash hard with
+   the dark theme (visible as a plain white popup with default blue highlight). */
+select.pw-input option { background: var(--hx-bg-soft); color: var(--hx-text); }
 .pw-textarea { height: 80px; padding: 8px 11px; resize: vertical; }
 .pw-hint { font-size: 10.5px; color: var(--hx-text-dim); }
 .pw-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 10; margin-top: 4px; background: var(--hx-bg-soft); border: 1px solid var(--hx-card-border); border-radius: 8px; overflow: hidden; }

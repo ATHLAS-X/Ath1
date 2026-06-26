@@ -27,8 +27,8 @@ const PANELS: Panel[] = [
     filter: "saturate(1.2) contrast(1.05) brightness(1.02) hue-rotate(-4deg)",
   },
   {
-    area: "p3", sport: "cricket", src: "/images/hero/cricket.jpg",
-    alt: "Cricketer in national kit, number 18, looking out over a smoke-coloured sky",
+    area: "p3", sport: "champions-1", src: "/images/hero/Champions1.jpg",
+    alt: "Champions celebrating victory",
     filter: "saturate(1.18) contrast(1.12) brightness(0.98)",
     focus: "50% 30%",
   },
@@ -45,8 +45,8 @@ const PANELS: Panel[] = [
     focus: "46% 30%",
   },
   {
-    area: "p6", sport: "cricket-wide", src: "/images/hero/cricket-sketch-wide.png",
-    alt: "Sketch-and-paint landscape composite of a cricketer in national blue",
+    area: "p6", sport: "champions-2", src: "/images/hero/Champions2.jpg",
+    alt: "Champions celebrating victory",
     filter: "saturate(1.1) contrast(1.04) brightness(1.0)",
     focus: "50% 42%",
     bg: "#0d0d0d",

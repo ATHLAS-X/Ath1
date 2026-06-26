@@ -344,7 +344,17 @@ const STYLES = `
 .cw-shell .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .cw-shell .btn.green { background: var(--hx-accent); border-color: var(--hx-accent); color: #1a0e02; }
 .cw-shell .btn.green:hover { background: var(--hx-accent-bright); border-color: var(--hx-accent-bright); }
+/* Same gap as .card/.btn above — .sx-root .sinput's real rule (athlasx.css)
+   no longer applies, which is why these were rendering as bare unstyled
+   browser-default white inputs instead of the dark theme. */
+.cw-shell .sinput { display: block; width: 100%; height: 34px; padding: 0 11px; background: var(--hx-field-bg); border: 1px solid var(--hx-card-border); border-radius: 8px; color: var(--hx-text); font-family: inherit; font-size: 13px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+.cw-shell .sinput::placeholder { color: var(--hx-text-dim); }
+.cw-shell .sinput:focus { border-color: var(--hx-accent); box-shadow: 0 0 8px var(--hx-overlay-accent-22); }
+.cw-shell .sinput:disabled { opacity: 0.6; cursor: default; }
 
+/* No max-width here — OnboardingShell now owns the full-bleed two-column
+   layout (rail + form, edge-to-edge like the Hero section); this wrapper
+   only scopes the cw-* field/step classes used inside it. */
 .cw-shell { width: 100%; }
 .cw-stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
 .cw-step { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 11px; background: var(--hx-field-bg); border: 1px solid var(--hx-card-border); cursor: pointer; text-align: left; transition: all 0.15s; min-width: 0; }
@@ -360,12 +370,8 @@ const STYLES = `
 
 .cw-card { padding: 28px 26px; }
 .cw-head { margin-bottom: 22px; }
-.cw-h2 { font-family: var(--font-anton), sans-serif; text-transform: uppercase; font-weight: 400; font-size: 32px; margin: 6px 0 8px; }
-.cw-sub { font-size: 15px; color: var(--hx-text-dim); line-height: 1.55; max-width: 640px; }
-.cw-shell .sect-title { font-size: 11px; letter-spacing: 1.8px; text-transform: uppercase; color: var(--hx-text-dim); font-family: var(--font-barlow-semi), sans-serif; font-weight: 600; }
-.cw-shell .sinput { height: 42px; padding: 0 14px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.25); border-radius: 8px; color: var(--hx-text); font-size: 15px; }
-.cw-shell .sinput:focus { border-color: var(--hx-accent); box-shadow: 0 0 8px rgba(255,138,30,0.22); background: rgba(255,255,255,0.08); }
-.cw-shell .sinput::placeholder { color: rgba(245,245,240,0.3); }
+.cw-h2 { font-family: var(--font-anton), sans-serif; text-transform: uppercase; font-weight: 400; font-size: 24px; margin: 6px 0 8px; }
+.cw-sub { font-size: 13px; color: var(--hx-text-dim); line-height: 1.55; max-width: 640px; }
 .cw-sub code { background: var(--hx-field-bg); padding: 1px 6px; border-radius: 5px; font-size: 11.5px; color: var(--hx-accent-bright); }
 
 .cw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
