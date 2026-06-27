@@ -44,8 +44,8 @@ export default function Navbar() {
 
   return (
     <nav
-      className="sticky top-0 z-40 border-b backdrop-blur"
-      style={{ background: "rgba(0,0,0,0.85)", borderColor: "var(--border)" }}
+      className="hx-tokens sticky top-0 z-40 border-b backdrop-blur"
+      style={{ background: "rgba(13,13,13,0.85)", borderColor: "var(--hx-card-border)" }}
     >
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
         {/* Wordmark */}
@@ -61,8 +61,8 @@ export default function Navbar() {
               href={item.href}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors"
               style={{
-                color: isActive(item.href) ? "var(--accent)" : "var(--muted)",
-                background: isActive(item.href) ? "var(--border)" : "transparent",
+                color: isActive(item.href) ? "var(--hx-accent-bright)" : "var(--hx-text-dim)",
+                background: isActive(item.href) ? "var(--hx-overlay-accent-14)" : "transparent",
               }}
             >
               {item.icon}
@@ -76,17 +76,17 @@ export default function Navbar() {
           <div className="flex items-center gap-2">
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
-              style={{ background: "var(--accent)", color: "#000000" }}
+              style={{ background: "var(--hx-accent)", color: "#1a0e02" }}
             >
               {initial}
             </div>
-            <span className="text-sm max-w-[120px] truncate" title={name}>{name}</span>
+            <span className="text-sm max-w-[120px] truncate" style={{ color: "var(--hx-text)" }} title={name}>{name}</span>
           </div>
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm sx-btn-outline"
-            style={{ width: "auto" }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm"
+            style={{ width: "auto", border: "1px solid rgba(248,113,113,0.35)", color: "#F87171", background: "transparent" }}
           >
             <LogOut size={14} />
             Logout
@@ -97,7 +97,7 @@ export default function Navbar() {
         <button
           type="button"
           className="md:hidden p-2 rounded-md"
-          style={{ color: "var(--accent)" }}
+          style={{ color: "var(--hx-accent-bright)" }}
           onClick={() => setOpen((o) => !o)}
           aria-label="Toggle menu"
         >
@@ -107,16 +107,16 @@ export default function Navbar() {
 
       {/* Mobile dropdown */}
       {open && (
-        <div className="md:hidden border-t" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+        <div className="md:hidden border-t" style={{ borderColor: "var(--hx-card-border)", background: "var(--hx-bg-soft)" }}>
           <div className="px-4 py-3 space-y-1">
-            <div className="flex items-center gap-2 pb-3 mb-2 border-b" style={{ borderColor: "var(--border)" }}>
+            <div className="flex items-center gap-2 pb-3 mb-2 border-b" style={{ borderColor: "var(--hx-card-border)" }}>
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm"
-                style={{ background: "var(--accent)", color: "#000000" }}
+                style={{ background: "var(--hx-accent)", color: "#1a0e02" }}
               >
                 {initial}
               </div>
-              <span className="text-sm truncate" title={name}>{name}</span>
+              <span className="text-sm truncate" style={{ color: "var(--hx-text)" }} title={name}>{name}</span>
             </div>
             {NAV_ITEMS.map((item) => (
               <Link
@@ -125,8 +125,8 @@ export default function Navbar() {
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2 px-3 py-2 rounded-md text-sm"
                 style={{
-                  color: isActive(item.href) ? "var(--accent)" : "var(--muted)",
-                  background: isActive(item.href) ? "var(--border)" : "transparent",
+                  color: isActive(item.href) ? "var(--hx-accent-bright)" : "var(--hx-text-dim)",
+                  background: isActive(item.href) ? "var(--hx-overlay-accent-14)" : "transparent",
                 }}
               >
                 {item.icon}
@@ -139,7 +139,8 @@ export default function Navbar() {
                 setOpen(false);
                 signOut({ callbackUrl: "/" });
               }}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm mt-2 sx-btn-outline"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm mt-2"
+              style={{ border: "1px solid rgba(248,113,113,0.35)", color: "#F87171", background: "transparent" }}
             >
               <LogOut size={14} /> Logout
             </button>
