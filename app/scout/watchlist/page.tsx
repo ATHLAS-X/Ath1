@@ -3,8 +3,11 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
-import { initials, roleColor, AVA_COLORS } from "@/lib/score-utils";
-import { Vlvl } from "@/components/sx/widgets";
+import { initials, AVA_COLORS } from "@/lib/score-utils";
+import { DsPill } from "@/app/_ds";
+
+const VLEVEL_LABEL: Record<number, string> = { 1: "L1 Self", 2: "L2 Identity", 3: "L3 Performance", 4: "L4 Scout" };
+const VLEVEL_TONE: Record<number, "neutral" | "accent" | "ok" | "blue"> = { 1: "neutral", 2: "accent", 3: "ok", 4: "blue" };
 
 export const dynamic = "force-dynamic";
 
@@ -30,17 +33,17 @@ export default async function ScoutWatchlistPage() {
   `) as unknown as any[];
 
   return (
-    <div className="sx-root" style={{ minHeight: "100vh", padding: 24 }}>
+    <div style={{ minHeight: "100vh", padding: "1.6rem", background: "var(--ax-bg)", color: "var(--ax-text)" }}>
       <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <Link href="/scout/dashboard" className="btn" style={{ textDecoration: "none", marginBottom: 8, display: "inline-block" }}>← Back to dashboard</Link>
-        <h1 className="sect-title" style={{ fontSize: 22, marginTop: 8, marginBottom: 4 }}>My Watchlist</h1>
-        <p style={{ color: "var(--mut)", fontSize: 12.5, marginBottom: 16 }}>{rows.length} player{rows.length === 1 ? "" : "s"} shortlisted</p>
+        <Link href="/scout/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.82rem", color: "var(--ax-text-dim)", textDecoration: "none", marginBottom: "0.6rem" }}>← Back to dashboard</Link>
+        <h1 style={{ fontFamily: "var(--ax-font-display)", textTransform: "uppercase", fontWeight: 400, fontSize: "1.8rem", margin: "0.4rem 0 0.4rem" }}>My Watchlist</h1>
+        <p style={{ color: "var(--ax-text-dim)", fontSize: "0.84rem", marginBottom: "1rem" }}>{rows.length} player{rows.length === 1 ? "" : "s"} shortlisted</p>
 
-        <div className="card" style={{ overflow: "hidden" }}>
+        <div style={{ overflow: "hidden", borderRadius: "var(--ax-radius-xl)", background: "var(--ax-card)", border: "1px solid var(--ax-border)" }}>
           {rows.length === 0 ? (
-            <div style={{ padding: 28, textAlign: "center", color: "var(--mut)" }}>
+            <div style={{ padding: "1.8rem", textAlign: "center", color: "var(--ax-text-faint)" }}>
               No players shortlisted yet — star a player from{" "}
-              <Link href="/scout/dashboard" style={{ color: "var(--green)" }}>the dashboard</Link> to add them here.
+              <Link href="/scout/dashboard" style={{ color: "var(--ax-accent-bright)" }}>the dashboard</Link> to add them here.
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
@@ -48,19 +51,19 @@ export default async function ScoutWatchlistPage() {
                 <Link
                   key={p.user_id}
                   href={`/profile/${p.user_id}`}
-                  style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", textDecoration: "none", color: "inherit", borderTop: i === 0 ? "none" : "1px solid var(--line)" }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.8rem", padding: "0.75rem 1rem", textDecoration: "none", color: "inherit", borderTop: i === 0 ? "none" : "1px solid var(--ax-border)" }}
                 >
                   <span style={{
                     width: 36, height: 36, borderRadius: "50%", display: "grid", placeItems: "center",
-                    fontSize: 12, fontWeight: 700, color: "#fff",
+                    fontSize: "0.75rem", fontWeight: 700, color: "#fff",
                     background: `radial-gradient(circle at 32% 28%, ${AVA_COLORS[i % AVA_COLORS.length]}, rgba(0,0,0,0.55))`,
                   }}>{initials(p.name)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 13.5 }}>{p.name}</div>
-                    <div style={{ fontSize: 11, color: "var(--mut)" }}>{[p.city, p.state].filter(Boolean).join(", ")}</div>
+                    <div style={{ fontWeight: 600, fontSize: "0.86rem" }}>{p.name}</div>
+                    <div style={{ fontSize: "0.7rem", color: "var(--ax-text-faint)" }}>{[p.city, p.state].filter(Boolean).join(", ")}</div>
                   </div>
-                  <span className={`bdg ${roleColor(p.playing_role)}`}>{p.playing_role}</span>
-                  <Vlvl level={p.verification_level ?? 1} compact />
+                  <DsPill tone="neutral" size="sm">{p.playing_role}</DsPill>
+                  <DsPill tone={VLEVEL_TONE[p.verification_level ?? 1]} size="sm">{VLEVEL_LABEL[p.verification_level ?? 1]}</DsPill>
                 </Link>
               ))}
             </div>

@@ -21,11 +21,11 @@ export default async function ScoutSettingsPage() {
   const p = rows[0] ?? {};
 
   return (
-    <div className="sx-root" style={{ minHeight: "100vh", padding: 24 }}>
+    <div style={{ minHeight: "100vh", padding: "1.6rem", background: "var(--ax-bg)", color: "var(--ax-text)" }}>
       <div style={{ maxWidth: 700, margin: "0 auto" }}>
-        <Link href="/scout/dashboard" className="btn" style={{ textDecoration: "none", marginBottom: 8, display: "inline-block" }}>← Back to dashboard</Link>
-        <h1 className="sect-title" style={{ fontSize: 22, marginTop: 8, marginBottom: 4 }}>Settings</h1>
-        <p style={{ color: "var(--mut)", fontSize: 12.5, marginBottom: 16 }}>
+        <Link href="/scout/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.82rem", color: "var(--ax-text-dim)", textDecoration: "none", marginBottom: "0.6rem" }}>← Back to dashboard</Link>
+        <h1 style={{ fontFamily: "var(--ax-font-display)", textTransform: "uppercase", fontWeight: 400, fontSize: "1.8rem", margin: "0.4rem 0 0.4rem" }}>Settings</h1>
+        <p style={{ color: "var(--ax-text-dim)", fontSize: "0.84rem", marginBottom: "1rem" }}>
           Signed in as {session.user.name ?? session.user.email} ({session.user.email})
         </p>
 

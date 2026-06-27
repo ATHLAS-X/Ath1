@@ -4,8 +4,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { isAdminRole, VISIBLE_STATUS } from "@/lib/authz";
-import { initials, roleColor, AVA_COLORS } from "@/lib/score-utils";
-import { Vlvl, Ring } from "@/components/sx/widgets";
+import { initials, AVA_COLORS } from "@/lib/score-utils";
+import { DsPill } from "@/app/_ds";
+
+const VLEVEL_LABEL: Record<number, string> = { 1: "L1 Self", 2: "L2 Identity", 3: "L3 Performance", 4: "L4 Scout" };
+const VLEVEL_TONE: Record<number, "neutral" | "accent" | "ok" | "blue"> = { 1: "neutral", 2: "accent", 3: "ok", 4: "blue" };
 
 export const dynamic = "force-dynamic";
 
@@ -60,56 +63,54 @@ export default async function ScoutSearchPage({
   `) as unknown as any[];
 
   return (
-    <div className="sx-root" style={{ minHeight: "100vh", padding: 24 }}>
+    <div style={{ minHeight: "100vh", padding: "1.6rem", background: "var(--ax-bg)", color: "var(--ax-text)" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <Link href="/scout/dashboard" className="btn" style={{ textDecoration: "none", marginBottom: 8, display: "inline-block" }}>← Back to dashboard</Link>
-            <h1 className="sect-title" style={{ fontSize: 22, marginTop: 8 }}>
-              Search Results {q && <>for &ldquo;{q}&rdquo;</>}
-            </h1>
-            <p style={{ color: "var(--mut)", fontSize: 12.5 }}>
-              {rows.length} player{rows.length === 1 ? "" : "s"} found
-              {roleFilter && roleFilter !== "All" ? ` · Role: ${roleFilter}` : ""}
-              {state && state !== "All States" ? ` · State: ${state}` : ""}
-            </p>
-          </div>
+        <div style={{ marginBottom: "1.2rem" }}>
+          <Link href="/scout/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.82rem", color: "var(--ax-text-dim)", textDecoration: "none", marginBottom: "0.6rem" }}>← Back to dashboard</Link>
+          <h1 style={{ fontFamily: "var(--ax-font-display)", textTransform: "uppercase", fontWeight: 400, fontSize: "1.8rem", margin: "0.4rem 0 0" }}>
+            Search Results {q && <>for &ldquo;{q}&rdquo;</>}
+          </h1>
+          <p style={{ color: "var(--ax-text-dim)", fontSize: "0.84rem", margin: "0.4rem 0 0" }}>
+            {rows.length} player{rows.length === 1 ? "" : "s"} found
+            {roleFilter && roleFilter !== "All" ? ` · Role: ${roleFilter}` : ""}
+            {state && state !== "All States" ? ` · State: ${state}` : ""}
+          </p>
         </div>
 
-        <div className="card" style={{ overflow: "hidden" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ overflow: "hidden", borderRadius: "var(--ax-radius-xl)", background: "var(--ax-card)", border: "1px solid var(--ax-border)" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
             <thead>
-              <tr style={{ background: "var(--head)" }}>
+              <tr style={{ background: "var(--ax-bg-soft)" }}>
                 {["Player", "Role", "Age", "State", "Verification", "Profile", ""].map((h) => (
-                  <th key={h} style={{ textAlign: "left", padding: "9px 12px", fontSize: 10.5, textTransform: "uppercase", letterSpacing: 1.2, color: "var(--lbl)" }}>{h}</th>
+                  <th key={h} style={{ textAlign: "left", padding: "0.6rem 1.1rem", fontFamily: "var(--ax-font-label)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.62rem", fontWeight: 700, color: "var(--ax-text-faint)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
-                <tr><td colSpan={7} style={{ textAlign: "center", padding: 28, color: "var(--mut)" }}>No players match these filters.</td></tr>
+                <tr><td colSpan={7} style={{ textAlign: "center", padding: "1.6rem", color: "var(--ax-text-faint)" }}>No players match these filters.</td></tr>
               ) : rows.map((p, i) => (
-                <tr key={p.user_id} style={{ borderTop: "1px solid var(--line)" }}>
-                  <td style={{ padding: "9px 12px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <tr key={p.user_id} style={{ borderTop: "1px solid var(--ax-border)" }}>
+                  <td style={{ padding: "0.6rem 1.1rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                       <span style={{
                         width: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center",
-                        fontSize: 11, fontWeight: 700, color: "#fff",
+                        fontSize: "0.7rem", fontWeight: 700, color: "#fff",
                         background: `radial-gradient(circle at 32% 28%, ${AVA_COLORS[i % AVA_COLORS.length]}, rgba(0,0,0,0.55))`,
                       }}>{initials(p.name)}</span>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div>
-                        <div style={{ fontSize: 10.5, color: "var(--mut)" }}>{[p.city, p.academy_name_custom || "Independent"].filter(Boolean).join(" · ")}</div>
+                        <div style={{ fontWeight: 600 }}>{p.name}</div>
+                        <div style={{ fontSize: "0.7rem", color: "var(--ax-text-faint)" }}>{[p.city, p.academy_name_custom || "Independent"].filter(Boolean).join(" · ")}</div>
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: "9px 12px" }}><span className={`bdg ${roleColor(p.playing_role)}`}>{p.playing_role}</span></td>
-                  <td style={{ padding: "9px 12px" }}>{p.age ?? "—"}</td>
-                  <td style={{ padding: "9px 12px", color: "#8B958D" }}>{p.state || "—"}</td>
-                  <td style={{ padding: "9px 12px" }}><Vlvl level={p.verification_level ?? 1} compact /></td>
-                  <td style={{ padding: "9px 12px" }}><Ring pct={p.profile_pct ?? 0} size={30} stroke={3} /></td>
-                  <td style={{ padding: "9px 12px", textAlign: "right" }}>
-                    <Link href={`/profile/${p.user_id}`} className="btn sm" style={{ textDecoration: "none" }}>View</Link>
+                  <td style={{ padding: "0.6rem 1.1rem", color: "var(--ax-text-dim)", whiteSpace: "nowrap" }}>{p.playing_role}</td>
+                  <td style={{ padding: "0.6rem 1.1rem" }}>{p.age ?? "—"}</td>
+                  <td style={{ padding: "0.6rem 1.1rem", color: "var(--ax-text-dim)" }}>{p.state || "—"}</td>
+                  <td style={{ padding: "0.6rem 1.1rem" }}><DsPill tone={VLEVEL_TONE[p.verification_level ?? 1]} size="sm">{VLEVEL_LABEL[p.verification_level ?? 1]}</DsPill></td>
+                  <td style={{ padding: "0.6rem 1.1rem" }}>{p.profile_pct ?? 0}%</td>
+                  <td style={{ padding: "0.6rem 1.1rem", textAlign: "right" }}>
+                    <Link href={`/profile/${p.user_id}`} style={{ fontWeight: 700, color: "var(--ax-accent-bright)", textDecoration: "none" }}>View</Link>
                   </td>
                 </tr>
               ))}

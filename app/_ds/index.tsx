@@ -309,6 +309,70 @@ export function DsToast({
   );
 }
 
+// ─── DsInput / DsSelect / DsChip ─────────────────────────────────────────────
+
+const FIELD_STYLE: React.CSSProperties = {
+  width: "100%",
+  padding: "0.6rem 0.8rem",
+  borderRadius: "var(--ax-radius-md)",
+  background: "var(--ax-field)",
+  border: "1px solid var(--ax-border)",
+  color: "var(--ax-text)",
+  fontFamily: "var(--ax-font-body)",
+  fontSize: "0.86rem",
+  outline: "none",
+};
+
+export const DsInput = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+  function DsInput({ style, ...props }, ref) {
+    return <input ref={ref} {...props} style={{ ...FIELD_STYLE, ...style }} />;
+  }
+);
+
+export const DsSelect = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
+  function DsSelect({ style, children, ...props }, ref) {
+    return (
+      <select ref={ref} {...props} style={{ ...FIELD_STYLE, cursor: "pointer", ...style }}>
+        {children}
+      </select>
+    );
+  }
+);
+
+export function DsChip({
+  selected,
+  onToggle,
+  children,
+}: {
+  selected?: boolean;
+  onToggle?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      style={{
+        height: 25,
+        padding: "0 0.7rem",
+        borderRadius: "var(--ax-radius-pill)",
+        display: "inline-flex",
+        alignItems: "center",
+        background: selected ? "var(--ax-accent-14)" : "var(--ax-field)",
+        border: `1px solid ${selected ? "var(--ax-accent)" : "var(--ax-border)"}`,
+        color: selected ? "var(--ax-accent-bright)" : "var(--ax-text-dim)",
+        fontFamily: "var(--ax-font-label)",
+        fontSize: "0.66rem",
+        fontWeight: 700,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 // ─── useToast ────────────────────────────────────────────────────────────────
 
 export function useToast() {

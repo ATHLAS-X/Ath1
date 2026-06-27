@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DsButton, DsInput, DsSelect } from "@/app/_ds";
 
 interface FormState {
   designation: string;
@@ -47,40 +48,40 @@ export default function ScoutSettingsForm({ initial }: { initial: FormState }) {
   }
 
   return (
-    <div className="card" style={{ padding: 20 }}>
-      <div className="cw-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+    <div style={{ padding: "1.3rem 1.4rem", borderRadius: "var(--ax-radius-xl)", background: "var(--ax-card)", border: "1px solid var(--ax-border)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.9rem" }}>
         <Field label="Designation">
-          <input className="sinput" value={form.designation} onChange={(e) => set("designation", e.target.value)} placeholder="Talent Scout" />
+          <DsInput value={form.designation} onChange={(e) => set("designation", e.target.value)} placeholder="Talent Scout" />
         </Field>
         <Field label="Organization">
-          <input className="sinput" value={form.organization_name} onChange={(e) => set("organization_name", e.target.value)} placeholder="e.g. Mumbai Cricket Association" />
+          <DsInput value={form.organization_name} onChange={(e) => set("organization_name", e.target.value)} placeholder="e.g. Mumbai Cricket Association" />
         </Field>
         <Field label="Organization Type">
-          <select className="sinput" value={form.org_type} onChange={(e) => set("org_type", e.target.value)}>
+          <DsSelect value={form.org_type} onChange={(e) => set("org_type", e.target.value)}>
             <option value="">Select…</option>
             {ORG_TYPES.map((t) => <option key={t}>{t}</option>)}
-          </select>
+          </DsSelect>
         </Field>
         <Field label="Region">
-          <input className="sinput" value={form.region} onChange={(e) => set("region", e.target.value)} placeholder="State / city / pan-India" />
+          <DsInput value={form.region} onChange={(e) => set("region", e.target.value)} placeholder="State / city / pan-India" />
         </Field>
         <Field label="Years of Experience">
-          <input className="sinput" type="number" value={form.years_experience ?? ""} onChange={(e) => set("years_experience", e.target.value ? Number(e.target.value) : null)} />
+          <DsInput type="number" value={form.years_experience ?? ""} onChange={(e) => set("years_experience", e.target.value ? Number(e.target.value) : null)} />
         </Field>
         <div style={{ gridColumn: "1 / -1" }}>
           <Field label="Affiliation Proof URL">
-            <input className="sinput" value={form.proof_url} onChange={(e) => set("proof_url", e.target.value)} placeholder="https://…" />
+            <DsInput value={form.proof_url} onChange={(e) => set("proof_url", e.target.value)} placeholder="https://…" />
           </Field>
         </div>
       </div>
 
-      {error && <p style={{ color: "#ff6b6b", fontSize: 12.5, marginTop: 12 }}>{error}</p>}
+      {error && <p style={{ color: "var(--ax-bad-text)", fontSize: "0.78rem", marginTop: "0.8rem" }}>{error}</p>}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 16 }}>
-        <button className="btn green" disabled={saving} onClick={save}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", marginTop: "1.1rem" }}>
+        <DsButton variant="fill" disabled={saving} onClick={save}>
           {saving ? "Saving…" : "Save changes"}
-        </button>
-        {saved && <span style={{ fontSize: 12, color: "var(--green)" }}>✓ Saved</span>}
+        </DsButton>
+        {saved && <span style={{ fontSize: "0.78rem", color: "var(--ax-ok)" }}>✓ Saved</span>}
       </div>
     </div>
   );
@@ -89,7 +90,7 @@ export default function ScoutSettingsForm({ initial }: { initial: FormState }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: "block" }}>
-      <span className="f-label">{label}</span>
+      <span style={{ display: "block", fontFamily: "var(--ax-font-label)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.64rem", fontWeight: 700, color: "var(--ax-text-dim)", marginBottom: "0.4rem" }}>{label}</span>
       {children}
     </label>
   );
