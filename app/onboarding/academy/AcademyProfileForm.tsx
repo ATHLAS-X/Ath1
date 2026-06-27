@@ -108,8 +108,8 @@ export default function AcademyProfileForm({ userName }: { userName: string }) {
             <Field label="Academy name *">
               <input className="ap-input" value={form.academy_name ?? ""} onChange={(e) => set("academy_name", e.target.value)} />
             </Field>
-            <Field label="Logo URL">
-              <input className="ap-input" placeholder="https://…" value={form.logo_url ?? ""} onChange={(e) => set("logo_url", e.target.value)} />
+            <Field label="Website">
+              <input className="ap-input" placeholder="https://…" value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} />
             </Field>
             <Field label="Founded year *">
               <input type="number" min={1900} max={new Date().getFullYear()} className="ap-input"
@@ -145,9 +145,6 @@ export default function AcademyProfileForm({ userName }: { userName: string }) {
             </Field>
             <Field label="Contact phone">
               <input className="ap-input" value={form.contact_phone ?? ""} onChange={(e) => set("contact_phone", e.target.value)} />
-            </Field>
-            <Field label="Website">
-              <input className="ap-input" placeholder="https://…" value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} />
             </Field>
           </div>
         </Section>

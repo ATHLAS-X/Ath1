@@ -66,7 +66,7 @@ export default function OnboardingShell(p: Props) {
       <style dangerouslySetInnerHTML={{ __html: SHELL_STYLES }} />
       <div className="obs-ob">
         <aside className="obs-rail">
-          <div className="obs-rail-bg">
+          <div className={`obs-rail-bg${p.role === "academy" ? " obs-rail-bg--contain" : ""}`}>
             <Image src={RAIL_IMAGE[p.role]} alt="" fill sizes="33vw" priority quality={70} />
           </div>
           <div className="obs-brandmark">
@@ -161,7 +161,7 @@ export default function OnboardingShell(p: Props) {
 
 const SHELL_STYLES = `
 .obs-root { color: var(--hx-text); font-family: var(--font-barlow), system-ui, sans-serif; }
-.obs-ob { display: grid; grid-template-columns: 1fr 2fr; min-height: 100vh; min-height: 100dvh; background: var(--hx-bg); }
+.obs-ob { display: grid; grid-template-columns: 1fr 2.6fr; min-height: 100vh; min-height: 100dvh; background: var(--hx-bg); }
 
 .obs-rail {
   position: relative; overflow: hidden; display: flex; flex-direction: column;
@@ -169,6 +169,8 @@ const SHELL_STYLES = `
 }
 .obs-rail-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 .obs-rail-bg img { object-fit: cover; object-position: 50% 35%; filter: saturate(1.05) contrast(1.05) brightness(0.95); }
+.obs-rail-bg--contain { inset: auto 0 0 0; height: 58%; }
+.obs-rail-bg--contain img { object-fit: contain; object-position: 50% 100%; }
 .obs-rail-bg::after {
   content: ""; position: absolute; inset: 0;
   /* Lighter than the original wash — just enough at the very top/bottom for
@@ -211,7 +213,7 @@ const SHELL_STYLES = `
 .obs-av { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--hx-overlay-accent-14); color: var(--hx-accent-bright); font-weight: 700; font-size: 0.82rem; font-family: var(--font-barlow-semi), sans-serif; }
 
 .obs-scroller { position: relative; z-index: 1; flex: 1; overflow-y: auto; }
-.obs-form-body { width: 100%; max-width: 40rem; margin: 0 auto; padding: clamp(1.5rem, 3.5vw, 2.8rem) clamp(1.25rem, 3.5vw, 3rem) 1.5rem; }
+.obs-form-body { width: 100%; max-width: 60rem; margin: 0 auto; padding: clamp(1.5rem, 3.5vw, 2.8rem) clamp(1.25rem, 3.5vw, 3rem) 1.5rem; }
 .obs-progress-line { height: 3px; background: var(--hx-card-border); border-radius: 3px; overflow: hidden; margin-bottom: 1.6rem; }
 .obs-progress-line i { display: block; height: 100%; background: linear-gradient(90deg, var(--hx-accent), var(--hx-accent-bright)); transition: width 0.5s var(--hx-ease); }
 
