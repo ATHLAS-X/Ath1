@@ -66,7 +66,7 @@ export default function OnboardingShell(p: Props) {
       <style dangerouslySetInnerHTML={{ __html: SHELL_STYLES }} />
       <div className="obs-ob">
         <aside className="obs-rail">
-          <div className={`obs-rail-bg${p.role === "academy" ? " obs-rail-bg--contain" : ""}`}>
+          <div className="obs-rail-bg">
             <Image src={RAIL_IMAGE[p.role]} alt="" fill sizes="33vw" priority quality={70} />
           </div>
           <div className="obs-brandmark">
@@ -169,8 +169,6 @@ const SHELL_STYLES = `
 }
 .obs-rail-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
 .obs-rail-bg img { object-fit: cover; object-position: 50% 35%; filter: saturate(1.05) contrast(1.05) brightness(0.95); }
-.obs-rail-bg--contain { inset: auto 0 0 0; height: 92%; }
-.obs-rail-bg--contain img { object-fit: contain; object-position: 50% 100%; }
 .obs-rail-bg::after {
   content: ""; position: absolute; inset: 0;
   /* Lighter than the original wash — just enough at the very top/bottom for
@@ -233,8 +231,6 @@ const SHELL_STYLES = `
 @media (max-width: 900px) {
   .obs-ob { grid-template-columns: 1fr; }
   .obs-rail { position: relative; height: auto; padding: 1.4rem 1.4rem 1.6rem; }
-  .obs-rail-bg--contain { position: static; inset: auto; float: left; width: 92px; height: 92px; margin: 0 0.9rem 0.6rem 0; }
-  .obs-rail-bg--contain::after { display: none; }
   .obs-lead-desc { display: none; }
   .obs-stepper { flex-direction: row; flex-wrap: wrap; gap: 0.4rem; margin-top: 1.3rem; }
   .obs-step { padding: 0.4rem 0.7rem 0.4rem 0.4rem; background: rgba(245,245,240,0.04); }
