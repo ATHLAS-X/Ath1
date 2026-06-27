@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { VerifyChrome, VerifyLadder, VCCard, VCField } from "@/components/verify/VerifyChrome";
+import { DsButton, DsPill } from "@/app/_ds";
 
 interface Props {
   level: number;
@@ -48,8 +49,8 @@ export default function ScoutReviewClient(p: Props) {
 
         <div className="vc-col">
           {!eligible && (
-            <VCCard title="Not yet eligible" action={<span className="bdg amber">L3 required</span>}>
-              <p style={{ fontSize: 12.5, color: "var(--mut)", lineHeight: 1.55, marginBottom: 12 }}>
+            <VCCard title="Not yet eligible" action={<DsPill tone="accent">L3 required</DsPill>}>
+              <p style={{ fontSize: "0.8rem", color: "var(--ax-text-dim)", lineHeight: 1.55, marginBottom: 12 }}>
                 Scout endorsement is the final ladder rung. It unlocks once your
                 profile reaches Performance Verified (Level 3) — three approved
                 scorecards.
@@ -64,13 +65,13 @@ export default function ScoutReviewClient(p: Props) {
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
                 {!p.identityVerified && (
-                  <Link href="/verify/aadhaar" className="btn green" style={{ textDecoration: "none" }}>
-                    Verify Aadhaar
+                  <Link href="/verify/aadhaar" style={{ textDecoration: "none" }}>
+                    <DsButton variant="fill">Verify Aadhaar</DsButton>
                   </Link>
                 )}
                 {p.identityVerified && !p.performanceVerified && (
-                  <Link href="/verify/scorecards" className="btn green" style={{ textDecoration: "none" }}>
-                    Submit Scorecards
+                  <Link href="/verify/scorecards" style={{ textDecoration: "none" }}>
+                    <DsButton variant="fill">Submit Scorecards</DsButton>
                   </Link>
                 )}
               </div>
@@ -80,7 +81,7 @@ export default function ScoutReviewClient(p: Props) {
           {eligible && submitted && (
             <VCCard
               title="Request Submitted"
-              action={<span className="bdg amber">Pending</span>}
+              action={<DsPill tone="accent">Pending</DsPill>}
             >
               <div className="vc-success">
                 <div className="vc-disc">⏳</div>
@@ -108,9 +109,9 @@ export default function ScoutReviewClient(p: Props) {
                 </div>
               )}
               <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                <button className="btn" onClick={() => setSubmitted(false)}>Edit Request</button>
-                <Link href="/dashboard/player" className="btn green" style={{ textDecoration: "none" }}>
-                  Back to Dashboard
+                <DsButton variant="outline" onClick={() => setSubmitted(false)}>Edit Request</DsButton>
+                <Link href="/dashboard/player" style={{ textDecoration: "none" }}>
+                  <DsButton variant="fill">Back to Dashboard</DsButton>
                 </Link>
               </div>
             </VCCard>
@@ -119,33 +120,36 @@ export default function ScoutReviewClient(p: Props) {
           {eligible && !submitted && (
             <VCCard
               title="Request Scout Review"
-              action={<span className="bdg blue">Level 4 unlock</span>}
+              action={<DsPill tone="blue">Level 4 unlock</DsPill>}
             >
-              <p style={{ fontSize: 12.5, color: "var(--mut)", lineHeight: 1.55, marginBottom: 14 }}>
+              <p style={{ fontSize: "0.8rem", color: "var(--ax-text-dim)", lineHeight: 1.55, marginBottom: 14 }}>
                 You meet the requirements for Scout Verified. Submitting this
                 request adds your profile to the priority review queue for
                 verified scouts in your region and role.
               </p>
               <VCField label="Optional note to scouts">
                 <textarea
-                  className="sinput"
                   rows={4}
-                  style={{ height: "auto", padding: "10px 11px", resize: "vertical" }}
+                  style={{
+                    width: "100%", height: "auto", padding: "0.6rem 0.8rem", resize: "vertical",
+                    borderRadius: "var(--ax-radius-md)", background: "var(--ax-field)", border: "1px solid var(--ax-border)",
+                    color: "var(--ax-text)", fontFamily: "var(--ax-font-body)", fontSize: "0.86rem", outline: "none",
+                  }}
                   placeholder="Anything you'd like a scout to know — upcoming matches, recent form, video highlights to watch first…"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   maxLength={500}
                 />
               </VCField>
-              <div style={{ fontSize: 10.5, color: "var(--mut)", textAlign: "right" }}>
+              <div style={{ fontSize: "0.66rem", color: "var(--ax-text-faint)", textAlign: "right" }}>
                 {note.length} / 500
               </div>
-              {error && <p style={{ color: "var(--red)", fontSize: 12, marginTop: 10 }}>{error}</p>}
+              {error && <p style={{ color: "var(--ax-bad-text)", fontSize: "0.76rem", marginTop: 10 }}>{error}</p>}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-                <button className="btn green" disabled={busy} onClick={submit}>
+                <DsButton variant="fill" disabled={busy} onClick={submit}>
                   {busy ? "Submitting…" : "Submit Request"}
-                </button>
-                <span style={{ fontSize: 11, color: "var(--mut)" }}>
+                </DsButton>
+                <span style={{ fontSize: "0.7rem", color: "var(--ax-text-faint)" }}>
                   Typical scout response: 5–10 days
                 </span>
               </div>
@@ -168,8 +172,8 @@ export default function ScoutReviewClient(p: Props) {
             <div className="vc-li"><span className="m n">4</span><span>Top scouts can also send direct trial invites</span></div>
           </VCCard>
 
-          <VCCard title="Privacy" action={<span className="bdg ghost">You decide</span>}>
-            <p style={{ fontSize: 12.5, color: "var(--mut)", lineHeight: 1.55 }}>
+          <VCCard title="Privacy" action={<DsPill tone="ghost">You decide</DsPill>}>
+            <p style={{ fontSize: "0.8rem", color: "var(--ax-text-dim)", lineHeight: 1.55 }}>
               Endorsement requests are visible only to verified scouts. You can
               withdraw a request at any time and scouts cannot contact you
               directly unless you accept a trial invite.
