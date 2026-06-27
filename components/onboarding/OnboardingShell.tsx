@@ -29,7 +29,7 @@ const ROLE_AVATAR: Record<string, string> = { player: "P", coach: "C", academy: 
 const RAIL_IMAGE: Record<string, string> = {
   player: "/images/onboarding/player.jpg",
   coach: "/images/onboarding/coach.jpg",
-  academy: "/images/onboarding/academy.jpg",
+  academy: "/images/hero/Badminton2.jpg",
   scout: "/images/onboarding/scout.jpg",
 };
 
