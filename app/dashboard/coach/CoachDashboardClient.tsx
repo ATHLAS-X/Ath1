@@ -1,13 +1,25 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { DsIcon, DsPill, DsAvatar, DsButton, DsToast, useToast } from "@/app/_ds";
 import type { CoachDashboardData, CoachAssignedPlayer, CoachSubmission } from "@/lib/dashboard-data";
+
+/* There is no real backend for a coach to log fitness/behavioural data
+   FOR another player: fitness_data and behavioral_assessment both key on
+   user_id with no recorded_by_user_id column, and /api/onboarding/fitness
+   always writes to the CALLER's own row. Wiring "Quick Log" to that route
+   would silently corrupt data — it'd overwrite the coach's own fitness_data,
+   not the player's, while looking like it succeeded. Until that schema gap
+   is closed, these stay an honest "not built yet" message instead of a fake
+   success state. */
+const NO_BACKEND_MSG =
+  "Coach-submitted player evaluations aren't built yet — fitness_data/behavioral_assessment have no column recording who submitted them for whom.";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type CoachPlayer = { id:string; name:string; city:string; role:string; age:number; vlevel:string; yoyo:string; assessed:string; status:string };
-type Submission  = { type:'fitness'|'behaviour'|'milestone'; name:string; summary:string; when:string };
+type Submission  = { type:'fitness'|'behaviour'|'milestone'; name:string; summary:string; when:string; playerId:string };
 
 interface CoachDashboardProps {
   data?: CoachDashboardData;
@@ -51,7 +63,7 @@ function toCoachPlayer(p: CoachAssignedPlayer): CoachPlayer {
 }
 
 function toSubmission(s: CoachSubmission): Submission {
-  return { type: s.kind, name: s.player_name, summary: s.summary, when: timeAgo(s.submitted_at) };
+  return { type: s.kind, name: s.player_name, summary: s.summary, when: timeAgo(s.submitted_at), playerId: s.player_user_id };
 }
 
 function initialsOf(name: string): string {
@@ -157,10 +169,27 @@ function PermRow({ ok, label, value }: { ok:boolean; label:string; value:string 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CoachDashboardClient({ data }: CoachDashboardProps = {}) {
+  const router = useRouter();
   const [nav, setNav]       = useState("dashboard");
   const [filter, setFilter] = useState<"all"|"fitness"|"eval">("all");
   const [busy, setBusy]     = useState<string|null>(null);
   const { toast, showToast } = useToast();
+  const tableRef = useRef<HTMLDivElement>(null);
+
+  /* Sidebar nav doesn't have separate routed pages (this is a single-page
+     dashboard) — clicking it does something real anyway: jumps to and
+     filters the actual player table for that category, or (Workflow)
+     navigates to the real /workflow page. Milestones has no dedicated
+     filter today (no "milestone" entry in the table's filter set below),
+     so it scrolls to the table without changing the filter. */
+  function goToNav(key: string) {
+    setNav(key);
+    if (key === "workflow") { router.push("/workflow"); return; }
+    if (key === "fitness") setFilter("fitness");
+    else if (key === "behaviour") setFilter("eval");
+    else if (key === "players" || key === "milestones") setFilter("all");
+    if (key !== "dashboard") tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   /* assigned_players/recent_submissions come from lib/dashboard-data.ts's
      loadCoachDashboard(), which is still an explicitly-documented mock (the
@@ -189,11 +218,7 @@ export default function CoachDashboardClient({ data }: CoachDashboardProps = {})
 
   const quickLog = (p: CoachPlayer, kind: "fitness"|"eval") => {
     if (!canSubmit) return;
-    setBusy(`${p.id}:${kind}`);
-    setTimeout(() => {
-      setBusy(null);
-      showToast(`${kind === "fitness" ? "Fitness" : "Evaluation"} logged for ${p.name}`);
-    }, 850);
+    showToast(NO_BACKEND_MSG);
   };
 
   const kicker: React.CSSProperties = {
@@ -253,7 +278,7 @@ export default function CoachDashboardClient({ data }: CoachDashboardProps = {})
             return (
               <button
                 key={item.key}
-                onClick={() => setNav(item.key)}
+                onClick={() => goToNav(item.key)}
                 style={{
                   display:"flex", alignItems:"center", gap:"0.65rem",
                   padding:"0.6rem 0.8rem", borderRadius:"var(--ax-radius-md)",
@@ -355,7 +380,7 @@ export default function CoachDashboardClient({ data }: CoachDashboardProps = {})
           </div>
 
           {/* My Players table */}
-          <div style={cardShell}>
+          <div ref={tableRef} style={cardShell}>
             <div aria-hidden style={{ position:"absolute", inset:0, pointerEvents:"none", background:"var(--ax-corner-glow)" }} />
             <div style={{ position:"relative" }}>
 
@@ -481,8 +506,8 @@ export default function CoachDashboardClient({ data }: CoachDashboardProps = {})
               return (
                 <a
                   key={i}
-                  href="#"
-                  onClick={e => { e.preventDefault(); showToast(`Opening submission: ${s.name}`); }}
+                  href={`/profile/${s.playerId}`}
+                  onClick={e => { e.preventDefault(); router.push(`/profile/${s.playerId}`); }}
                   style={{
                     display:"flex", gap:"0.6rem", padding:"0.6rem 0.7rem",
                     borderRadius:"var(--ax-radius-md)",
@@ -515,7 +540,7 @@ export default function CoachDashboardClient({ data }: CoachDashboardProps = {})
             { label:"Add Behavioural Evaluation",   icon:"plus" },
             { label:"Record Milestone",             icon:"plus" },
           ].map(({ label, icon }) => (
-            <QuickAction key={label} label={label} icon={icon} onAction={() => showToast(`Opening: ${label}…`)} />
+            <QuickAction key={label} label={label} icon={icon} onAction={() => showToast(NO_BACKEND_MSG)} />
           ))}
         </div>
 

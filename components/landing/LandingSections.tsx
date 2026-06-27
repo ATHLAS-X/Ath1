@@ -51,6 +51,7 @@ export default function LandingSections() {
         <style dangerouslySetInnerHTML={{ __html: heroStyles }} />
 
         <div className="wd-shell">
+          <p className="wd-grassroots">Grassroots to Global · District · State · Beyond</p>
           <div className="wd-eyebrow">What We Do</div>
           <h2 className="wd-heading">
             One platform. <span className="wd-accent">Every</span> sport. Every talent, verified.
@@ -59,6 +60,9 @@ export default function LandingSections() {
             AthlasX is where athletes get discovered on merit — verified profiles, real performance
             data, and direct access to scouts, with no agent and no connections required. It handles
             player onboarding, academy onboarding, and coach and scout onboarding, all in one place.
+          </p>
+          <p className="wd-tagline">
+            Every sport. Every talent. <b>One platform.</b>
           </p>
 
           <div className="wd-thumbs" aria-hidden="true">

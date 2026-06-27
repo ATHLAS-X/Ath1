@@ -1,7 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { DsIcon, DsPill, DsAvatar, DsButton, DsToast, useToast } from "@/app/_ds";
+
+/* Real destinations for the verification ladder's per-rung action button —
+   these pages exist (app/verify/scorecards, app/verify/scout-review); the
+   ladder used to just toast "Submit Scorecards" with no navigation at all. */
+const RUNG_HREF: Record<number, string> = {
+  3: "/verify/scorecards",
+  4: "/verify/scout-review",
+};
 
 // ─── Types & Mock Data ────────────────────────────────────────────────────────
 
@@ -116,7 +125,7 @@ function ChecklistRow({ label, done, bonus }: { label: string; done: boolean; bo
 
 // ─── LadderRung ──────────────────────────────────────────────────────────────
 
-function LadderRungRow({ rung, onAction }: { rung: LadderRung; onAction: (label: string) => void }) {
+function LadderRungRow({ rung, onAction }: { rung: LadderRung; onAction: (rung: LadderRung) => void }) {
   const isActive = rung.state === "active";
   const isDone   = rung.state === "done";
 
@@ -149,7 +158,7 @@ function LadderRungRow({ rung, onAction }: { rung: LadderRung; onAction: (label:
         <div style={{ fontSize: "0.72rem", color: "var(--ax-text-faint)", marginTop: "0.15rem" }}>{rung.sub}</div>
       </div>
       {isActive && rung.action && (
-        <DsButton variant="fill" size="sm" onClick={() => onAction(rung.action!)}>{rung.action}</DsButton>
+        <DsButton variant="fill" size="sm" onClick={() => onAction(rung)}>{rung.action}</DsButton>
       )}
       {isDone && (
         <DsIcon name="check" size={18} stroke={2.5} style={{ color: "var(--ax-ok)", flexShrink: 0 }} />
@@ -191,8 +200,30 @@ export default function PlayerDashboardClient({
   accountStatus = "pending",
   verification = { level: 1, name: "Self Registered", desc: "Profile created" },
   completion = { pct: 0, required: [], optional: [] },
+  profileId,
 }: PlayerDashboardProps = {}) {
+  const router = useRouter();
   const { toast, showToast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submitForApproval() {
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/player/profile/submit", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.success) {
+        const missingList = Array.isArray(data?.missing) ? ` — missing: ${data.missing.join(", ")}` : "";
+        showToast((data?.error ?? "Submission failed") + missingList);
+        return;
+      }
+      showToast("Profile submitted for approval.");
+      router.refresh();
+    } catch {
+      showToast("Network error — please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   const required = completion.required.map((r) => ({ label: r.name, done: r.done }));
   const bonus = completion.optional.map((r) => ({ label: r.name, done: r.done }));
@@ -278,9 +309,13 @@ export default function PlayerDashboardClient({
             </h1>
           </div>
           <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
-            <DsButton variant="ghost" size="sm" leadingIcon={<DsIcon name="help" size={15} />} onClick={() => showToast("Opening How it works…")}>How it works</DsButton>
-            <DsButton variant="ghost" size="sm" leadingIcon={<DsIcon name="eye" size={15} />} onClick={() => showToast("Opening your public profile…")}>View Public Profile</DsButton>
-            <DsButton variant="fill" size="sm" leadingIcon={<DsIcon name="edit" size={15} />} onClick={() => showToast("Opening onboarding wizard…")}>Edit Profile</DsButton>
+            <DsButton variant="ghost" size="sm" leadingIcon={<DsIcon name="help" size={15} />} onClick={() => router.push("/workflow")}>How it works</DsButton>
+            <DsButton
+              variant="ghost" size="sm" leadingIcon={<DsIcon name="eye" size={15} />}
+              disabled={!profileId}
+              onClick={() => profileId ? router.push(`/profile/${profileId}`) : showToast("Profile isn't public yet.")}
+            >View Public Profile</DsButton>
+            <DsButton variant="fill" size="sm" leadingIcon={<DsIcon name="edit" size={15} />} onClick={() => router.push("/onboarding/player")}>Edit Profile</DsButton>
           </div>
         </div>
 
@@ -331,7 +366,15 @@ export default function PlayerDashboardClient({
               <p style={{ margin: "0 0 1rem", fontSize: "0.82rem", color: "var(--ax-text-faint)" }}>Level {verification.level} of 4</p>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem" }}>
                 {[...ladder].reverse().map(rung => (
-                  <LadderRungRow key={rung.lvl} rung={rung} onAction={showToast} />
+                  <LadderRungRow
+                    key={rung.lvl}
+                    rung={rung}
+                    onAction={(r) => {
+                      const href = RUNG_HREF[r.lvl];
+                      if (href) router.push(href);
+                      else showToast(`${r.action} isn't available yet.`);
+                    }}
+                  />
                 ))}
               </div>
             </div>
@@ -380,7 +423,7 @@ export default function PlayerDashboardClient({
 
                 {/* Actions */}
                 <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
-                  <DsButton variant="fill" leadingIcon={<DsIcon name="video" size={16} />} onClick={() => showToast("Opening video upload…")}>
+                  <DsButton variant="fill" leadingIcon={<DsIcon name="video" size={16} />} onClick={() => router.push("/videos/upload")}>
                     Add Videos
                   </DsButton>
                   <DsButton variant="ghost" disabled>Submit for Approval</DsButton>
@@ -390,7 +433,9 @@ export default function PlayerDashboardClient({
                 </p>
               </>
             ) : (
-              <DsButton variant="fill" onClick={() => showToast("Submitting profile…")}>Submit for Approval</DsButton>
+              <DsButton variant="fill" disabled={submitting} onClick={submitForApproval}>
+                {submitting ? "Submitting…" : "Submit for Approval"}
+              </DsButton>
             )}
           </div>
         </div>
