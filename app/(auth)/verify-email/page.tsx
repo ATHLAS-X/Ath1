@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { MailCheck, AlertCircle, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
 const ERROR_MESSAGES: Record<string, string> = {
   missing:  "Verification link is missing a token.",
@@ -12,6 +12,14 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={null}>
+      <VerifyEmailPageInner />
+    </Suspense>
+  );
+}
+
+function VerifyEmailPageInner() {
   const params = useSearchParams();
   const errorKey = params.get("error");
   const [resent, setResent] = useState(false);

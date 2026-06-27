@@ -1,10 +1,18 @@
 ﻿"use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, FileUp, ShieldCheck } from "lucide-react";
 
 export default function CoachRegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <CoachRegisterPageInner />
+    </Suspense>
+  );
+}
+
+function CoachRegisterPageInner() {
   const params = useSearchParams();
   const token = params?.get("token") ?? "";
   const [name, setName] = useState("");
