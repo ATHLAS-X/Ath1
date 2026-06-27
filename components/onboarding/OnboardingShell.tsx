@@ -233,6 +233,8 @@ const SHELL_STYLES = `
 @media (max-width: 900px) {
   .obs-ob { grid-template-columns: 1fr; }
   .obs-rail { position: relative; height: auto; padding: 1.4rem 1.4rem 1.6rem; }
+  .obs-rail-bg--contain { position: static; inset: auto; float: left; width: 92px; height: 92px; margin: 0 0.9rem 0.6rem 0; }
+  .obs-rail-bg--contain::after { display: none; }
   .obs-lead-desc { display: none; }
   .obs-stepper { flex-direction: row; flex-wrap: wrap; gap: 0.4rem; margin-top: 1.3rem; }
   .obs-step { padding: 0.4rem 0.7rem 0.4rem 0.4rem; background: rgba(245,245,240,0.04); }
