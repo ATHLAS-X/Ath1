@@ -79,7 +79,6 @@ const NAV_ITEMS = [
   { key:"fitness",    label:"Fitness Log", icon:"fitness"   },
   { key:"behaviour",  label:"Behavioural", icon:"brain"     },
   { key:"milestones", label:"Milestones",  icon:"milestone" },
-  { key:"workflow",   label:"Workflow",    icon:"workflow"  },
 ];
 
 // ─── CoKpi ───────────────────────────────────────────────────────────────────
@@ -178,13 +177,11 @@ export default function CoachDashboardClient({ data }: CoachDashboardProps = {})
 
   /* Sidebar nav doesn't have separate routed pages (this is a single-page
      dashboard) — clicking it does something real anyway: jumps to and
-     filters the actual player table for that category, or (Workflow)
-     navigates to the real /workflow page. Milestones has no dedicated
-     filter today (no "milestone" entry in the table's filter set below),
-     so it scrolls to the table without changing the filter. */
+     filters the actual player table for that category. Milestones has no
+     dedicated filter today (no "milestone" entry in the table's filter set
+     below), so it scrolls to the table without changing the filter. */
   function goToNav(key: string) {
     setNav(key);
-    if (key === "workflow") { router.push("/workflow"); return; }
     if (key === "fitness") setFilter("fitness");
     else if (key === "behaviour") setFilter("eval");
     else if (key === "players" || key === "milestones") setFilter("all");
