@@ -123,6 +123,25 @@ enum CoachStatus {
   REJECTED
 }
 
+enum CoachingRole {
+  HEAD
+  ASSISTANT
+  SPECIALIST
+  FREELANCE
+}
+
+enum CertStatus {
+  PENDING
+  VERIFIED
+  NONE
+}
+
+enum JoinStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 enum ScoutType {
   INDEPENDENT
   FRANCHISE
@@ -421,6 +440,70 @@ model AcademyCoach {
 
   @@index([academy_id])
   @@map("academy_coaches")
+}
+
+// ─── 7b. COACH PROFILE ────────────────────────────────────────────────────
+// Standalone coach row — separate from AcademyCoach (which is a seat inside
+// an academy). A COACH-role user has one of these after onboarding.
+
+model CoachProfile {
+  id                        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                   String         @unique @db.Uuid
+  // Step 1
+  first_name                String?
+  last_name                 String?
+  email                     String?
+  // Step 2
+  coaching_role             CoachingRole?
+  specialisations           String[]
+  age_groups_coached        String[]
+  coaching_experience_years Int?
+  city                      String?
+  state                     String?
+  played_state_level        Boolean?
+  highest_level_played      String?
+  playing_role              String?
+  // Step 3
+  highest_certification     String?
+  certificate_url           String?
+  certification_status      CertStatus?    @default(NONE)
+  // Onboarding state
+  onboarding_step           Int            @default(1)
+  onboarding_complete       Boolean        @default(false)
+  created_at                DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime       @updatedAt @db.Timestamptz(6)
+
+  academy_links             CoachAcademy[]
+
+  @@map("coach_profiles")
+}
+
+// ─── 7c. COACH ↔ ACADEMY LINK ────────────────────────────────────────────
+
+model CoachAcademy {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  coach_id    String       @db.Uuid
+  academy_id  String       @db.Uuid
+  status      JoinStatus   @default(PENDING)
+  invite_code String?
+  created_at  DateTime     @default(now()) @db.Timestamptz(6)
+  coach       CoachProfile @relation(fields: [coach_id], references: [id], onDelete: Cascade)
+
+  @@unique([coach_id, academy_id])
+  @@map("coach_academy")
+}
+
+// ─── 7d. ACADEMY INVITE CODES ─────────────────────────────────────────────
+
+model AcademyInviteCode {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  academy_id  String   @db.Uuid
+  code        String   @unique
+  used_by     String?  @db.Uuid
+  expires_at  DateTime @db.Timestamptz(6)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("academy_invite_codes")
 }
 
 // ─── 8. SCOUT PROFILE ─────────────────────────────────────────────────────
