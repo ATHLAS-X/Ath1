@@ -30,3 +30,10 @@ public/uploads/
 
 # Vercel (not our deployment target)
 .vercel
+
+# Python cache — never commit compiled bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/

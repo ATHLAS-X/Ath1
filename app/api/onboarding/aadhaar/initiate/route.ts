@@ -43,8 +43,6 @@ export async function POST(req: Request) {
 
   // MVP: pretend an OTP was sent over the Aadhaar-linked mobile via Surepass.
   // Never log the Aadhaar number — masked or otherwise.
-  console.log(`[aadhaar.initiate] userId=${guard.userId} action=otp_requested`);
-
   const payload: Record<string, unknown> = { message: "OTP sent to Aadhaar-linked mobile" };
   if (process.env.NODE_ENV !== "production") payload.dev_otp = code;
   return ok(payload);
