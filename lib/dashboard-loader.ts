@@ -41,7 +41,7 @@ export async function loadDashboardData(
       SELECT city, state, district, date_of_birth, playing_role, batting_style, bowling_style,
              matches_played, runs_scored, wickets_taken, highest_score, best_bowling, bio,
              avatar_url, coach_verified, score_weights,
-             height_cm, weight_kg, profile_status
+             height_cm, weight_kg, profile_status, visibility, user_id
       FROM player_profiles WHERE user_id = ${userId} LIMIT 1
     ` as unknown as Promise<any[]>, [] as any[]),
     safeSql(sql`SELECT player_role, batting_style, bowling_style, phase_specialty

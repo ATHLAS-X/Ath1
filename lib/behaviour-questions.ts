@@ -1,3 +1,14 @@
+/**
+ * @deprecated This 10-question bank is superseded by the full ACSI-28 instrument
+ * served from the compute service (GET /api/v1/compute/psych/questionnaire).
+ * The new assessment form at /onboarding/player/assessment fetches questions
+ * from the compute service directly.
+ *
+ * This file is KEPT because it may be referenced by academy forms, coach
+ * dashboards, or other non-onboarding flows that haven't been migrated yet.
+ * Do NOT delete without checking for other consumers.
+ */
+
 export interface BehaviourQuestion {
   id: number;
   prompt: string;

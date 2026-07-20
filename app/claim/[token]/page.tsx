@@ -42,7 +42,7 @@ export default async function ClaimPage({ params }: Props) {
         <p style={{ color: "var(--mut)", fontSize: 12.5, marginBottom: 16 }}>
           <strong>{invite.academy_name}</strong>
           {invite.academy_city && ` · ${invite.academy_city}, ${invite.academy_state}`} created
-          a draft SportX profile for you.
+          a draft AthlasX profile for you.
         </p>
 
         <div className="claim-grid">

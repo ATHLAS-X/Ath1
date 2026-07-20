@@ -67,8 +67,11 @@ function ParticlesCanvas() {
 }
 
 /* Skipped on these paths — landing has its own hero scene, login/signup
-   render their own background. */
-const SKIP_PREFIXES = ["/auth/login", "/auth/signup"];
+   render their own background, and the four onboarding wizards render their
+   own full-bleed OnboardingShell (solid --hx-bg rail + form panes) — this
+   canvas was showing through the shell's transparent gaps as a stray
+   starfield down the left edge. */
+const SKIP_PREFIXES = ["/auth/login", "/auth/signup", "/onboarding"];
 
 export default function AppBackground() {
   const pathname = usePathname() ?? "";

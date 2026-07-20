@@ -1,4 +1,4 @@
-"""Application configuration via Pydantic Settings.
+﻿"""Application configuration via Pydantic Settings.
 
 All environment variables for the compute service are declared here. Defaults are
 chosen so the service boots for local development against the isolated stack in
@@ -66,8 +66,11 @@ class Settings(BaseSettings):
     # ── CORS (so a browser frontend on another origin can call this API) ─────
     # Comma-separated list of allowed origins, e.g.
     #   "http://localhost:3000,https://app.athlasx.in"
-    # Default "*" is convenient for local dev; set explicit origins in production.
-    cors_allow_origins: str = "*"
+    # "*" must NEVER be used in production — even with allow_credentials=False,
+    # an open CORS policy lets any third-party site read this API's responses
+    # from a logged-in user's browser. The default below is scoped to the local
+    # Next.js dev server, not a wildcard.
+    cors_allow_origins: str = "http://localhost:3000"
 
     @property
     def cors_origins_list(self) -> list[str]:

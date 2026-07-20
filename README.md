@@ -12,6 +12,8 @@ All required, set in `.env.local` for development and as Vercel Project Environm
 | `DATABASE_URL` | NeonDB Postgres connection string (`postgresql://user:pass@host/db?sslmode=require`) |
 | `NEXTAUTH_SECRET` | 32+ byte random secret. Generate with `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | Public site URL. `http://localhost:3000` locally, `https://<your-app>.vercel.app` in prod |
+| `UPSTASH_REDIS_REST_URL` | Optional. Upstash Redis REST URL for shared rate limiting across instances. Falls back to an in-memory limiter (single-process, dev-only) if unset. |
+| `UPSTASH_REDIS_REST_TOKEN` | Optional. Upstash Redis REST token, paired with `UPSTASH_REDIS_REST_URL`. |
 
 ## Local Setup
 
@@ -57,6 +59,11 @@ AthlasX uses NeonDB Postgres. If you'd rather mirror the original Supabase-shape
 npx tsx scripts/migrations/players-page.ts         # invite tokens + perf summary + fitness assessments
 npx tsx scripts/migrations/coaches-fitness-pages.ts # soft-delete on academy_coaches
 ```
+
+### Auth/security hardening (rate limiting + Aadhaar OTP)
+
+- `prisma/0003_aadhaar_otps.sql` adds the `aadhaar_otps` table (hashed OTPs for the Aadhaar verify step, mirroring `phone_otps`). Run it once against your DB, or re-run `npm run db:init` (it's folded into `lib/schema.sql` too — both are idempotent).
+- Login, signup, phone-OTP-send, and Aadhaar-OTP-initiate are now rate-limited. Without `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` set, limits are enforced in-memory per process — fine for local dev, but not shared across multiple server instances or serverless cold starts. Set the Upstash env vars in production for a shared limiter.
 
 Each script is idempotent — re-run safely after pulling new code.
 

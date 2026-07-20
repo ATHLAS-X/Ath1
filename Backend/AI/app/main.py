@@ -1,4 +1,4 @@
-"""FastAPI application entrypoint for the ATHLASX compute service."""
+﻿"""FastAPI application entrypoint for the ATHLASX compute service."""
 
 from __future__ import annotations
 
@@ -35,6 +35,12 @@ This is a standalone build — see `RECONCILIATION_NOTES.md` for integration TOD
 async def lifespan(app: FastAPI):
     configure_logging()
     settings = get_settings()
+    if settings.is_production and settings.cors_allow_origins.strip() == "*":
+        raise RuntimeError(
+            "CORS_ALLOW_ORIGINS is '*' in production. Set it to the real frontend "
+            "origin(s), e.g. CORS_ALLOW_ORIGINS=https://app.athlasx.in — a wildcard "
+            "origin is never safe to ship, regardless of allow_credentials."
+        )
     if settings.sentry_dsn:
         try:
             import sentry_sdk
@@ -62,10 +68,12 @@ app = FastAPI(
 )
 
 # CORS so a browser frontend (e.g. the Next.js app on localhost:3000) can call this
-# API cross-origin. Origins are configurable via CORS_ALLOW_ORIGINS (see config.py).
-# allow_credentials is False: auth is a Bearer token in the Authorization header (not
-# cookies), so the wildcard default works in browsers. If you switch to cookie auth,
-# set explicit CORS_ALLOW_ORIGINS and flip allow_credentials to True.
+# API cross-origin. Origins are configurable via CORS_ALLOW_ORIGINS (see config.py) —
+# this must be a real origin list in production, never "*" (enforced at boot below).
+# allow_credentials is False: auth is a Bearer token in the Authorization header, not
+# cookies. That does NOT make a wildcard origin safe — it still lets any third-party
+# site read this API's responses from a logged-in user's browser. If you switch to
+# cookie auth, set explicit CORS_ALLOW_ORIGINS and flip allow_credentials to True.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins_list,

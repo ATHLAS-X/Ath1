@@ -2,6 +2,9 @@ import { sql } from "@/lib/db";
 import { advanceStep } from "@/lib/onboarding";
 import { fail, ok, requireUserId, saveUpload } from "@/lib/onboarding-server";
 import { calculateFitness, bmiFrom } from "@/lib/fitness-math";
+import { IMAGE_OR_PDF_ALLOWLIST, UploadValidationError, readAndValidateUpload } from "@/lib/upload-validation";
+
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
 function optNum(v: FormDataEntryValue | null): number | null {
   if (v == null) return null;
@@ -51,7 +54,17 @@ export async function POST(req: Request) {
   const bmi = bmiFrom(height, weight);
   const breakdown = calculateFitness({ sprint, pushups, rhr, yoyo, run2km, height, weight });
 
-  const certUrl = cert ? await saveUpload(guard.userId, cert, "fitness") : null;
+  let certUrl: string | null = null;
+  if (cert) {
+    let upload;
+    try {
+      upload = await readAndValidateUpload(cert, MAX_BYTES, IMAGE_OR_PDF_ALLOWLIST);
+    } catch (e) {
+      if (e instanceof UploadValidationError) return fail(e.message);
+      throw e;
+    }
+    certUrl = await saveUpload(guard.userId, upload, "fitness");
+  }
 
   // Upsert.
   await sql`DELETE FROM fitness_data WHERE user_id = ${guard.userId}`;

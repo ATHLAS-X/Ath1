@@ -5,10 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { AddCoachForm, AddPlayerForm, BulkCsvForm } from "@/components/academy/forms";
-
-/* Academy Admin dashboard — the primary screen.
-   Three-region layout: dark navy sidebar (sticky on desktop, collapsed to
-   icons on mobile) · light grey main content · white cards + table. */
+import { DsIcon, DsButton, DsAvatar, DsPill } from "@/app/_ds";
 
 interface Stats { total: number; verified: number; live: number; scoutViews: number; }
 interface PlayerRow {
@@ -28,40 +25,50 @@ interface Props {
   recentPlayers: PlayerRow[];
 }
 
-const NAV: Array<{ label: string; href: string; icon: React.ReactNode }> = [
-  { label: "Dashboard",              href: "/academy/dashboard", icon: <IconHome /> },
-  { label: "Players",                href: "/academy/players",   icon: <IconUsers /> },
-  { label: "Coaches",                href: "/academy/coaches",   icon: <IconWhistle /> },
-  { label: "Fitness & Assessments",  href: "/academy/fitness",   icon: <IconHeart /> },
-  { label: "Settings",               href: "/academy/settings",  icon: <IconGear /> },
+const NAV: Array<{ label: string; href: string; icon: string }> = [
+  { label: "Dashboard", href: "/academy/dashboard", icon: "dashboard" },
+  { label: "Players", href: "/academy/players", icon: "players" },
+  { label: "Coaches", href: "/academy/coaches", icon: "coaches" },
+  { label: "Fitness & Assessments", href: "/academy/fitness", icon: "fitness" },
+  { label: "Settings", href: "/academy/settings", icon: "settings" },
 ];
 
-const VERIFICATION_META: Record<number, { label: string; bg: string; fg: string; border: string }> = {
-  1: { label: "Unverified",            bg: "#F1F5F9", fg: "#475569", border: "#CBD5E1" },
-  2: { label: "Identity Verified",     bg: "#FEF3C7", fg: "#92400E", border: "#FCD34D" },
-  3: { label: "Performance Verified",  bg: "#DCFCE7", fg: "#15803D", border: "#86EFAC" },
-  4: { label: "Scout Verified",        bg: "#DBEAFE", fg: "#1D4ED8", border: "#93C5FD" },
+const VLEVEL_LABEL: Record<number, string> = { 1: "Unverified", 2: "Identity Verified", 3: "Performance Verified", 4: "Scout Verified" };
+const VLEVEL_TONE: Record<number, "neutral" | "accent" | "ok" | "blue"> = { 1: "neutral", 2: "accent", 3: "ok", 4: "blue" };
+const STATUS_TONE: Record<string, "neutral" | "accent" | "ok" | "bad" | "orange"> = {
+  "Draft": "neutral", "Pending Approval": "accent", "Live": "ok", "Rejected": "bad", "Changes Requested": "orange",
 };
 
-const PROFILE_STATUS_META: Record<string, { bg: string; fg: string }> = {
-  "Draft":              { bg: "#F1F5F9", fg: "#475569" },
-  "Pending Approval":   { bg: "#FEF3C7", fg: "#92400E" },
-  "Live":               { bg: "#DCFCE7", fg: "#15803D" },
-  "Rejected":           { bg: "#FEE2E2", fg: "#B91C1C" },
-  "Changes Requested":  { bg: "#FFEDD5", fg: "#9A3412" },
-};
+const kicker: React.CSSProperties = { fontFamily: "var(--ax-font-label)", textTransform: "uppercase", letterSpacing: "0.18em", fontSize: "11px", fontWeight: 700, color: "var(--ax-accent-bright)", margin: "0 0 0.4rem" };
+
+function StatCard({ icon, label, value, sub, tone = "accent", placeholder = false }: {
+  icon: string; label: string; value: string; sub: string; tone?: "accent" | "ok" | "blue" | "neutral"; placeholder?: boolean;
+}) {
+  const tint = { accent: "var(--ax-accent-bright)", ok: "var(--ax-ok)", blue: "#7DBBFF", neutral: "var(--ax-text-dim)" }[tone];
+  const tintBg = { accent: "var(--ax-accent-14)", ok: "var(--ax-ok-soft)", blue: "rgba(74,158,255,0.14)", neutral: "var(--ax-field)" }[tone];
+  return (
+    <div style={{ position: "relative", overflow: "hidden", padding: "1.15rem 1.2rem", borderRadius: "var(--ax-radius-xl)",
+      background: "var(--ax-card)", border: "1px solid var(--ax-border)", boxShadow: "var(--ax-shadow-card)", opacity: placeholder ? 0.62 : 1 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontFamily: "var(--ax-font-label)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: "0.66rem", fontWeight: 700, color: "var(--ax-text-dim)" }}>{label}</span>
+        <span style={{ width: 30, height: 30, flex: "0 0 auto", borderRadius: "var(--ax-radius-sm)", display: "grid", placeItems: "center", background: tintBg, color: tint }}>
+          <DsIcon name={icon} size={16} />
+        </span>
+      </div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginTop: "0.7rem" }}>
+        <b style={{ fontFamily: "var(--ax-font-display)", fontWeight: 400, fontSize: "2.3rem", lineHeight: 0.9, color: placeholder ? "var(--ax-text-faint)" : "var(--ax-text)" }}>{value}</b>
+        {placeholder && <DsPill tone="neutral">V2</DsPill>}
+      </div>
+      <p style={{ margin: "0.5rem 0 0", fontSize: "0.74rem", color: "var(--ax-text-faint)", lineHeight: 1.4 }}>{sub}</p>
+    </div>
+  );
+}
 
 export default function AcademyAdminDashboard(p: Props) {
   const pathname = usePathname() ?? "";
   const router = useRouter();
   const [openModal, setOpenModal] = useState<null | "player" | "csv" | "coach">(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const onModalSuccess = () => {
-    setRefreshKey((k) => k + 1);
-  };
-
-  /* Show profile-completion banner while academy is still Draft or in review. */
   const bannerStatus = p.academy.profileStatus === "Draft" ? "draft"
     : p.academy.profileStatus === "Pending Approval" ? "pending"
     : null;
@@ -69,259 +76,225 @@ export default function AcademyAdminDashboard(p: Props) {
   const initials = p.adminName.split(" ").filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#F5F5F5", color: "#0F172A", fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
-      <style>{GLOBAL_STYLES}</style>
+    <div style={{ position: "relative", display: "grid", gridTemplateColumns: "248px 1fr", width: "100%", minHeight: "100vh", background: "var(--ax-bg)", color: "var(--ax-text)" }}>
 
-      {/* ═════ SIDEBAR ═════ */}
-      <aside className="aa-sidebar">
-        <div className="aa-brand">
-          <div className="aa-logo-ball" />
-          <div className="aa-brand-text">
-            <div className="aa-brand-word">SPORT<em>X</em></div>
-            <div className="aa-brand-sub">Academy admin</div>
-          </div>
+      {/* ===== SIDEBAR ===== */}
+      <aside style={{ display: "flex", flexDirection: "column", background: "var(--ax-bg-soft)", borderRight: "1px solid var(--ax-border)", padding: "1.3rem 0.9rem", position: "sticky", top: 0, height: "100vh" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0 0.4rem 1.3rem" }}>
+          <span style={{ fontFamily: "var(--ax-font-display)", fontSize: "1.35rem", lineHeight: 1, letterSpacing: "-0.01em" }}>
+            ATHLAS<span style={{ color: "var(--ax-accent)" }}>X</span>
+          </span>
+          <span style={{ fontFamily: "var(--ax-font-label)", textTransform: "uppercase", letterSpacing: "0.16em", fontSize: "0.6rem", fontWeight: 700, color: "var(--ax-text-faint)", borderLeft: "1px solid var(--ax-border)", paddingLeft: "0.6rem" }}>
+            Academy
+          </span>
         </div>
-
-        <nav className="aa-nav">
+        <nav style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
           {NAV.map((item) => {
-            const active = pathname === item.href || (item.href !== "/academy/dashboard" && pathname.startsWith(item.href));
+            const on = pathname === item.href || (item.href !== "/academy/dashboard" && pathname.startsWith(item.href));
             return (
-              <Link key={item.href} href={item.href} className={`aa-nav-item${active ? " on" : ""}`}>
-                <span className="aa-nav-icon">{item.icon}</span>
-                <span className="aa-nav-label">{item.label}</span>
+              <Link key={item.href} href={item.href} style={{ display: "flex", alignItems: "center", gap: "0.75rem", textAlign: "left", cursor: "pointer",
+                padding: "0.62rem 0.7rem", borderRadius: "var(--ax-radius-md)", border: "1px solid " + (on ? "var(--ax-accent)" : "transparent"),
+                background: on ? "var(--ax-accent-14)" : "transparent", color: on ? "var(--ax-accent-bright)" : "var(--ax-text-dim)",
+                fontFamily: "var(--ax-font-body)", fontSize: "0.9rem", fontWeight: on ? 700 : 600, textDecoration: "none", transition: "all 0.14s ease" }}>
+                <DsIcon name={item.icon} size={18} />
+                {item.label}
               </Link>
             );
           })}
         </nav>
-
-        <div className="aa-side-footer">
-          <div className="aa-side-acad">{p.academy.name}</div>
-          {p.academy.location && <div className="aa-side-loc">{p.academy.location}</div>}
+        <div style={{ marginTop: "auto", display: "flex", gap: "0.6rem", alignItems: "center", padding: "0.7rem 0.6rem", borderRadius: "var(--ax-radius-md)", background: "rgba(13,13,13,0.72)", border: "1px solid var(--ax-border)" }}>
+          <span style={{ width: 34, height: 34, flex: "0 0 auto", borderRadius: "var(--ax-radius-sm)", display: "grid", placeItems: "center", background: "var(--ax-accent-14)", color: "var(--ax-accent-bright)" }}>
+            <DsIcon name="building" size={17} />
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <b style={{ display: "block", fontSize: "0.82rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.academy.name}</b>
+            {p.academy.location && <small style={{ fontSize: "0.72rem", color: "var(--ax-text-faint)" }}>{p.academy.location}</small>}
+          </div>
         </div>
       </aside>
 
-      {/* ═════ MAIN ═════ */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {/* Topbar */}
-        <header className="aa-topbar">
-          <div className="aa-top-name">
-            {p.academy.logoUrl
-              ? <img src={p.academy.logoUrl} alt="" className="aa-top-logo" />
-              : <div className="aa-top-logo aa-top-logo--placeholder">🏏</div>}
+      {/* ===== MAIN ===== */}
+      <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+
+        {/* topbar */}
+        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "0.85rem 1.6rem", borderBottom: "1px solid var(--ax-border)", background: "rgba(13,13,13,0.6)", WebkitBackdropFilter: "blur(10px)", backdropFilter: "blur(10px)", position: "sticky", top: 0, zIndex: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+            {p.academy.logoUrl ? (
+              <img src={p.academy.logoUrl} alt="" style={{ width: 38, height: 38, borderRadius: "var(--ax-radius-md)", objectFit: "cover" }} />
+            ) : (
+              <span style={{ width: 38, height: 38, borderRadius: "var(--ax-radius-md)", display: "grid", placeItems: "center", background: "var(--ax-field)", border: "1px solid var(--ax-border)", color: "var(--ax-accent-bright)" }}>
+                <DsIcon name="building" size={18} />
+              </span>
+            )}
             <div>
-              <div className="aa-top-acad">{p.academy.name}</div>
-              <StatusPill status={p.academy.profileStatus} />
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                <b style={{ fontSize: "0.98rem" }}>{p.academy.name}</b>
+                <DsPill tone={STATUS_TONE[p.academy.profileStatus] ?? "neutral"} dot>{p.academy.profileStatus}</DsPill>
+              </div>
+              <small style={{ fontSize: "0.74rem", color: "var(--ax-text-faint)" }}>/academy/dashboard</small>
             </div>
           </div>
-          <div className="aa-top-right">
-            <div className="aa-top-admin">
-              <div className="aa-avatar">{initials}</div>
-              <div className="aa-admin-meta">
-                <div className="aa-admin-name">{p.adminName}</div>
-                <div className="aa-admin-email">{p.adminEmail}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+              <DsAvatar initial={initials} size={34} />
+              <div style={{ lineHeight: 1.2 }}>
+                <b style={{ display: "block", fontSize: "0.84rem" }}>{p.adminName}</b>
+                <small style={{ fontSize: "0.72rem", color: "var(--ax-text-faint)" }}>{p.adminEmail}</small>
               </div>
             </div>
-            <button className="aa-logout" onClick={() => signOut({ callbackUrl: "/auth/login" })}>Logout</button>
+            <DsButton variant="ghost" size="sm" leadingIcon={<DsIcon name="logout" size={15} />} onClick={() => signOut({ callbackUrl: "/auth/login" })}>Logout</DsButton>
           </div>
         </header>
 
-        <main className="aa-main" key={refreshKey}>
+        {/* scroll area */}
+        <div style={{ flex: 1, overflowY: "auto" }}>
+          <div style={{ maxWidth: 1600, margin: "0 auto", padding: "1.6rem 2.2rem 3rem" }}>
 
-          {/* ── Section 2: Profile banner ── */}
-          {bannerStatus && (
-            <div className={`aa-banner aa-banner--${bannerStatus}`}>
-              <div className="aa-banner-icon">⚠</div>
-              <div className="aa-banner-text">
-                <div className="aa-banner-title">
-                  {bannerStatus === "draft"
-                    ? "Finish setting up your academy"
-                    : "Your academy profile is under review"}
-                </div>
-                <div className="aa-banner-body">
-                  Players won&apos;t appear to scouts until your academy is approved.
-                </div>
-              </div>
-              {bannerStatus === "draft" && (
-                <Link href="/academy/onboarding" className="aa-banner-cta">Complete your profile →</Link>
-              )}
-            </div>
-          )}
-
-          {/* ── Section 1: Stats row ── */}
-          <section className="aa-stats">
-            <StatCard label="Total Players"    value={p.stats.total}      hint="In your roster" />
-            <StatCard label="Verified Players" value={p.stats.verified}   hint="Identity verified or higher" accent="#22C55E" />
-            <StatCard label="Scout Views"      value={p.stats.scoutViews} hint="Coming in V2" muted />
-            <StatCard label="Players Live"     value={p.stats.live}       hint="Profile status: Live" accent="#1D4ED8" />
-          </section>
-
-          {/* ── Section 4: Quick actions ── */}
-          <section className="aa-actions">
-            <QuickAction
-              title="Add Player"
-              desc="Single player form"
-              accent="#22C55E"
-              onClick={() => setOpenModal("player")}
-              icon={<IconUserPlus />}
-            />
-            <QuickAction
-              title="Upload CSV"
-              desc="Bulk import from a spreadsheet"
-              accent="#1D4ED8"
-              onClick={() => setOpenModal("csv")}
-              icon={<IconUpload />}
-            />
-            <QuickAction
-              title="Add Coach"
-              desc="Add a coach to your roster"
-              accent="#7C3AED"
-              onClick={() => setOpenModal("coach")}
-              icon={<IconWhistle />}
-            />
-          </section>
-
-          {/* ── Section 3: Recent players ── */}
-          <section className="aa-card">
-            <div className="aa-card-head">
-              <div>
-                <h3 className="aa-card-title">Recent Players</h3>
-                <p className="aa-card-sub">Last 10 players added to your academy</p>
-              </div>
-              <Link href="/academy/players" className="aa-card-action">View all players →</Link>
-            </div>
-
-            {p.recentPlayers.length === 0 ? (
-              <div className="aa-empty">
-                <div className="aa-empty-icon">🏏</div>
-                <div className="aa-empty-title">No players yet</div>
-                <div className="aa-empty-body">Use the quick actions above to add your first player.</div>
-              </div>
-            ) : (
-              <div className="aa-table-wrap">
-                <table className="aa-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Role</th>
-                      <th>Verification Level</th>
-                      <th>Profile Status</th>
-                      <th>Added On</th>
-                      <th style={{ textAlign: "right" }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {p.recentPlayers.map((row) => {
-                      const meta = VERIFICATION_META[Math.max(1, Math.min(4, row.verification_level))]
-                                   ?? VERIFICATION_META[1];
-                      const psMeta = PROFILE_STATUS_META[row.profile_status]
-                                     ?? PROFILE_STATUS_META["Draft"];
-                      return (
-                        <tr key={row.id}>
-                          <td className="aa-td-name">{row.name}</td>
-                          <td>{row.playing_role ?? "—"}</td>
-                          <td>
-                            <span className="aa-badge" style={{
-                              background: meta.bg, color: meta.fg, border: `1px solid ${meta.border}`,
-                            }}>
-                              {meta.label}
-                            </span>
-                          </td>
-                          <td>
-                            <span className="aa-badge" style={{
-                              background: psMeta.bg, color: psMeta.fg, border: "1px solid transparent",
-                            }}>
-                              {row.profile_status}
-                            </span>
-                          </td>
-                          <td className="aa-td-muted">
-                            {row.created_at
-                              ? new Date(row.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-                              : "—"}
-                          </td>
-                          <td style={{ textAlign: "right" }}>
-                            <Link href={`/academy/players/${row.user_id ?? row.id}`} className="aa-link">View</Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            {/* completion banner */}
+            {bannerStatus && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.9rem", padding: "0.85rem 1.1rem", marginBottom: "1.5rem", borderRadius: "var(--ax-radius-lg)", background: "var(--ax-accent-08)", border: "1px solid var(--ax-accent-22)" }}>
+                <span style={{ flex: "0 0 auto", color: "var(--ax-accent-bright)" }}><DsIcon name="alert" size={19} /></span>
+                <p style={{ margin: 0, flex: 1, fontSize: "0.86rem", lineHeight: 1.45 }}>
+                  <b style={{ color: "var(--ax-accent-bright)" }}>
+                    {bannerStatus === "draft" ? "Finish setting up your academy." : "Your academy profile is under review."}
+                  </b>{" "}
+                  <span style={{ color: "var(--ax-text-dim)" }}>Players won&apos;t appear to scouts until your academy is approved.</span>
+                </p>
+                {bannerStatus === "draft" && (
+                  <Link href="/academy/onboarding" style={{ flexShrink: 0 }}>
+                    <DsButton variant="fill" size="sm">Complete your profile →</DsButton>
+                  </Link>
+                )}
               </div>
             )}
-          </section>
 
-        </main>
+            {/* heading */}
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "1rem", marginBottom: "1.2rem", flexWrap: "wrap" }}>
+              <div>
+                <p style={kicker}>Academy Overview</p>
+                <h1 style={{ fontFamily: "var(--ax-font-display)", textTransform: "uppercase", fontWeight: 400, lineHeight: 0.95, fontSize: "clamp(28px,3vw,40px)", margin: 0 }}>Dashboard</h1>
+              </div>
+            </div>
+
+            {/* KPI cards */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "0.9rem", marginBottom: "1.8rem" }}>
+              <StatCard icon="players" label="Total Players" value={p.stats.total.toLocaleString("en-IN")} sub="Profiles in your roster" tone="accent" />
+              <StatCard icon="dashboard" label="Verified Players" value={p.stats.verified.toLocaleString("en-IN")} sub="Identity Verified or higher" tone="ok" />
+              <StatCard icon="eye" label="Scout Views" value="—" sub="Coming in V2" tone="neutral" placeholder />
+              <StatCard icon="fitness" label="Players Live" value={p.stats.live.toLocaleString("en-IN")} sub="profile_status = Live" tone="blue" />
+            </div>
+
+            {/* quick actions */}
+            <div style={{ marginBottom: "1.8rem" }}>
+              <p style={{ ...kicker, color: "var(--ax-text-dim)", letterSpacing: "0.14em" }}>Quick actions</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.9rem" }}>
+                {[
+                  { key: "player" as const, t: "Add Player", s: "Create a single player profile", icon: "plus" },
+                  { key: "csv" as const, t: "Upload CSV", s: "Bulk-import from a spreadsheet", icon: "upload" },
+                  { key: "coach" as const, t: "Add Coach", s: "Link a coach to your roster", icon: "coaches" },
+                ].map((a) => (
+                  <button key={a.key} onClick={() => setOpenModal(a.key)} style={{ display: "flex", alignItems: "center", gap: "0.85rem", textAlign: "left", cursor: "pointer",
+                    padding: "1rem 1.1rem", borderRadius: "var(--ax-radius-lg)", background: "var(--ax-field)", border: "1px solid var(--ax-border)",
+                    color: "var(--ax-text)", transition: "all 0.14s ease" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--ax-accent)"; e.currentTarget.style.background = "var(--ax-accent-08)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--ax-border)"; e.currentTarget.style.background = "var(--ax-field)"; }}>
+                    <span style={{ width: 38, height: 38, flex: "0 0 auto", borderRadius: "var(--ax-radius-md)", display: "grid", placeItems: "center", background: "var(--ax-accent)", color: "var(--ax-text-on-accent)", boxShadow: "var(--ax-glow-accent)" }}>
+                      <DsIcon name={a.icon} size={18} />
+                    </span>
+                    <span>
+                      <b style={{ display: "block", fontSize: "0.92rem", fontWeight: 700 }}>{a.t}</b>
+                      <small style={{ fontSize: "0.76rem", color: "var(--ax-text-dim)" }}>{a.s}</small>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* recent players table */}
+            <div style={{ borderRadius: "var(--ax-radius-xl)", border: "1px solid var(--ax-border)", background: "var(--ax-card)", overflow: "hidden" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", padding: "1rem 1.2rem", borderBottom: "1px solid var(--ax-border)" }}>
+                <div>
+                  <b style={{ fontFamily: "var(--ax-font-label)", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: "1rem" }}>Recent Players</b>
+                  <small style={{ display: "block", fontSize: "0.74rem", color: "var(--ax-text-faint)" }}>Last 10 players added to your academy</small>
+                </div>
+                <Link href="/academy/players" style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontFamily: "var(--ax-font-label)", textTransform: "uppercase", letterSpacing: "0.06em", fontSize: "0.78rem", fontWeight: 700, color: "var(--ax-accent-bright)", textDecoration: "none" }}>
+                  View all players <DsIcon name="arrowRight" size={14} />
+                </Link>
+              </div>
+
+              {p.recentPlayers.length === 0 ? (
+                <div style={{ padding: "2.4rem 1rem", textAlign: "center", color: "var(--ax-text-faint)" }}>
+                  <p style={{ margin: 0, fontWeight: 700, color: "var(--ax-text)" }}>No players yet</p>
+                  <p style={{ margin: "0.3rem 0 0", fontSize: "0.82rem" }}>Use the quick actions above to add your first player.</p>
+                </div>
+              ) : (
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.86rem" }}>
+                    <thead>
+                      <tr style={{ background: "var(--ax-bg-soft)" }}>
+                        {["Name", "Role", "Verification", "Status", "Added On", ""].map((h, i) => (
+                          <th key={i} style={{ textAlign: i === 5 ? "right" : "left", padding: "0.65rem 1.2rem", fontFamily: "var(--ax-font-label)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.66rem", fontWeight: 700, color: "var(--ax-text-faint)", whiteSpace: "nowrap" }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {p.recentPlayers.map((row) => {
+                        const lvl = Math.max(1, Math.min(4, row.verification_level));
+                        return (
+                          <tr key={row.id} style={{ borderTop: "1px solid var(--ax-border)" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--ax-bg-elevated)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
+                            <td style={{ padding: "0.7rem 1.2rem", fontWeight: 600 }}>{row.name}</td>
+                            <td style={{ padding: "0.7rem 1.2rem", color: "var(--ax-text-dim)" }}>{row.playing_role ?? "—"}</td>
+                            <td style={{ padding: "0.7rem 1.2rem" }}><DsPill tone={VLEVEL_TONE[lvl]}>{VLEVEL_LABEL[lvl]}</DsPill></td>
+                            <td style={{ padding: "0.7rem 1.2rem" }}><DsPill tone={STATUS_TONE[row.profile_status] ?? "neutral"} dot>{row.profile_status}</DsPill></td>
+                            <td style={{ padding: "0.7rem 1.2rem", color: "var(--ax-text-faint)", whiteSpace: "nowrap" }}>
+                              {row.created_at ? new Date(row.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                            </td>
+                            <td style={{ padding: "0.7rem 1.2rem", textAlign: "right" }}>
+                              <Link href={`/academy/players/${row.user_id ?? row.id}`} style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontWeight: 700, color: "var(--ax-accent-bright)", textDecoration: "none" }}>
+                                <DsIcon name="eye" size={14} /> View
+                              </Link>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+          </div>
+        </div>
       </div>
 
-      {/* ═════ Modals ═════ */}
+      {/* ===== Modals ===== */}
       {openModal === "player" && (
         <Modal title="Add Player" onClose={() => setOpenModal(null)} width={720}>
-          <AddPlayerForm variant="light" onSuccess={() => { onModalSuccess(); }} />
+          <AddPlayerForm variant="dark" onSuccess={() => {}} />
           <div style={{ marginTop: 14, textAlign: "right" }}>
-            <button onClick={() => { setOpenModal(null); router.refresh(); }} style={btnLight}>Done</button>
+            <DsButton variant="outline" onClick={() => { setOpenModal(null); router.refresh(); }}>Done</DsButton>
           </div>
         </Modal>
       )}
       {openModal === "csv" && (
         <Modal title="Bulk Upload Players" onClose={() => setOpenModal(null)} width={820}>
-          <BulkCsvForm variant="light" onSuccess={() => { onModalSuccess(); }} />
+          <BulkCsvForm variant="dark" onSuccess={() => {}} />
           <div style={{ marginTop: 14, textAlign: "right" }}>
-            <button onClick={() => { setOpenModal(null); router.refresh(); }} style={btnLight}>Done</button>
+            <DsButton variant="outline" onClick={() => { setOpenModal(null); router.refresh(); }}>Done</DsButton>
           </div>
         </Modal>
       )}
       {openModal === "coach" && (
         <Modal title="Add Coach" onClose={() => setOpenModal(null)} width={640}>
-          <AddCoachForm variant="light" onSuccess={() => { onModalSuccess(); }} />
+          <AddCoachForm variant="dark" onSuccess={() => {}} />
           <div style={{ marginTop: 14, textAlign: "right" }}>
-            <button onClick={() => { setOpenModal(null); router.refresh(); }} style={btnLight}>Done</button>
+            <DsButton variant="outline" onClick={() => { setOpenModal(null); router.refresh(); }}>Done</DsButton>
           </div>
         </Modal>
       )}
     </div>
-  );
-}
-
-/* ─────────── Cards & widgets ─────────── */
-
-function StatCard({ label, value, hint, accent, muted }: {
-  label: string; value: number; hint: string; accent?: string; muted?: boolean;
-}) {
-  return (
-    <div className="aa-stat">
-      <div className="aa-stat-label">{label}</div>
-      <div className="aa-stat-value" style={{ color: muted ? "#94A3B8" : (accent ?? "#0A1628") }}>
-        {value.toLocaleString("en-IN")}
-      </div>
-      <div className="aa-stat-hint">{hint}</div>
-    </div>
-  );
-}
-
-function QuickAction({ title, desc, accent, onClick, icon }: {
-  title: string; desc: string; accent: string; onClick: () => void; icon: React.ReactNode;
-}) {
-  return (
-    <button className="aa-action" onClick={onClick}>
-      <span className="aa-action-icon" style={{ background: `${accent}1A`, color: accent, border: `1px solid ${accent}55` }}>
-        {icon}
-      </span>
-      <span className="aa-action-text">
-        <span className="aa-action-title">{title}</span>
-        <span className="aa-action-desc">{desc}</span>
-      </span>
-    </button>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  const meta = PROFILE_STATUS_META[status] ?? PROFILE_STATUS_META["Draft"];
-  return (
-    <span className="aa-badge" style={{
-      background: meta.bg, color: meta.fg, border: "1px solid transparent",
-    }}>
-      {status}
-    </span>
   );
 }
 
@@ -329,222 +302,14 @@ function Modal({ title, onClose, children, width = 720 }: {
   title: string; onClose: () => void; children: React.ReactNode; width?: number;
 }) {
   return (
-    <div className="aa-modal-backdrop" onClick={onClose}>
-      <div className="aa-modal" style={{ maxWidth: width }} onClick={(e) => e.stopPropagation()}>
-        <header className="aa-modal-head">
-          <h3 className="aa-modal-title">{title}</h3>
-          <button onClick={onClose} className="aa-modal-close" aria-label="Close">×</button>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(2px)", display: "grid", placeItems: "start center", padding: "40px 16px", overflowY: "auto" }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: width, background: "var(--ax-card)", border: "1px solid var(--ax-border)", borderRadius: "var(--ax-radius-xl)", boxShadow: "var(--ax-shadow-pop)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.8rem", padding: "1rem 1.3rem", borderBottom: "1px solid var(--ax-border)" }}>
+          <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: 0, color: "var(--ax-text)" }}>{title}</h3>
+          <button onClick={onClose} aria-label="Close" style={{ width: 32, height: 32, borderRadius: "var(--ax-radius-sm)", border: "1px solid var(--ax-border)", background: "var(--ax-field)", fontSize: "1.2rem", lineHeight: 1, color: "var(--ax-text-dim)", cursor: "pointer" }}>×</button>
         </header>
-        <div className="aa-modal-body">{children}</div>
+        <div style={{ padding: "1.1rem 1.3rem 1.3rem", maxHeight: "70vh", overflowY: "auto" }}>{children}</div>
       </div>
     </div>
   );
 }
-
-const btnLight: React.CSSProperties = {
-  background: "#FFFFFF", border: "1px solid #CBD5E1", color: "#0F172A",
-  padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
-};
-
-/* ─────────── Icons ─────────── */
-function IconHome()    { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11l9-8 9 8" /><path d="M5 10v10h14V10" /></svg>; }
-function IconUsers()   { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.2" /><circle cx="17" cy="9" r="2.4" /><path d="M3 20c0-3.4 2.7-5.4 6-5.4s6 2 6 5.4" /><path d="M15.5 14.6c2.4 0 4.5 1.5 4.5 4.4" /></svg>; }
-function IconWhistle() { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12.5l8-3 7 3v3l-7 3-8-3z" /><circle cx="14" cy="14" r="2" /></svg>; }
-function IconHeart()   { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11.5h4l2-4 3 8 2-4h7" /></svg>; }
-function IconGear()    { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M22 12h-3M5 12H2M19 5l-2 2M7 17l-2 2M19 19l-2-2M7 7L5 5" /></svg>; }
-function IconUserPlus(){ return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5" /><path d="M3 20c0-3.4 2.7-5.5 6-5.5s6 2.1 6 5.5" /><path d="M19 8v6M16 11h6" /></svg>; }
-function IconUpload()  { return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12" /><path d="M7 8l5-5 5 5" /><path d="M3 17v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3" /></svg>; }
-
-/* ─────────── Styles ─────────── */
-const GLOBAL_STYLES = `
-.aa-sidebar {
-  width: 240px; flex-shrink: 0; background: #0A1628; color: #F1F5F9;
-  display: flex; flex-direction: column; padding: 20px 14px; position: sticky; top: 0;
-  height: 100vh; box-shadow: 1px 0 0 rgba(255,255,255,0.04);
-}
-.aa-brand { display: flex; align-items: center; gap: 11px; padding: 4px 4px 14px; }
-.aa-logo-ball {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: radial-gradient(circle at 32% 28%, #46ff97, #0e6e33 72%);
-  box-shadow: 0 0 16px rgba(46,224,123,0.45), inset 0 -5px 8px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.4);
-  position: relative; flex-shrink: 0;
-}
-.aa-brand-word { font-family: 'Space Grotesk', monospace; font-size: 16px; font-weight: 700; letter-spacing: 0.05em; }
-.aa-brand-word em { font-style: normal; color: #22C55E; text-shadow: 0 0 12px rgba(34,197,94,0.55); }
-.aa-brand-sub { font-size: 10px; color: #94A3B8; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px; }
-
-.aa-nav { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
-.aa-nav-item {
-  display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 9px;
-  color: #94A3B8; font-size: 13px; font-weight: 500; text-decoration: none;
-  border-left: 3px solid transparent; transition: all 0.15s;
-}
-.aa-nav-item:hover { color: #F1F5F9; background: rgba(255,255,255,0.04); }
-.aa-nav-item.on { background: rgba(34,197,94,0.12); color: #FFFFFF; border-left-color: #22C55E; }
-.aa-nav-item.on .aa-nav-icon { color: #22C55E; }
-.aa-nav-icon { width: 18px; height: 18px; flex-shrink: 0; color: #94A3B8; display: grid; place-items: center; }
-.aa-nav-icon svg { width: 100%; height: 100%; }
-
-.aa-side-footer { margin-top: auto; padding: 12px 4px; border-top: 1px solid rgba(255,255,255,0.05); }
-.aa-side-acad { font-size: 12px; font-weight: 600; color: #F1F5F9; }
-.aa-side-loc  { font-size: 11px; color: #64748B; margin-top: 2px; }
-
-@media (max-width: 800px) {
-  .aa-sidebar { width: 60px; padding: 16px 8px; }
-  .aa-nav-label, .aa-brand-text, .aa-side-footer { display: none; }
-  .aa-nav-item { justify-content: center; padding: 10px; }
-}
-
-.aa-topbar {
-  display: flex; justify-content: space-between; align-items: center; gap: 16px;
-  padding: 14px 28px; background: #FFFFFF; border-bottom: 1px solid #E2E8F0;
-  position: sticky; top: 0; z-index: 10;
-}
-.aa-top-name { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.aa-top-logo { width: 38px; height: 38px; border-radius: 9px; object-fit: cover; background: #F1F5F9; flex-shrink: 0; }
-.aa-top-logo--placeholder { display: grid; place-items: center; font-size: 18px; }
-.aa-top-acad { font-size: 15px; font-weight: 700; color: #0F172A; }
-
-.aa-top-right { display: flex; align-items: center; gap: 14px; }
-.aa-top-admin { display: flex; align-items: center; gap: 9px; }
-.aa-avatar {
-  width: 34px; height: 34px; border-radius: 50%;
-  background: linear-gradient(135deg, #22C55E, #1D4ED8);
-  color: #FFF; display: grid; place-items: center;
-  font-family: 'Space Grotesk', monospace; font-weight: 700; font-size: 12px;
-}
-.aa-admin-meta { line-height: 1.25; }
-.aa-admin-name { font-size: 12.5px; font-weight: 600; color: #0F172A; }
-.aa-admin-email { font-size: 10.5px; color: #64748B; }
-.aa-logout {
-  padding: 7px 12px; border-radius: 7px; background: #F1F5F9; border: 1px solid #CBD5E1;
-  color: #475569; font-size: 12px; font-weight: 600; cursor: pointer;
-}
-.aa-logout:hover { background: #FEE2E2; color: #B91C1C; border-color: #FCA5A5; }
-
-@media (max-width: 600px) { .aa-admin-meta { display: none; } }
-
-.aa-main { padding: 24px 28px 48px; max-width: 1280px; }
-
-/* Banner */
-.aa-banner {
-  display: flex; align-items: center; gap: 14px; padding: 14px 18px;
-  border-radius: 11px; margin-bottom: 20px;
-  background: #FEF3C7; border: 1px solid #FCD34D; color: #92400E;
-}
-.aa-banner--pending { background: #FEF3C7; border-color: #FCD34D; color: #92400E; }
-.aa-banner--draft   { background: #FEF3C7; border-color: #FCD34D; color: #92400E; }
-.aa-banner-icon { font-size: 18px; flex-shrink: 0; }
-.aa-banner-text { flex: 1; min-width: 0; }
-.aa-banner-title { font-size: 13.5px; font-weight: 700; }
-.aa-banner-body  { font-size: 12px; margin-top: 2px; opacity: 0.9; }
-.aa-banner-cta {
-  background: #FBBF24; color: #422006; padding: 8px 14px; border-radius: 8px;
-  font-size: 12px; font-weight: 700; text-decoration: none; flex-shrink: 0;
-}
-.aa-banner-cta:hover { background: #F59E0B; }
-
-/* Stats */
-.aa-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
-@media (max-width: 900px) { .aa-stats { grid-template-columns: repeat(2, 1fr); } }
-.aa-stat { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 18px 18px 16px; }
-.aa-stat-label { font-size: 11px; font-weight: 600; color: #64748B; letter-spacing: 0.6px; text-transform: uppercase; }
-.aa-stat-value { font-family: 'Space Grotesk', monospace; font-size: 34px; font-weight: 700; line-height: 1.1; margin-top: 6px; }
-.aa-stat-hint { font-size: 11px; color: #94A3B8; margin-top: 4px; }
-
-/* Quick actions */
-.aa-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 22px; }
-@media (max-width: 800px) { .aa-actions { grid-template-columns: 1fr; } }
-.aa-action {
-  display: flex; align-items: center; gap: 14px; padding: 16px 18px;
-  background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px;
-  cursor: pointer; text-align: left; transition: all 0.15s;
-}
-.aa-action:hover { border-color: #22C55E; transform: translateY(-1px); box-shadow: 0 6px 14px -8px rgba(34,197,94,0.4); }
-.aa-action-icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
-.aa-action-icon svg { width: 22px; height: 22px; }
-.aa-action-title { display: block; font-size: 13.5px; font-weight: 700; color: #0F172A; }
-.aa-action-desc { display: block; font-size: 11.5px; color: #64748B; margin-top: 2px; }
-
-/* Card */
-.aa-card { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; }
-.aa-card-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 18px 20px 14px; border-bottom: 1px solid #E2E8F0;
-}
-.aa-card-title { font-size: 15px; font-weight: 700; color: #0F172A; }
-.aa-card-sub   { font-size: 11.5px; color: #64748B; margin-top: 2px; }
-.aa-card-action { color: #22C55E; font-size: 12px; font-weight: 600; text-decoration: none; }
-.aa-card-action:hover { text-decoration: underline; }
-
-.aa-empty { padding: 38px 16px; text-align: center; color: #64748B; }
-.aa-empty-icon { font-size: 30px; }
-.aa-empty-title { font-size: 14px; font-weight: 700; color: #0F172A; margin-top: 6px; }
-.aa-empty-body  { font-size: 12.5px; margin-top: 2px; }
-
-/* Table */
-.aa-table-wrap { overflow-x: auto; }
-.aa-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-.aa-table th {
-  background: #F8FAFC; color: #475569; font-size: 10.5px; letter-spacing: 1px;
-  text-transform: uppercase; font-weight: 600; padding: 11px 16px; text-align: left;
-  border-bottom: 1px solid #E2E8F0;
-}
-.aa-table td { padding: 13px 16px; border-bottom: 1px solid #F1F5F9; color: #0F172A; }
-.aa-table tbody tr { transition: background 0.13s; }
-.aa-table tbody tr:hover { background: #ECFDF5; }
-.aa-table tbody tr:last-child td { border-bottom: none; }
-.aa-td-name { font-weight: 600; }
-.aa-td-muted { color: #64748B; }
-.aa-link { color: #22C55E; font-weight: 600; text-decoration: none; }
-.aa-link:hover { text-decoration: underline; }
-
-.aa-badge {
-  display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 99px;
-  font-family: 'Space Grotesk', monospace; font-size: 10.5px; font-weight: 600;
-  letter-spacing: 0.2px;
-}
-
-/* Modal */
-.aa-modal-backdrop {
-  position: fixed; inset: 0; z-index: 100;
-  background: rgba(15,23,42,0.55); backdrop-filter: blur(2px);
-  display: grid; place-items: start center; padding: 40px 16px; overflow-y: auto;
-}
-.aa-modal {
-  width: 100%; background: #FFFFFF; border-radius: 14px;
-  box-shadow: 0 20px 60px rgba(15,23,42,0.35);
-  display: flex; flex-direction: column; overflow: hidden;
-}
-.aa-modal-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 16px 20px; border-bottom: 1px solid #E2E8F0;
-}
-.aa-modal-title { font-size: 16px; font-weight: 700; color: #0F172A; }
-.aa-modal-close {
-  width: 32px; height: 32px; border-radius: 8px; border: 1px solid #E2E8F0; background: #F8FAFC;
-  font-size: 20px; line-height: 1; color: #475569; cursor: pointer;
-}
-.aa-modal-close:hover { background: #F1F5F9; color: #0F172A; }
-.aa-modal-body { padding: 18px 20px 22px; max-height: 70vh; overflow-y: auto; }
-
-/* ─── Mobile patches (Task 5) ─── */
-@media (max-width: 640px) {
-  .aa-sidebar { position: fixed; bottom: 0; left: 0; right: 0; top: auto; width: 100%; height: 60px; padding: 0; flex-direction: row; border-top: 1px solid rgba(255,255,255,0.08); z-index: 50; box-shadow: 0 -4px 14px rgba(0,0,0,0.2); }
-  .aa-brand, .aa-side-footer { display: none; }
-  .aa-nav { flex-direction: row; padding-top: 0; gap: 0; flex: 1; height: 100%; align-items: stretch; }
-  .aa-nav-item { flex: 1; padding: 6px 4px; font-size: 9.5px; text-align: center; border-left: none; border-top: 3px solid transparent; line-height: 1.1; flex-direction: column; justify-content: center; gap: 4px; }
-  .aa-nav-item.on { border-top-color: #22C55E; border-left-color: transparent; }
-  .aa-nav-icon { width: 16px; height: 16px; }
-  .aa-nav-label { display: block; }
-  .aa-main { padding-bottom: 84px; }
-  /* Stats stay 2x2 on small screens (already covered by 900px rule but
-     this is the explicit mobile gate). */
-  .aa-stats { grid-template-columns: repeat(2, 1fr); }
-  .aa-actions { grid-template-columns: 1fr; }
-  /* Modals full-screen on mobile. */
-  .aa-modal-backdrop { padding: 0; align-items: stretch; }
-  .aa-modal { max-width: 100% !important; max-height: 100vh; min-height: 100vh; border-radius: 0; display: flex; flex-direction: column; }
-  .aa-modal-body { max-height: none; flex: 1; }
-}
-`;

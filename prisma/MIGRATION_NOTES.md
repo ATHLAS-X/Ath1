@@ -71,3 +71,25 @@ A few small interpretations:
   cached "latest" snapshots live on `PlayerProfile` for fast list views.
 - `Verification` is per-claim — multiple rows per player, one per
   verification type (`SELF`, `IDENTITY`, `PERFORMANCE`, `SCOUT`).
+
+## Re-tokenizing aadhaar_verification.aadhaar_token
+
+`aadhaar_token` was previously generated as `mvp_<last4digits>_<timestamp>` —
+not a hash of the Aadhaar number at all, and not usable for real duplicate
+detection. It's now `tokenizeAadhaar()` (`lib/aadhaar.ts`): a keyed
+HMAC-SHA256 of the full 12-digit number using `AADHAAR_HMAC_SECRET`.
+
+Existing rows written before this change have the old `mvp_...` format and
+will never match a freshly computed HMAC token, so duplicate-Aadhaar
+detection silently no-ops for them until they're re-verified. To backfill:
+
+1. Re-run the Aadhaar verify step for affected users (simplest — re-confirm
+   recomputes the token), **or**
+2. If you have the original 12-digit Aadhaar numbers available out-of-band
+   (you shouldn't be storing them, so in practice this means asking the user
+   to re-verify), recompute and `UPDATE aadhaar_verification SET
+   aadhaar_token = ...` directly.
+
+If `AADHAAR_HMAC_SECRET` is ever rotated, every existing token also stops
+matching newly computed ones — treat it like a long-lived signing key, not
+a per-deploy secret.

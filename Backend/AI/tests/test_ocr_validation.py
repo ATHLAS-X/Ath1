@@ -1,4 +1,4 @@
-"""TIER 1/2 — OCR image validation logic (pure; no Gemini, no network)."""
+﻿"""TIER 1/2 — OCR image validation logic (pure; no Gemini, no network)."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import base64
 import pytest
 
 from app.core.errors import AppError
+from app.schemas.common import ErrorCode
 from app.services import validation as v
 from tests.conftest import TINY_PNG_BASE64
 
@@ -60,12 +61,8 @@ def test_decode_base64_image_rejects_garbage():
 
 @pytest.mark.asyncio
 async def test_fetch_image_from_url_ok(monkeypatch):
-    class FakeResp:
-        status_code = 200
-        content = _PNG
-
     async def fake_fetch(url):
-        return FakeResp()
+        return _PNG
 
     monkeypatch.setattr(v, "_fetch_image_url", fake_fetch)
     data, mime = await v.fetch_image_from_url("https://example.com/x.png")
@@ -74,14 +71,97 @@ async def test_fetch_image_from_url_ok(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_fetch_image_from_url_404(monkeypatch):
-    class FakeResp:
-        status_code = 404
-        content = b""
-
     async def fake_fetch(url):
-        return FakeResp()
+        raise AppError(
+            ErrorCode.IMAGE_NOT_ACCESSIBLE, "Image URL returned status 404", status_code=400
+        )
 
     monkeypatch.setattr(v, "_fetch_image_url", fake_fetch)
     with pytest.raises(AppError) as ei:
         await v.fetch_image_from_url("https://example.com/missing.png")
     assert ei.value.error_code == "IMAGE_NOT_ACCESSIBLE"
+
+
+# ── SSRF protections ──────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_assert_host_is_safe_rejects_bad_scheme():
+    with pytest.raises(AppError) as ei:
+        await v._assert_host_is_safe("ftp://example.com/x.png")
+    assert ei.value.error_code == "IMAGE_NOT_ACCESSIBLE"
+
+
+@pytest.mark.parametrize(
+    "ip",
+    [
+        "127.0.0.1",       # loopback
+        "10.0.0.5",        # private
+        "172.16.0.5",      # private
+        "192.168.1.5",     # private
+        "169.254.169.254", # link-local / cloud metadata
+        "::1",             # IPv6 loopback
+        "fe80::1",         # IPv6 link-local
+        "fc00::1",         # IPv6 unique local
+    ],
+)
+@pytest.mark.asyncio
+async def test_assert_host_is_safe_rejects_private_ips(monkeypatch, ip):
+    async def fake_resolve(host):
+        return [ip]
+
+    monkeypatch.setattr(v, "_resolve_host", fake_resolve)
+    with pytest.raises(AppError) as ei:
+        await v._assert_host_is_safe("https://internal.example.com/x.png")
+    assert ei.value.error_code == "IMAGE_NOT_ACCESSIBLE"
+
+
+@pytest.mark.asyncio
+async def test_assert_host_is_safe_allows_public_ip(monkeypatch):
+    async def fake_resolve(host):
+        return ["93.184.216.34"]  # example.com — public
+
+    monkeypatch.setattr(v, "_resolve_host", fake_resolve)
+    host = await v._assert_host_is_safe("https://example.com/x.png")
+    assert host == "example.com"
+
+
+@pytest.mark.asyncio
+async def test_fetch_image_from_url_rejects_oversize(monkeypatch):
+    """A response whose declared Content-Length exceeds the cap must be rejected
+    before the body is read."""
+    monkeypatch.setattr(v, "_assert_host_is_safe", lambda url: _noop())
+
+    class FakeStreamResp:
+        is_redirect = False
+        status_code = 200
+        headers = {"content-length": str(50 * 1024 * 1024)}  # 50 MB > 10 MB cap
+
+        async def aiter_bytes(self):
+            if False:
+                yield b""
+
+    class FakeStreamCtx:
+        async def __aenter__(self):
+            return FakeStreamResp()
+
+        async def __aexit__(self, *exc):
+            return False
+
+    class FakeClient:
+        def stream(self, method, url):
+            return FakeStreamCtx()
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(v.httpx, "AsyncClient", lambda *a, **kw: FakeClient())
+    with pytest.raises(AppError) as ei:
+        await v._fetch_image_url("https://example.com/huge.png")
+    assert ei.value.error_code == "INVALID_IMAGE"
+
+
+async def _noop():
+    return "example.com"

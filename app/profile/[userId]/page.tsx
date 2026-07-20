@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { loadDashboardData, loadDashboardUser } from "@/lib/dashboard-loader";
+import { canViewPlayerProfile } from "@/lib/authz";
 import PlayerProfileClient from "./PlayerProfileClient";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 
@@ -14,10 +15,10 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const user = await loadDashboardUser(params.userId);
-    if (!user) return { title: "Player | SportX" };
-    return { title: `${user.name} | SportX` };
+    if (!user) return { title: "Player | AthlasX" };
+    return { title: `${user.name} | AthlasX` };
   } catch {
-    return { title: "Player | SportX" };
+    return { title: "Player | AthlasX" };
   }
 }
 
@@ -35,7 +36,12 @@ async function ProfileLoader({ userId }: { userId: string }) {
   }
 
   if (!data) {
-    /* Render minimal shell with user ID so scouts/owners can still see the page */
+    /* We couldn't load the profile row, so there's no visibility value to
+       check. Fail closed for non-owners rather than showing a bare shell to
+       a viewer we can't authorize — only the owner gets the empty-shell
+       fallback (verified entirely from the session, no DB needed). */
+    if (!isOwner) notFound();
+
     const emptyData = {
       user: { id: userId, name: "Player" },
       profile: null, cricket: null, performance: [],
@@ -51,6 +57,11 @@ async function ProfileLoader({ userId }: { userId: string }) {
         viewerId={viewerId}
       />
     );
+  }
+
+  /* 404, not 403 — don't reveal whether a hidden/private profile exists. */
+  if (!canViewPlayerProfile(session, { visibility: data.profile?.visibility ?? null, user_id: userId })) {
+    notFound();
   }
 
   return (

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { sendSms } from "@/lib/sms";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const PHONE_RE = /^\+?[0-9]{7,15}$/;
 const OTP_TTL_SECONDS = 10 * 60;
@@ -31,6 +32,9 @@ export async function POST(req: Request) {
   if (!phone || !PHONE_RE.test(phone)) {
     return NextResponse.json({ success: false, error: "Valid phone number is required" }, { status: 400 });
   }
+
+  const limit = await rateLimit("otp-send", phone, 5, 60 * 60);
+  if (!limit.success) return rateLimitResponse(limit);
 
   /* 6-digit code, stored hashed; consumer compares with bcrypt. */
   const code = String(Math.floor(100000 + Math.random() * 900000));

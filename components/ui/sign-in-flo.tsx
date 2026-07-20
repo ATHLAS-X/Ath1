@@ -1,11 +1,22 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Megaphone, Building2, Search } from "lucide-react";
+import { anton, barlow, barlowSemiCondensed } from "@/components/landing/Hero/fonts";
+import { heroStyles } from "@/components/landing/Hero/styles";
+import HeroCorner from "@/components/landing/Hero/HeroCorner";
+import { authStyles } from "./auth-styles";
 
-const ACCENT_RGB = "255, 255, 255"; // pure white
+/* Visual port of the standalone "AthlasX Auth.html" spec onto this real
+   component — see Master 22. The static file's <script> was 100% fake demo
+   logic (setTimeout, no network calls); none of it was ported. Every
+   submit path below still goes through real next-auth / API calls. */
+
+const ACCENT_RGB = "255, 138, 30"; // var(--hx-accent-rgb) — can't read a CSS var into a JS template string
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface FormFieldProps {
   type: string;
@@ -37,8 +48,8 @@ const AnimatedFormField: React.FC<FormFieldProps> = ({
       <div
         className="relative overflow-hidden rounded-lg border transition-all duration-300 ease-in-out"
         style={{
-          background: "var(--input-bg)",
-          borderColor: isFocused ? "var(--accent)" : "var(--border)",
+          background: "var(--hx-field-bg)",
+          borderColor: isFocused ? "var(--hx-accent)" : "var(--hx-card-border)",
         }}
         onMouseMove={handleMouseMove}
         onMouseEnter={() => setHovering(true)}
@@ -46,7 +57,7 @@ const AnimatedFormField: React.FC<FormFieldProps> = ({
       >
         <div
           className="absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-200"
-          style={{ color: isFocused ? "var(--accent)" : "var(--muted)" }}
+          style={{ color: isFocused ? "var(--hx-accent)" : "var(--hx-text-dim)" }}
         >
           {icon}
         </div>
@@ -57,16 +68,17 @@ const AnimatedFormField: React.FC<FormFieldProps> = ({
           autoComplete={autoComplete}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          className="w-full bg-transparent pl-10 pr-12 pt-6 pb-2 text-sm focus:outline-none"
-          style={{ color: "var(--text)" }}
+          className="w-full bg-transparent pl-10 pr-12 pt-7 pb-2 focus:outline-none autofill-dark"
+          style={{ color: "var(--hx-text)", fontSize: "0.875rem", lineHeight: 1.2 }}
         />
         <label
           className="absolute left-10 transition-all duration-200 ease-in-out pointer-events-none"
           style={{
-            top: isFocused || value ? "0.35rem" : "50%",
+            top: isFocused || value ? "0.3rem" : "50%",
             transform: isFocused || value ? "none" : "translateY(-50%)",
-            fontSize: isFocused || value ? "0.7rem" : "0.85rem",
-            color: isFocused || value ? "var(--accent)" : "var(--muted)",
+            fontSize: isFocused || value ? "0.65rem" : "0.85rem",
+            lineHeight: 1.2,
+            color: isFocused || value ? "var(--hx-accent)" : "var(--hx-text-dim)",
             fontWeight: isFocused || value ? 600 : 400,
           }}
         >
@@ -77,7 +89,7 @@ const AnimatedFormField: React.FC<FormFieldProps> = ({
             type="button"
             onClick={onToggle}
             className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-            style={{ color: "var(--muted)" }}
+            style={{ color: "var(--hx-text-dim)" }}
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
@@ -95,60 +107,92 @@ const AnimatedFormField: React.FC<FormFieldProps> = ({
   );
 };
 
-const FloatingParticles: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const setSize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    setSize();
-    window.addEventListener("resize", setSize);
-    interface P { x: number; y: number; size: number; sx: number; sy: number; o: number }
-    const particles: P[] = Array.from({ length: 60 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      size: Math.random() * 2 + 1,
-      sx: (Math.random() - 0.5) * 0.5,
-      sy: (Math.random() - 0.5) * 0.5,
-      o: Math.random() * 0.4 + 0.1,
-    }));
-    let raf = 0;
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const p of particles) {
-        p.x += p.sx; p.y += p.sy;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.y > canvas.height) p.y = 0;
-        if (p.y < 0) p.y = canvas.height;
-        ctx.fillStyle = `rgba(${ACCENT_RGB}, ${p.o})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      raf = requestAnimationFrame(animate);
-    };
-    animate();
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener("resize", setSize);
-    };
-  }, []);
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 pointer-events-none"
-      style={{ zIndex: 1 }}
-    />
-  );
-};
+/* Collage tiles for the left showcase column — same 5-sport subset and
+   image-load/error fallback pattern as the Hero's collage (Master 20),
+   reusing the Hero's own .hx-img/.hx-img--ready classes rather than a
+   duplicate zoom-settle treatment. */
+interface Tile {
+  area: "ta" | "tb" | "tc" | "td" | "te";
+  sport: string;
+  src: string;
+  alt: string;
+  filter: string;
+  focus?: string;
+}
+const TILES: Tile[] = [
+  {
+    area: "ta", sport: "motorsport", src: "/images/hero/motorsport.jpg",
+    alt: "Motorsport driver standing on a single-seater race car under a vast sky",
+    filter: "saturate(1.05) contrast(1.05) brightness(0.96)",
+  },
+  {
+    area: "tb", sport: "badminton", src: "/images/hero/badminton.jpg",
+    alt: "Badminton player roaring in triumph with racket raised, national flag behind",
+    filter: "saturate(1.2) contrast(1.05) brightness(1.02)", focus: "50% 28%",
+  },
+  {
+    area: "tc", sport: "tennis-2", src: "/images/hero/tennis-sunburst.jpg",
+    alt: "Stylised tennis player against a radiating sunburst of warm colour",
+    filter: "saturate(1.06) contrast(1.1) brightness(0.94)", focus: "50% 30%",
+  },
+  {
+    area: "td", sport: "cricket", src: "/images/hero/cricket.jpg",
+    alt: "Cricketer in national kit looking out over a smoke-coloured sky",
+    filter: "saturate(1.18) contrast(1.12) brightness(0.98)", focus: "50% 30%",
+  },
+  {
+    area: "te", sport: "volleyball", src: "/images/hero/volleyball.jpg",
+    alt: "Volleyball player leaping to serve against a splash of blue and gold paint",
+    filter: "saturate(1.24) contrast(1.05)", focus: "46% 30%",
+  },
+];
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function AuthCollage() {
+  const [errored, setErrored] = useState<Record<string, boolean>>({});
+  const [isReady, setIsReady] = useState(false);
+
+  return (
+    <div className="ax-grid" aria-hidden="true">
+      {TILES.map((t) => {
+        const hasErrored = !!errored[t.sport];
+        return (
+          <figure
+            key={t.area}
+            className={`ax-tile ax-${t.area}`}
+            style={{
+              background: hasErrored
+                ? "linear-gradient(135deg, rgba(255,138,30,0.22), rgba(13,13,13,0.9))"
+                : undefined,
+            }}
+          >
+            {!hasErrored && (
+              <Image
+                src={t.src}
+                alt={t.alt}
+                fill
+                sizes="(max-width: 880px) 100vw, 33vw"
+                className={`hx-img${isReady ? " hx-img--ready" : ""}`}
+                style={{ objectFit: "cover", objectPosition: t.focus ?? "50% 35%", filter: t.filter }}
+                onLoad={() => setIsReady(true)}
+                onError={() => setErrored((prev) => ({ ...prev, [t.sport]: true }))}
+              />
+            )}
+          </figure>
+        );
+      })}
+    </div>
+  );
+}
+
+/* The 4 onboarding paths reachable from this picker — deliberately excludes
+   Parent and Tournament Organizer, matching the homepage's "what we do"
+   role blurbs (Master 21). value is the real lib/auth.ts ROLES entry. */
+const ROLE_PICKER = [
+  { label: "Player", value: "player", sub: "Athlete profile", Icon: User },
+  { label: "Coach", value: "coach", sub: "Train & track", Icon: Megaphone },
+  { label: "Academy", value: "academy_admin", sub: "Manage talent", Icon: Building2 },
+  { label: "Scout", value: "scout", sub: "Discover players", Icon: Search },
+] as const;
 
 interface ComponentProps {
   /** Which mode this instance starts in. User can toggle inline. */
@@ -162,16 +206,21 @@ export const Component: React.FC<ComponentProps> = ({ initialMode = "signin" }) 
   const fromParam = params.get("from") || "/dashboard";
   const registered = params.get("registered") === "1";
   /* Role comes from the landing-page CTA: /auth/signup?role=scout, etc.
-     Defaults to player. Server validates against the allow-list. */
+     Defaults to player. Server validates against the allow-list. Clicking
+     a role-picker button below overrides this for what actually submits. */
   const roleParam = (params.get("role") || "player").toLowerCase();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [role, setRole] = useState(roleParam);
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(initialMode === "signup");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+
+  const dest = fromParam && fromParam !== "/dashboard" ? fromParam : "/dashboard";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,7 +250,7 @@ export const Component: React.FC<ComponentProps> = ({ initialMode = "signin" }) 
           name: name.trim(),
           email: email.trim().toLowerCase(),
           password,
-          role: roleParam,
+          role,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -226,79 +275,71 @@ export const Component: React.FC<ComponentProps> = ({ initialMode = "signin" }) 
         return;
       }
       /* If the user came from a specific protected route, send them there.
-         Otherwise let /dashboard handle role-based routing. */
-      const dest = fromParam && fromParam !== "/dashboard" ? fromParam : "/dashboard";
-      router.push(dest);
+         Otherwise let /dashboard handle role-based routing.
+         A hard navigation (not router.push) on purpose: a client-side push
+         can briefly paint whatever's sitting in the Router Cache for this
+         segment from an earlier visit in the same browser session before
+         the server-side role/status redirect resolves — visible as a flash
+         of the wrong dashboard for a frame. window.location skips that
+         cache entirely, so the first paint is always the real destination,
+         for every role. */
+      window.location.href = dest;
     }
   };
 
-  const toggleMode = () => {
-    setIsSignUp((s) => !s);
+  function applyMode(next: boolean) {
+    setIsSignUp(next);
     setError(null);
     setShowPassword(false);
-  };
+  }
+  const toggleMode = () => applyMode(!isSignUp);
+
+  async function handleGoogle() {
+    setGoogleSubmitting(true);
+    await signIn("google", { callbackUrl: dest });
+  }
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{
-        background: "#0A0A0A",
-        color: "#F2F4F2",
-        fontFamily: "'Instrument Sans', system-ui, sans-serif",
-        // CSS variables consumed by AnimatedFormField + the rest of this card.
-        // Defined here (not globally) so they only apply to this page.
-        ["--bg" as any]: "#0A0A0A",
-        ["--text" as any]: "#F2F4F2",
-        ["--muted" as any]: "#8B958D",
-        ["--accent" as any]: "#2EE07B",
-        ["--border" as any]: "#243027",
-        ["--input-bg" as any]: "#0D120F",
-        ["--error" as any]: "#F87171",
-      }}
+      className={`hx-stage auth-stage ${anton.variable} ${barlow.variable} ${barlowSemiCondensed.variable}`}
+      style={{ fontFamily: "var(--font-barlow), system-ui, sans-serif" }}
     >
-      <style dangerouslySetInnerHTML={{ __html: `
-        /* Suppress browser autofill's pale-blue/yellow background + force
-           our text colour. Edge/Chrome only honour this via the shadowed
-           box-shadow trick. */
-        .signin-card input:-webkit-autofill,
-        .signin-card input:-webkit-autofill:hover,
-        .signin-card input:-webkit-autofill:focus,
-        .signin-card input:-webkit-autofill:active {
-          -webkit-box-shadow: 0 0 0 1000px #0D120F inset !important;
-          -webkit-text-fill-color: #F2F4F2 !important;
-          caret-color: #F2F4F2;
-          transition: background-color 5000s ease-in-out 0s;
-          font-family: 'Instrument Sans', system-ui, sans-serif !important;
-        }
-        .signin-card input {
-          font-family: 'Instrument Sans', system-ui, sans-serif;
-          letter-spacing: 0.01em;
-        }
-        .signin-card h1 {
-          font-family: 'Space Grotesk', monospace;
-          letter-spacing: 0.01em;
-        }
-      ` }} />
-      <FloatingParticles />
+      <style dangerouslySetInnerHTML={{ __html: heroStyles }} />
+      <style dangerouslySetInnerHTML={{ __html: authStyles }} />
 
-      <div className="relative z-10 w-full max-w-md">
-        <div
-          className="signin-card border rounded-2xl p-8 shadow-2xl backdrop-blur-xl"
-          style={{ background: "rgba(13,13,13,0.85)", borderColor: "var(--border)" }}
-        >
-          <div className="text-center mb-8">
-            <div
-              className="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
-              style={{ background: `rgba(${ACCENT_RGB}, 0.15)` }}
-            >
-              <User className="w-8 h-8" style={{ color: "var(--accent)" }} />
-            </div>
-            <h1 className="text-3xl font-bold mb-2">
-              {isSignUp ? "Create Account" : "Welcome Back"}
-            </h1>
-            <p style={{ color: "var(--muted)" }}>
-              {isSignUp ? "Sign up to get started" : "Sign in to continue"}
-            </p>
+      {/* LEFT — collage showcase */}
+      <section className="ax-showcase" aria-hidden="true">
+        <AuthCollage />
+        <div className="ax-vignette" />
+        <HeroCorner />
+        <div className="ax-copy">
+          <p className="ax-eyebrow">Grassroots to Global</p>
+          <h2 className="ax-h2">
+            Where India&rsquo;s next <b>champions</b> get found.
+          </h2>
+          <p className="ax-p">
+            One profile. Every sport. Seen by the coaches, academies and scouts who matter.
+          </p>
+        </div>
+      </section>
+
+      {/* RIGHT — form */}
+      <section className="ax-panel">
+        <div className="ax-form-wrap">
+          <p className="ax-kicker">{isSignUp ? "Join AthlasX" : "Welcome back"}</p>
+          <h1 className="ax-title">{isSignUp ? "Create account" : "Sign in"}</h1>
+          <p className="ax-subtitle">
+            {isSignUp ? "Set up your profile in under a minute." : "Pick up right where you left off."}
+          </p>
+
+          {/* mode toggle */}
+          <div className="ax-toggle" role="tablist" aria-label="Sign in or sign up">
+            <button type="button" role="tab" aria-selected={!isSignUp} onClick={() => applyMode(false)}>
+              Sign In
+            </button>
+            <button type="button" role="tab" aria-selected={isSignUp} onClick={() => applyMode(true)}>
+              Sign Up
+            </button>
           </div>
 
           {/* Already-signed-in banner — surfaces the existing session and
@@ -342,9 +383,9 @@ export const Component: React.FC<ComponentProps> = ({ initialMode = "signin" }) 
             <div
               className="mb-5 p-3 rounded-lg"
               style={{
-                background: "rgba(46,224,123,0.1)",
-                border: "1px solid rgba(46,224,123,0.35)",
-                color: "#86efac",
+                background: "var(--hx-overlay-accent-14)",
+                border: "1px solid var(--hx-overlay-accent-22)",
+                color: "var(--hx-accent-bright)",
                 fontSize: 12.5,
                 textAlign: "center",
               }}
@@ -353,39 +394,71 @@ export const Component: React.FC<ComponentProps> = ({ initialMode = "signin" }) 
             </div>
           )}
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-5">
+          <form onSubmit={handleSubmit} noValidate>
+            {/* role picker — signup only */}
             {isSignUp && (
-              <AnimatedFormField
-                type="text"
-                placeholder="Full Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                icon={<User size={18} />}
-                autoComplete="name"
-              />
+              <div>
+                <p className="ax-field-label">I am a&hellip;</p>
+                <div className="ax-roles" role="group" aria-label="Select your role">
+                  {ROLE_PICKER.map((r) => (
+                    <button
+                      key={r.value}
+                      type="button"
+                      className="ax-role"
+                      aria-pressed={role === r.value}
+                      onClick={() => setRole(r.value)}
+                    >
+                      <span className="ax-role-ico" aria-hidden="true">
+                        <r.Icon size={17} />
+                      </span>
+                      <span className="ax-role-rl">
+                        <b>{r.label}</b>
+                        <small>{r.sub}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
-            <AnimatedFormField
-              type="email"
-              placeholder="Email Address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              icon={<Mail size={18} />}
-              autoComplete="email"
-            />
-            <AnimatedFormField
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              icon={<Lock size={18} />}
-              showToggle
-              onToggle={() => setShowPassword((s) => !s)}
-              showPassword={showPassword}
-              autoComplete={isSignUp ? "new-password" : "current-password"}
-            />
+
+            {isSignUp && (
+              <div style={{ marginBottom: "0.9rem" }}>
+                <AnimatedFormField
+                  type="text"
+                  placeholder="Full Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  icon={<User size={18} />}
+                  autoComplete="name"
+                />
+              </div>
+            )}
+            <div style={{ marginBottom: "0.9rem" }}>
+              <AnimatedFormField
+                type="email"
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                icon={<Mail size={18} />}
+                autoComplete="email"
+              />
+            </div>
+            <div style={{ marginBottom: "0.9rem" }}>
+              <AnimatedFormField
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                icon={<Lock size={18} />}
+                showToggle
+                onToggle={() => setShowPassword((s) => !s)}
+                showPassword={showPassword}
+                autoComplete={isSignUp ? "new-password" : "current-password"}
+              />
+            </div>
 
             {error && (
-              <p className="text-sm" style={{ color: "var(--error)" }}>
+              <p className="text-sm" style={{ color: "var(--hx-text)", marginBottom: "0.9rem" }}>
                 {error}
               </p>
             )}
@@ -393,8 +466,14 @@ export const Component: React.FC<ComponentProps> = ({ initialMode = "signin" }) 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full relative group py-3 px-4 rounded-lg font-semibold transition-all duration-300 ease-in-out focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
-              style={{ background: "var(--accent)", color: "#000000" }}
+              className="w-full relative group rounded-lg font-semibold transition-all duration-300 ease-in-out focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+              style={{
+                padding: "0.92rem 0.6rem",
+                background: "var(--hx-accent)",
+                color: "#1a0e02",
+                border: "1.5px solid var(--hx-accent)",
+                boxShadow: "0 10px 26px -10px rgba(var(--hx-accent-rgb), 0.8)",
+              }}
             >
               <span
                 className="transition-opacity duration-200"
@@ -408,30 +487,36 @@ export const Component: React.FC<ComponentProps> = ({ initialMode = "signin" }) 
                     className="w-5 h-5 rounded-full animate-spin"
                     style={{
                       border: "2px solid rgba(0,0,0,0.3)",
-                      borderTopColor: "#000000",
+                      borderTopColor: "#1a0e02",
                     }}
                   />
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
             </button>
           </form>
 
-          <div className="mt-8 text-center">
-            <p className="text-sm" style={{ color: "var(--muted)" }}>
-              {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-              <button
-                type="button"
-                onClick={toggleMode}
-                className="font-semibold"
-                style={{ color: "var(--accent)" }}
-              >
-                {isSignUp ? "Sign in" : "Sign up"}
-              </button>
-            </p>
-          </div>
+          <div className="ax-divider">or</div>
+          <button
+            type="button"
+            className="ax-btn-ghost"
+            onClick={handleGoogle}
+            disabled={googleSubmitting}
+          >
+            {googleSubmitting ? "Redirecting…" : isSignUp ? "Sign up with Google" : "Continue with Google"}
+          </button>
+
+          <p className="ax-swap">
+            {isSignUp ? "Already on AthlasX?" : "New to AthlasX?"}{" "}
+            <button type="button" onClick={toggleMode}>
+              {isSignUp ? "Sign in instead" : "Create an account"}
+            </button>
+          </p>
+
+          <p className="ax-legal">
+            By continuing you agree to our <a href="#">Terms</a> &amp; <a href="#">Privacy Policy</a>.
+          </p>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

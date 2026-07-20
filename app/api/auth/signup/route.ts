@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { randomBytes } from "crypto";
 import { sql } from "@/lib/db";
 import { ROLES, type UserRole } from "@/lib/auth";
-import { sendVerificationEmail } from "@/lib/email";
+import { clientIp } from "@/lib/onboarding-server";
+import { rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 interface SignupBody {
   name?: string;
@@ -21,6 +21,10 @@ function err(message: string, status: number) {
 }
 
 export async function POST(req: Request) {
+  const ip = clientIp(req);
+  const limit = await rateLimit("signup", ip, 10, 60 * 60);
+  if (!limit.success) return rateLimitResponse(limit);
+
   let body: SignupBody;
   try {
     body = (await req.json()) as SignupBody;
@@ -43,44 +47,42 @@ export async function POST(req: Request) {
   /* AthlasX Admin cannot self-register — must be promoted by an existing admin. */
   if (roleRaw === "athlasx_admin") return err("Admin accounts cannot self-register", 403);
 
-  const existing = (await sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`) as unknown as {
-    id: string;
-  }[];
-  if (existing.length > 0) return err("An account with this email already exists", 409);
-
-  if (phone) {
-    const phoneTaken = (await sql`SELECT id FROM users WHERE phone = ${phone} LIMIT 1`) as unknown as {
+  /* Everything below talks to the DB, which can throw on transient
+     connectivity failures (timeouts, etc. — see lib/db.ts). Uncaught, that
+     bypasses err()'s {success:false, error} shape entirely and falls
+     through to Next's generic 500, which has no `error` field — the client
+     then has nothing to show but a hardcoded "Signup failed" fallback, with
+     the real reason buried in server logs only. Catch explicitly so the
+     person signing up always sees something actionable. */
+  try {
+    const existing = (await sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`) as unknown as {
       id: string;
     }[];
-    if (phoneTaken.length > 0) return err("Phone is already linked to another account", 409);
+    if (existing.length > 0) return err("An account with this email already exists", 409);
+
+    if (phone) {
+      const phoneTaken = (await sql`SELECT id FROM users WHERE phone = ${phone} LIMIT 1`) as unknown as {
+        id: string;
+      }[];
+      if (phoneTaken.length > 0) return err("Phone is already linked to another account", 409);
+    }
+
+    const password_hash = await bcrypt.hash(password, 10);
+    const inserted = (await sql`
+      INSERT INTO users (name, email, password_hash, role, phone, account_status)
+      VALUES (${name}, ${email}, ${password_hash}, ${roleRaw}, ${phone ?? null}, 'pending')
+      RETURNING id, name, email, role, account_status
+    `) as unknown as {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
+      account_status: string;
+    }[];
+
+    return NextResponse.json({ success: true, data: { user: inserted[0] } }, { status: 201 });
+  } catch (e) {
+    console.error("[signup] DB error:", e);
+    return err("Couldn't reach the database right now — please try again in a moment", 503);
   }
-
-  const password_hash = await bcrypt.hash(password, 10);
-  const inserted = (await sql`
-    INSERT INTO users (name, email, password_hash, role, phone, account_status)
-    VALUES (${name}, ${email}, ${password_hash}, ${roleRaw}, ${phone ?? null}, 'pending')
-    RETURNING id, name, email, role, account_status
-  `) as unknown as {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-    account_status: string;
-  }[];
-
-  const user = inserted[0];
-
-  // Generate a 32-byte URL-safe verification token, valid for 24 hours
-  const token = randomBytes(32).toString("hex");
-  await sql`
-    INSERT INTO email_verifications (user_id, token, expires_at)
-    VALUES (${user.id}, ${token}, NOW() + INTERVAL '24 hours')
-  `;
-
-  // Fire-and-forget — don't block signup response on email delivery
-  sendVerificationEmail({ to: email, name: user.name, token }).catch((e) =>
-    console.error("[signup] Failed to send verification email:", e),
-  );
-
-  return NextResponse.json({ success: true, data: { user } }, { status: 201 });
 }

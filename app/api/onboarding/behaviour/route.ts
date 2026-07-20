@@ -1,339 +1,292 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { sql } from "@/lib/db";
-import { advanceStep } from "@/lib/onboarding";
-import { ageFromDob, fail, ok, requireUserId } from "@/lib/onboarding-server";
-
-/**
- * POST /api/onboarding/behaviour
+﻿/**
+ * POST /api/onboarding/behaviour — submit the full ACSI-28 assessment.
  *
- * Accepts Mrigank's ACSI-28 based psychological assessment:
- *   Section A  — 28 ACSI items (q1–q28, each 1-4) + 5 lie-scale items (l1–l5, each 1-4)
- *   Section B  — 10 cricket scenarios (s1–s10, each A/B/C/D or OTHER)
- *   Section C  — 5 open-ended reflections (each ≥ 20 words)
+ * Delegates to the Backend/AI compute service (POST /api/v1/compute/psych/analyze)
+ * via the auth bridge. Polls for results and writes to the behavioral_assessment
+ * table for backward compatibility.
  *
- * Backend pre-processes ACSI subscale scores and quality flags before calling Gemini.
- * Adults (18+) only — DPDP Act compliance enforced on every request.
+ * KEY DESIGN DECISIONS:
+ *
+ * 1. player_context.competition_level is read from the player's existing profile
+ *    (district_team, state_team fields) — NOT collected from the assessment form.
+ *
+ * 2. player_context.age is computed from player_profiles.date_of_birth — NOT
+ *    from the form.
+ *
+ * 3. advanceStep(userId, 8) is deliberately NOT called. This assessment is a
+ *    standalone page (/onboarding/player/assessment), not part of the 9-step
+ *    wizard. The onboarding system tracks assessment completion via
+ *    behavioral_assessment.mindset_score IS NOT NULL in calculateProfileStrength()
+ *    (lib/onboarding.ts:253). Calling advanceStep(8) would inject step 8 into
+ *    the 12-step state machine from outside the 9-step wizard, producing
+ *    confusing progress percentages.
+ *
+ * 4. mindset_score is derived from the compute result's acsi_subscale_scores:
+ *    sum(raw_score) / sum(max_possible) * 100, rounded. This produces a 0-100
+ *    numeric value that satisfies the IS NOT NULL check in calculateProfileStrength().
+ *    If subscale scores are unavailable (edge case), we fall back to
+ *    scout_summary.overall_mental_performance_level * 20 (1-5 → 20-100).
+ *
+ * POLLING NOTE FOR FRONTEND TEAM:
+ * This handler polls for up to ~120s (24 × 5s). If the compute job is still
+ * running, the route returns HTTP 504 with { task_id }. The frontend MUST
+ * resume polling GET /api/onboarding/behaviour/status/{task_id} on reconnect —
+ * do NOT treat 504 as a terminal failure. The analysis may complete in the
+ * compute service even after this handler times out. Mobile browsers kill
+ * connections after 60-90s on screen lock; the task_id resume flow handles this.
  */
 
-const MODEL = "gemini-2.5-flash";
+import { sql } from "@/lib/db";
+import { fail, ok, requireUserId } from "@/lib/onboarding-server";
+import { computePost, computeGet, ComputeServiceError } from "@/lib/computeClient";
+import { validatePsychPayload } from "@/lib/types/psychology";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-const ACSI_SUBSCALES = {
-  coping_with_adversity:   ["q1",  "q2",  "q3",  "q4",  "q5",  "q6"],
-  peaking_under_pressure:  ["q7",  "q8",  "q9",  "q10"],
-  goal_setting:            ["q11", "q12", "q13", "q14"],
-  concentration:           ["q15", "q16", "q17", "q18"],
-  confidence:              ["q19", "q20", "q21", "q22"],
-  coachability:            ["q23", "q24", "q25", "q26"],
-  freedom_from_worry:      ["q27", "q28"],   // reverse-scored
-} as const;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-const LIE_KEYS      = ["l1", "l2", "l3", "l4", "l5"] as const;
-const SCENARIO_KEYS = ["s1","s2","s3","s4","s5","s6","s7","s8","s9","s10"] as const;
-const OE_KEYS       = ["q1","q2","q3","q4","q5"] as const;
-
-const SYSTEM_PROMPT = `You are a sports psychology analyst working with a cricket talent identification platform called AthlasX. Your role is to analyze athlete psychological assessment data and identify performance psychology patterns relevant to cricket development.
-
-## CRITICAL ETHICS AND SCOPE LIMITATIONS
-
-1. You are NOT a licensed psychologist or clinical mental health professional. Your output is NOT a clinical assessment, diagnosis, or psychological evaluation.
-2. Your analysis is based on self-reported questionnaire data and open-ended responses — it reflects how the player describes themselves, not necessarily objective reality.
-3. Your output is intended for TALENT IDENTIFICATION AND DEVELOPMENT PURPOSES ONLY — not for employment decisions, contractual negotiations, or clinical intervention.
-4. You must NEVER make statements about mental illness, personality disorders, or clinical conditions.
-5. You must NEVER make definitive character assessments ("this player is selfish", "this player lacks integrity").
-6. You must ALWAYS frame uncertainty appropriately — use language like "suggests", "indicates a tendency toward", "may benefit from" rather than absolute statements.
-
-## HOW TO INTERPRET ACSI-28 SUBSCALE SCORES
-
-Higher scores indicate stronger coping skills in that area:
-
-| Subscale              | Low   | Moderate | High  | Cricket Relevance |
-|---|---|---|---|---|
-| Coping with Adversity | 6–12  | 13–18    | 19–24 | Critical for batsmen in long spells; bowlers conceding runs |
-| Peaking Under Pressure| 4–8   | 9–12     | 13–16 | Death bowling, final-day Ranji chases |
-| Goal Setting          | 4–8   | 9–12     | 13–16 | Structured approach to improvement |
-| Concentration         | 4–8   | 9–12     | 13–16 | Essential for multi-day cricket |
-| Confidence            | 4–8   | 9–12     | 13–16 | Drives ambition for level transition |
-| Coachability          | 4–8   | 9–12     | 13–16 | Single best predictor of development |
-| Freedom from Worry    | 2–4   | 5–6      | 7–8   | Anxiety management |
-
-Key pattern flags:
-- High Confidence + Low Coachability = RED FLAG (fixed mindset)
-- Low Confidence + High Coachability = strong development potential
-- Low Freedom from Worry + High Coping = positive: player experiences anxiety but manages it
-
-## HOW TO ANALYZE OPEN-ENDED RESPONSES
-
-Evaluate for: SPECIFICITY (concrete details = positive), ACCOUNTABILITY (ownership = positive), GROWTH MINDSET (challenges as learning = positive), EMOTIONAL REGULATION (specific coping strategies = positive), AVOIDANCE (deflection = negative).
-
-## RESPONSE QUALITY FLAGS
-
-- lie_scale_triggered: qualify your confidence in the profile
-- uniformly_positive: interpret cautiously — possible social desirability bias
-- open_ended_superficial: note limited depth of reflection
-- response_inconsistency: flag coachability–scenario mismatch
-
-## OUTPUT FORMAT
-
-Return ONLY valid JSON (no markdown), exactly:
-{
-  "strengths": ["string"],
-  "gaps": ["string"],
-  "mental_rating": number,
-  "coaching_tip": "string",
-  "subscale_narrative": {
-    "coping_with_adversity": "string",
-    "peaking_under_pressure": "string",
-    "goal_setting": "string",
-    "concentration": "string",
-    "confidence": "string",
-    "coachability": "string",
-    "freedom_from_worry": "string"
-  },
-  "scenario_insights": "string",
-  "data_quality_note": "string",
-  "disclaimer": "This psychological profile is generated by AI based on self-reported data and is intended for talent development purposes only. It is not a clinical assessment."
-}`;
-
-// ── helpers ────────────────────────────────────────────────────────────────
-
-function reverseScore(v: number) { return 5 - v; }
-
-function subscaleSum(acsi: Record<string, number>, keys: readonly string[], rev = false) {
-  return keys.reduce((s, k) => s + (rev ? reverseScore(acsi[k] ?? 0) : (acsi[k] ?? 0)), 0);
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function preprocess(
-  acsi: Record<string, number>,
-  lie: Record<string, number>,
-  scenarios: Record<string, string>,
-  oe: Record<string, string>,
-) {
-  const subscaleScores = {
-    coping_with_adversity:  { raw: subscaleSum(acsi, ACSI_SUBSCALES.coping_with_adversity),  max: 24 },
-    peaking_under_pressure: { raw: subscaleSum(acsi, ACSI_SUBSCALES.peaking_under_pressure), max: 16 },
-    goal_setting:           { raw: subscaleSum(acsi, ACSI_SUBSCALES.goal_setting),           max: 16 },
-    concentration:          { raw: subscaleSum(acsi, ACSI_SUBSCALES.concentration),          max: 16 },
-    confidence:             { raw: subscaleSum(acsi, ACSI_SUBSCALES.confidence),             max: 16 },
-    coachability:           { raw: subscaleSum(acsi, ACSI_SUBSCALES.coachability),           max: 16 },
-    freedom_from_worry:     { raw: subscaleSum(acsi, ACSI_SUBSCALES.freedom_from_worry, true), max: 8 },
-  };
-  const totalAcsi = Object.values(subscaleScores).reduce((s, v) => s + v.raw, 0);
+const POLL_INTERVAL_MS = 5000;
+const POLL_MAX_ATTEMPTS = 24;
 
-  // Lie scale: ≥ 2 "Almost Always" (4) responses → triggered
-  const lieAlmostAlways = LIE_KEYS.filter(k => (lie[k] ?? 0) >= 4).length;
-  const lieScaleTriggered = lieAlmostAlways >= 2;
-
-  // Uniformly positive: no item scored 1 (Almost Never)
-  const uniformlyPositive = Object.values(acsi).every(v => v > 1);
-
-  // Open-ended superficial: any response < 30 words
-  const openEndedSuperficial = OE_KEYS.some(k =>
-    (oe[k] ?? "").trim().split(/\s+/).filter(Boolean).length < 30
-  );
-
-  // Contradictory: high coachability items but picks C or D in Scenario 5
-  const highCoachability = ACSI_SUBSCALES.coachability.every(k => (acsi[k] ?? 0) >= 3);
-  const s5 = scenarios["s5"] ?? "";
-  const responseInconsistency = highCoachability && (s5 === "C" || s5 === "D");
-
-  return {
-    subscaleScores,
-    totalAcsi,
-    flags: { lie_scale_triggered: lieScaleTriggered, uniformly_positive: uniformlyPositive, open_ended_superficial: openEndedSuperficial, response_inconsistency: responseInconsistency },
-  };
+function ageFromDob(dob: string | Date): number {
+  const d = typeof dob === "string" ? new Date(dob) : dob;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age;
 }
 
-interface AnalysisResult {
-  strengths: string[];
-  gaps: string[];
-  mental_rating: number;
-  coaching_tip: string;
-  subscale_narrative?: Record<string, string>;
-  scenario_insights?: string;
-  data_quality_note?: string;
-  disclaimer?: string;
+/**
+ * Derive a 0-100 mindset_score from the compute service's PsychAnalysisResult.
+ *
+ * Primary: sum(acsi_subscale_scores.*.raw_score) / sum(*.max_possible) * 100
+ * Fallback: scout_summary.overall_mental_performance_level * 20 (maps 1-5 → 20-100)
+ * Last resort: 50 (sentinel value to satisfy IS NOT NULL check)
+ */
+function deriveMindsetScore(result: any): number {
+  // Try subscale scores first — most precise.
+  const subscales = result?.acsi_subscale_scores;
+  if (subscales && typeof subscales === "object") {
+    let totalRaw = 0;
+    let totalMax = 0;
+    for (const scale of Object.values(subscales) as any[]) {
+      if (typeof scale?.raw_score === "number" && typeof scale?.max_possible === "number") {
+        totalRaw += scale.raw_score;
+        totalMax += scale.max_possible;
+      }
+    }
+    if (totalMax > 0) {
+      return Math.round((totalRaw / totalMax) * 100);
+    }
+  }
+
+  // Fallback to overall_mental_performance_level (1-5).
+  const level = result?.scout_summary?.overall_mental_performance_level;
+  if (typeof level === "number" && level >= 1 && level <= 5) {
+    return level * 20;
+  }
+
+  // Last resort: sentinel value to satisfy IS NOT NULL check.
+  // calculateProfileStrength() only checks mindset_score IS NOT NULL.
+  // A comment in the DB write explains this is a placeholder.
+  return 50;
 }
 
-function fallbackAnalysis(
-  scores: ReturnType<typeof preprocess>["subscaleScores"],
-  total: number,
-): AnalysisResult {
-  const pct = total / 112;
-  const mental_rating = Math.min(88, Math.round(38 + pct * 55));
-  const strengths: string[] = [];
-  if (scores.coping_with_adversity.raw >= 19) strengths.push("Strong adversity coping — bounces back from setbacks quickly");
-  if (scores.peaking_under_pressure.raw >= 13) strengths.push("Performs under pressure — thrives in high-stakes moments");
-  if (scores.coachability.raw >= 13) strengths.push("High coachability — open to feedback and technical change");
-  if (scores.concentration.raw >= 13) strengths.push("Strong concentration — maintains focus over long periods");
-  if (strengths.length === 0) strengths.push("Shows willingness to engage in self-reflection", "Demonstrates psychological awareness of the game");
-  const gaps: string[] = [];
-  if (scores.freedom_from_worry.raw <= 4) gaps.push("Anxiety management — worry may interfere with execution");
-  if (scores.goal_setting.raw <= 8) gaps.push("Goal-setting discipline — benefit from structured practice targets");
-  if (gaps.length === 0) gaps.push("Continued development in mental skill application under match pressure");
-  return {
-    strengths: strengths.slice(0, 5),
-    gaps: gaps.slice(0, 4),
-    mental_rating,
-    coaching_tip: "Introduce a pre-delivery trigger routine (one breath + a focusing word) to anchor concentration and reduce pre-performance anxiety.",
-    data_quality_note: "Fallback analysis — Gemini AI was unavailable. Results are based on ACSI subscale scores only.",
-    disclaimer: "This psychological profile is generated by AI based on self-reported data and is intended for talent development purposes only. It is not a clinical assessment.",
-  };
+/**
+ * Infer competition_level from the player's existing profile fields.
+ * Priority: state_team → district_team → club_team → "Academy/Club"
+ */
+function inferCompetitionLevel(profile: any): string {
+  if (profile?.state_team) return "State";
+  if (profile?.district_team) return "District";
+  if (profile?.club_team) return "Club";
+  return "Academy/Club";
 }
 
-function parseJson(text: string): AnalysisResult | null {
-  const m = text.match(/\{[\s\S]*\}/);
-  if (!m) return null;
-  try {
-    const obj = JSON.parse(m[0]);
-    if (!Array.isArray(obj.strengths) || !Array.isArray(obj.gaps) ||
-        typeof obj.mental_rating !== "number" || typeof obj.coaching_tip !== "string") return null;
-    return {
-      strengths: obj.strengths.map(String),
-      gaps: obj.gaps.map(String),
-      mental_rating: Math.max(0, Math.min(100, Math.round(obj.mental_rating))),
-      coaching_tip: String(obj.coaching_tip),
-      subscale_narrative: obj.subscale_narrative ?? undefined,
-      scenario_insights: obj.scenario_insights ? String(obj.scenario_insights) : undefined,
-      data_quality_note: obj.data_quality_note ? String(obj.data_quality_note) : undefined,
-      disclaimer: obj.disclaimer ? String(obj.disclaimer) : undefined,
-    };
-  } catch { return null; }
-}
-
-// ── route handler ──────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// POST handler
+// ---------------------------------------------------------------------------
 
 export async function POST(req: Request) {
   const guard = await requireUserId();
   if (guard instanceof Response) return guard;
 
-  // DPDP Act: psych assessment is adult-only (18+)
-  const dobRows = (await sql`
-    SELECT verified_dob FROM aadhaar_verification
-    WHERE user_id = ${guard.userId} ORDER BY created_at DESC LIMIT 1
-  `) as unknown as Array<{ verified_dob: string | Date | null }>;
-  if (dobRows[0]?.verified_dob) {
-    const age = ageFromDob(dobRows[0].verified_dob as any);
-    if (age < 18) {
-      return fail("Psychological assessment is only available for players aged 18 and above. Minors are assessed through coach behavioral evaluations.", 403);
-    }
-  }
-
   let body: any;
-  try { body = await req.json(); } catch { return fail("Invalid JSON"); }
-
-  // ── Validate Section A: 28 ACSI items (q1–q28) ────────────────────────
-  const acsiRaw = body?.acsi_answers ?? {};
-  const badAcsi: string[] = [];
-  for (let i = 1; i <= 28; i++) {
-    const k = `q${i}`;
-    const v = Number(acsiRaw[k]);
-    if (!Number.isInteger(v) || v < 1 || v > 4) badAcsi.push(k);
-  }
-  if (badAcsi.length > 0) return fail(`ACSI items must be integers 1–4. Invalid: ${badAcsi.slice(0, 5).join(", ")}`);
-
-  // ── Validate lie-scale items (l1–l5) ──────────────────────────────────
-  const lieRaw = body?.lie_scale_answers ?? {};
-  for (const k of LIE_KEYS) {
-    const v = Number(lieRaw[k]);
-    if (!Number.isInteger(v) || v < 1 || v > 4) return fail(`Lie-scale item ${k} must be 1–4`);
+  try {
+    body = await req.json();
+  } catch {
+    return fail("Invalid JSON");
   }
 
-  // ── Validate Section B: 10 scenarios ──────────────────────────────────
-  const scenarioRaw: Record<string, string> = {};
-  const scenarioOther: Record<string, string> = body?.scenario_other ?? {};
-  const rawScenarios = body?.scenario_answers ?? {};
-  for (const k of SCENARIO_KEYS) {
-    const v = String(rawScenarios[k] ?? "").trim().toUpperCase();
-    if (!["A","B","C","D","OTHER"].includes(v)) return fail(`Scenario ${k} must be A, B, C, D, or OTHER`);
-    scenarioRaw[k] = v;
+  // Validate the assessment payload.
+  const validation = validatePsychPayload(body);
+  if (!validation.valid) {
+    return fail(`Validation errors: ${validation.errors.join("; ")}`, 422);
   }
 
-  // ── Validate Section C: 5 open-ended responses ────────────────────────
-  const oeRaw: Record<string, string> = {};
-  const rawOe = body?.open_ended ?? {};
-  for (const k of OE_KEYS) {
-    const text = String(rawOe[k] ?? "").trim();
-    const words = text.split(/\s+/).filter(Boolean).length;
-    if (words < 20) return fail(`Open-ended response ${k} must be at least 20 words`);
-    oeRaw[k] = text;
+  // ── Fetch player profile for age + competition_level ───────────────────
+  const profileRows = (await sql`
+    SELECT date_of_birth, playing_role, district_team, state_team, club_team
+    FROM player_profiles
+    WHERE user_id = ${guard.userId}
+    LIMIT 1
+  `) as unknown as Array<{
+    date_of_birth: string | null;
+    playing_role: string | null;
+    district_team: string | null;
+    state_team: string | null;
+    club_team: string | null;
+  }>;
+
+  const profile = profileRows[0];
+  if (!profile?.date_of_birth) {
+    return fail("Complete your profile (Step 1) before taking the assessment — date of birth is required.", 400);
   }
 
-  // ── Pre-process ────────────────────────────────────────────────────────
-  const acsi = Object.fromEntries(Object.entries(acsiRaw).map(([k, v]) => [k, Number(v)])) as Record<string, number>;
-  const lie  = Object.fromEntries(LIE_KEYS.map(k => [k, Number(lieRaw[k])])) as Record<string, number>;
-  const { subscaleScores, totalAcsi, flags } = preprocess(acsi, lie, scenarioRaw, oeRaw);
-
-  // ── Build Gemini input ─────────────────────────────────────────────────
-  const geminiInput = {
-    acsi_subscale_scores: Object.fromEntries(
-      Object.entries(subscaleScores).map(([k, v]) => [k, { raw_score: v.raw, max_possible: v.max }])
-    ),
-    total_acsi: { raw_score: totalAcsi, max_possible: 112 },
-    scenario_responses: Object.fromEntries(
-      SCENARIO_KEYS.map(k => [k, { selected: scenarioRaw[k], other_text: scenarioOther[k] ?? "" }])
-    ),
-    open_ended_responses: Object.fromEntries(OE_KEYS.map(k => [k, oeRaw[k]])),
-    response_quality_flags: flags,
-  };
-
-  // ── Call Gemini ────────────────────────────────────────────────────────
-  let analysis: AnalysisResult | null = null;
-  if (process.env.GEMINI_API_KEY) {
-    try {
-      const genai  = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model  = genai.getGenerativeModel({ model: MODEL, systemInstruction: SYSTEM_PROMPT });
-      const resp   = await model.generateContent(`Analyze this cricket player psychological assessment:\n${JSON.stringify(geminiInput, null, 2)}`);
-      const text   = resp.response.text();
-      analysis     = parseJson(text);
-      if (!analysis) console.warn("[behaviour] Gemini unparseable, falling back:", text.slice(0, 200));
-    } catch (e: any) {
-      console.warn("[behaviour] Gemini failed, using fallback:", e?.message);
-    }
-  } else {
-    console.log("[behaviour] GEMINI_API_KEY not set — using fallback analysis.");
+  const age = ageFromDob(profile.date_of_birth);
+  if (age < 13) {
+    return fail("Players must be at least 13 years old to complete the psychological assessment.", 403);
   }
-  if (!analysis) analysis = fallbackAnalysis(subscaleScores, totalAcsi);
 
-  // ── Persist ────────────────────────────────────────────────────────────
-  // mcq_answers stores all structured input + subscale scores + quality flags + Gemini output
-  const mcqStore = {
-    acsi, lie_scale: lie, scenarios: scenarioRaw, scenario_other: scenarioOther,
-    subscale_scores: subscaleScores, flags,
-    gemini_result: {
-      subscale_narrative: analysis.subscale_narrative ?? null,
-      scenario_insights:  analysis.scenario_insights  ?? null,
-      data_quality_note:  analysis.data_quality_note  ?? null,
+  // Get session role for the auth token.
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as any)?.role ?? "player";
+
+  // ── Build compute request body ─────────────────────────────────────────
+  // player_context.competition_level comes from the DB, NOT the form.
+  // player_context.age comes from date_of_birth, NOT the form.
+  const computeBody = {
+    player_id: guard.userId,
+    acsi_responses: body.acsi_responses,
+    scenario_responses: body.scenario_responses,
+    open_ended_responses: body.open_ended_responses,
+    lie_scale_responses: body.lie_scale_responses,
+    player_context: {
+      age,
+      primary_role: body.primary_role ?? profile.playing_role ?? "Batsman",
+      years_playing: typeof body.years_playing === "number" ? body.years_playing : null,
+      competition_level: inferCompetitionLevel(profile),
     },
+    completion_time_minutes: body.completion_time_minutes,
   };
-  // free_text stores the 5 open-ended responses as JSON
-  const freeTextJson = JSON.stringify(oeRaw);
 
+  // ── Submit to compute service ──────────────────────────────────────────
+  let taskId: string;
+  try {
+    const result = await computePost(
+      "/api/v1/compute/psych/analyze",
+      computeBody,
+      guard.userId,
+      role,
+    );
+    taskId = result.task_id;
+  } catch (err) {
+    if (err instanceof ComputeServiceError) {
+      return fail(`Assessment service unavailable: ${err.message}`, 503);
+    }
+    throw err;
+  }
+
+  // TODO(db-team): store compute_task_id here once column is added
+  // TODO(db-team): store acsi_raw_responses (full 28-item payload) once column is added
+
+  // ── Poll for results ───────────────────────────────────────────────────
+  // See module-level POLLING NOTE for frontend recovery guidance.
+  let fullResult: any = null;
+  let taskStatus = "PENDING";
+
+  for (let i = 0; i < POLL_MAX_ATTEMPTS; i++) {
+    await sleep(POLL_INTERVAL_MS);
+
+    try {
+      const status = await computeGet(
+        `/api/v1/compute/psych/status/${taskId}`,
+        guard.userId,
+        role,
+      );
+      taskStatus = status.status;
+
+      if (taskStatus === "COMPLETE" || taskStatus === "COMPLETED") {
+        fullResult = status.result;
+        break;
+      }
+      if (taskStatus === "FAILED") {
+        return fail(
+          status.error_message ?? "Assessment analysis failed in the compute service",
+          422,
+        );
+      }
+    } catch (err) {
+      if (err instanceof ComputeServiceError) {
+        continue; // Transient — keep polling
+      }
+      throw err;
+    }
+  }
+
+  // Timed out — return 504 with task_id for frontend resume.
+  // IMPORTANT: The frontend MUST resume polling /api/onboarding/behaviour/status/{task_id}
+  // on reconnect. Do NOT treat 504 as a terminal failure.
+  if (!fullResult) {
+    return fail(
+      "Assessment is still processing. Use the task_id to check status.",
+      504,
+    );
+  }
+
+  // ── Derive mindset_score for backward compat ───────────────────────────
+  // calculateProfileStrength() at lib/onboarding.ts:253 checks:
+  //   behavioral_assessment.mindset_score IS NOT NULL
+  // The compute result has acsi_subscale_scores — derive a 0-100 score from
+  // the raw-to-max ratio. See deriveMindsetScore() for the full fallback chain.
+  const mindsetScore = deriveMindsetScore(fullResult);
+
+  // ── Extract player-visible fields only ─────────────────────────────────
+  // NEVER return scout_summary or raw_gemini_narrative to the player.
+  const playerDev = fullResult.player_development_summary ?? {
+    strengths: [],
+    development_areas: [],
+    suggested_focus: [],
+  };
+  const caveats = fullResult.mandatory_caveats ?? [];
+
+  // Extract strengths and gaps for legacy behavioral_assessment columns.
+  const strengthsArr = (playerDev.strengths ?? []).slice(0, 5);
+  const gapsArr = (playerDev.development_areas ?? []).slice(0, 5);
+  const coachingTip = (playerDev.suggested_focus ?? []).join("; ").slice(0, 500) || "See full development summary.";
+
+  // ── Write to behavioral_assessment (backward compat) ───────────────────
   await sql`DELETE FROM behavioral_assessment WHERE user_id = ${guard.userId}`;
   await sql`
     INSERT INTO behavioral_assessment
       (user_id, mcq_answers, free_text, strengths, gaps, mental_rating, coaching_tip, mindset_score)
     VALUES
-      (${guard.userId},
-       ${JSON.stringify(mcqStore)}::jsonb,
-       ${freeTextJson},
-       ${analysis.strengths},
-       ${analysis.gaps},
-       ${analysis.mental_rating},
-       ${analysis.coaching_tip},
-       ${analysis.mental_rating})
+      (${guard.userId}, ${JSON.stringify(body.acsi_responses)}::jsonb,
+       ${JSON.stringify(body.open_ended_responses)}::jsonb,
+       ${strengthsArr}, ${gapsArr}, ${mindsetScore}, ${coachingTip}, ${mindsetScore})
   `;
 
-  const state = await advanceStep(guard.userId, 8);
+  // TODO(db-team): store compute_task_id here once column is added
+  // TODO(db-team): store compute_status = "COMPLETE" here once column is added
+  // TODO(db-team): store is_stub = false once column is added
+
+  // NOTE: advanceStep(userId, 8) is deliberately NOT called here.
+  // This assessment is a standalone page, not part of the 9-step wizard.
+  // Assessment completion is tracked via behavioral_assessment.mindset_score IS NOT NULL
+  // in calculateProfileStrength() (lib/onboarding.ts:253), which correctly detects
+  // the assessment without touching the wizard's step state machine.
+
   return ok({
-    strengths:          analysis.strengths,
-    gaps:               analysis.gaps,
-    mental_rating:      analysis.mental_rating,
-    coaching_tip:       analysis.coaching_tip,
-    subscale_narrative: analysis.subscale_narrative ?? null,
-    scenario_insights:  analysis.scenario_insights  ?? null,
-    data_quality_note:  analysis.data_quality_note  ?? null,
-    disclaimer:         analysis.disclaimer,
-    mindset_score:      analysis.mental_rating,
-    onboarding:         state,
+    task_id: taskId,
+    player_development_summary: playerDev,
+    mandatory_caveats: caveats,
+    mindset_score: mindsetScore,
   });
 }

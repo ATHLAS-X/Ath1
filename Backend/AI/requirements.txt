@@ -1,4 +1,4 @@
-# ATHLASX Compute Service — Python dependencies
+﻿# ATHLASX Compute Service — Python dependencies
 #
 # NOTE: ARM64 (Oracle Ampere A1) is the eventual deployment target. All pinned
 # packages below publish manylinux aarch64 wheels (or are pure-Python), so the
@@ -26,10 +26,10 @@ google-genai>=1.0.0
 # --- Config / validation ---
 pydantic==2.9.2
 pydantic-settings==2.5.2
-python-dotenv==1.0.1
+python-dotenv==1.2.2
 
 # --- Auth (standalone HS256 JWT — swap for Auth.js at integration time) ---
-pyjwt==2.9.0
+pyjwt==2.13.0
 
 # --- Resilience ---
 tenacity==9.0.0
@@ -45,3 +45,6 @@ pytest==8.3.3
 pytest-asyncio==0.24.0
 fakeredis==2.24.1
 aiosqlite==0.20.0
+
+# --- Dev tooling ---
+pip-audit==2.10.1

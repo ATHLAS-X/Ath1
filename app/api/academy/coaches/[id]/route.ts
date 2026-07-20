@@ -61,6 +61,31 @@ export async function PUT(req: Request, ctx: { params: { id: string } }) {
     else if (NUM_FIELDS.has(k))  updates.push([k, coerce(body[k], "num")]);
     else if (BOOL_FIELDS.has(k)) updates.push([k, coerce(body[k], "bool")]);
   }
+
+  /* Retroactively link (or unlink, if coach_email is cleared) this roster
+     entry to a real coach login — same resolution as the create path in
+     app/api/academy/coaches/route.ts. */
+  let linkWarning: string | null = null;
+  if (Object.prototype.hasOwnProperty.call(body, "coach_email")) {
+    const coachEmail = String(body.coach_email ?? "").trim().toLowerCase() || null;
+    if (!coachEmail) {
+      /* Explicit unlink — coach_email cleared. */
+      updates.push(["user_id", null]);
+    } else {
+      const userRows = (await sql`
+        SELECT id FROM users WHERE email = ${coachEmail} AND role = 'coach' LIMIT 1
+      `) as unknown as Array<{ id: string }>;
+      const coachUserId = userRows[0]?.id ?? null;
+      if (coachUserId) {
+        updates.push(["user_id", coachUserId]);
+      } else {
+        /* No match — leave the existing link (if any) untouched rather than
+           wiping it out on a typo'd email. */
+        linkWarning = "No coach account found with that email — link not applied.";
+      }
+    }
+  }
+
   if (updates.length === 0) return NextResponse.json({ success: true, updated: 0 });
 
   for (const [col, val] of updates) {
@@ -69,7 +94,7 @@ export async function PUT(req: Request, ctx: { params: { id: string } }) {
       [val, ctx.params.id],
     );
   }
-  return NextResponse.json({ success: true, updated: updates.length });
+  return NextResponse.json({ success: true, updated: updates.length, ...(linkWarning ? { link_warning: linkWarning } : {}) });
 }
 
 export async function DELETE(req: Request, ctx: { params: { id: string } }) {

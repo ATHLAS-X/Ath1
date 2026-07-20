@@ -1,79 +1,150 @@
+﻿/**
+ * Typed HTTP client for the Backend/AI compute service.
+ *
+ * Every call mints a fresh forwarding JWT via computeAuth.ts, builds the full
+ * URL from COMPUTE_SERVICE_URL, and returns parsed JSON on success or throws
+ * a ComputeServiceError on any non-2xx response.
+ *
+ * Route handlers catch ComputeServiceError to return 503 (service unavailable)
+ * with a user-friendly message — they never leak raw compute errors to the
+ * browser.
+ */
+
 import { mintComputeToken } from "@/lib/computeAuth";
 
-export interface CallerContext {
-  userId: string;
-  role: string;
-}
+// ---------------------------------------------------------------------------
+// Error class
+// ---------------------------------------------------------------------------
 
 export class ComputeServiceError extends Error {
-  constructor(
-    public readonly errorCode: string,
-    message: string,
-    public readonly statusCode: number,
-  ) {
+  public readonly httpStatus: number;
+  public readonly errorCode: string;
+
+  constructor(message: string, httpStatus: number, errorCode = "COMPUTE_ERROR") {
     super(message);
     this.name = "ComputeServiceError";
+    this.httpStatus = httpStatus;
+    this.errorCode = errorCode;
   }
 }
 
-function baseUrl(): string {
+// ---------------------------------------------------------------------------
+// Internals
+// ---------------------------------------------------------------------------
+
+function getBaseUrl(): string {
   const url = process.env.COMPUTE_SERVICE_URL;
-  if (!url) throw new ComputeServiceError("CONFIG_ERROR", "COMPUTE_SERVICE_URL is not set.", 500);
-  return url.replace(/\/$/, "");
+  if (!url) {
+    throw new ComputeServiceError(
+      "COMPUTE_SERVICE_URL is not set.",
+      500,
+      "CONFIG_ERROR",
+    );
+  }
+  // Strip trailing slash so callers can pass paths like "/api/v1/..."
+  return url.replace(/\/+$/, "");
 }
 
-async function authHeaders(caller: CallerContext): Promise<HeadersInit> {
-  const token = await mintComputeToken(caller.userId, caller.role);
-  return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+async function buildHeaders(userId: string, role: string): Promise<HeadersInit> {
+  const token = await mintComputeToken(userId, role);
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
 }
 
-async function handleResponse(res: Response): Promise<unknown> {
-  if (res.ok) return res.json();
-  let body: any = {};
-  try { body = await res.json(); } catch { /* ignore */ }
-  throw new ComputeServiceError(
-    body?.error_code ?? "COMPUTE_ERROR",
-    body?.message ?? `Compute service returned ${res.status}`,
-    res.status,
-  );
+async function handleResponse(res: Response): Promise<any> {
+  let body: any;
+  try {
+    body = await res.json();
+  } catch {
+    body = null;
+  }
+
+  if (res.ok) return body;
+
+  // Compute service error envelope: { detail: "..." } or { detail: { code, message } }
+  const detail = body?.detail;
+  const message =
+    typeof detail === "string"
+      ? detail
+      : typeof detail?.message === "string"
+        ? detail.message
+        : `Compute service returned ${res.status}`;
+  const code =
+    typeof detail?.code === "string" ? detail.code : `HTTP_${res.status}`;
+
+  throw new ComputeServiceError(message, res.status, code);
 }
 
-/** POST to the compute service. Throws ComputeServiceError on non-2xx. */
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * POST to the compute service.
+ *
+ * @param path     - e.g. "/api/v1/compute/video/analyze"
+ * @param body     - JSON-serializable request body
+ * @param userId   - Authenticated user's UUID
+ * @param role     - User role in Next.js lowercase format
+ * @returns        - Parsed JSON response
+ * @throws ComputeServiceError on any non-2xx response or network failure
+ */
 export async function computePost(
   path: string,
   body: unknown,
-  caller: CallerContext,
-): Promise<unknown> {
-  const res = await fetch(`${baseUrl()}${path}`, {
-    method: "POST",
-    headers: await authHeaders(caller),
-    body: JSON.stringify(body),
-  });
-  return handleResponse(res);
-}
+  userId: string,
+  role: string,
+): Promise<any> {
+  const url = `${getBaseUrl()}${path}`;
+  const headers = await buildHeaders(userId, role);
 
-/** GET from the compute service. Throws ComputeServiceError on non-2xx. */
-export async function computeGet(path: string, caller: CallerContext): Promise<unknown> {
-  const res = await fetch(`${baseUrl()}${path}`, {
-    method: "GET",
-    headers: await authHeaders(caller),
-  });
-  return handleResponse(res);
-}
-
-/** Poll a status endpoint until COMPLETE/FAILED or timeout. Returns the final response. */
-export async function pollUntilDone(
-  statusPath: string,
-  caller: CallerContext,
-  intervalMs: number,
-  maxAttempts: number,
-): Promise<{ status: string; result?: unknown; message?: string; timedOut: boolean }> {
-  for (let i = 0; i < maxAttempts; i++) {
-    const resp = (await computeGet(statusPath, caller)) as any;
-    if (resp.status === "COMPLETE" || resp.status === "FAILED") {
-      return { status: resp.status, result: resp.result, message: resp.message, timedOut: false };
-    }
-    await new Promise((r) => setTimeout(r, intervalMs));
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+  } catch (err: any) {
+    throw new ComputeServiceError(
+      `Compute service unreachable: ${err?.message ?? "network error"}`,
+      503,
+      "NETWORK_ERROR",
+    );
   }
-  return { status: "PENDING", timedOut: true };
+
+  return handleResponse(res);
+}
+
+/**
+ * GET from the compute service.
+ *
+ * @param path     - e.g. "/api/v1/compute/video/status/abc123"
+ * @param userId   - Authenticated user's UUID
+ * @param role     - User role in Next.js lowercase format
+ * @returns        - Parsed JSON response
+ * @throws ComputeServiceError on any non-2xx response or network failure
+ */
+export async function computeGet(
+  path: string,
+  userId: string,
+  role: string,
+): Promise<any> {
+  const url = `${getBaseUrl()}${path}`;
+  const headers = await buildHeaders(userId, role);
+
+  let res: Response;
+  try {
+    res = await fetch(url, { method: "GET", headers });
+  } catch (err: any) {
+    throw new ComputeServiceError(
+      `Compute service unreachable: ${err?.message ?? "network error"}`,
+      503,
+      "NETWORK_ERROR",
+    );
+  }
+
+  return handleResponse(res);
 }

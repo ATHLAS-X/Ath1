@@ -50,7 +50,7 @@ function BigScoreRing({ score }: { score: number }) {
       <text x={cx} y={cy - 4} textAnchor="middle" fill="#F0F0F0"
         fontSize="34" fontWeight="700" fontFamily="Space Grotesk,monospace">{score}</text>
       <text x={cx} y={cy + 16} textAnchor="middle" fill="#555555"
-        fontSize="8.5" letterSpacing="2" fontFamily="Space Grotesk,monospace">SPORTX SCORE</text>
+        fontSize="8.5" letterSpacing="2" fontFamily="Space Grotesk,monospace">ATHLASX SCORE</text>
     </svg>
   );
 }
@@ -296,7 +296,7 @@ export default function PlayerProfileClient({ userId, data, viewerRole, viewerId
             <div className="hero-stats">
               <div className="hstat">
                 <div className="v" style={{ color: "var(--green)" }}>{score?.total_score ?? "—"}</div>
-                <div className="l">SportX Score</div>
+                <div className="l">AthlasX Score</div>
               </div>
               <div className="hstat">
                 <div className="v">{perf?.bpi != null ? Number(perf.bpi).toFixed(1) : "—"}</div>
@@ -638,7 +638,7 @@ export default function PlayerProfileClient({ userId, data, viewerRole, viewerId
           {/* RIGHT */}
           <div className="colstack">
             <div className="card">
-              <div className="chead2"><span className="sect-title">SportX Score Breakdown</span></div>
+              <div className="chead2"><span className="sect-title">AthlasX Score Breakdown</span></div>
               <div className="cb">
                 <div style={{ display: "flex", justifyContent: "center", padding: "4px 0 2px" }}>
                   <BigScoreRing score={score?.total_score ?? 0} />

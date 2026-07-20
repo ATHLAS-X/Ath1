@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { CheckCircle2, Circle, ChevronRight, ChevronDown, ArrowLeft, ArrowRight } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -64,8 +65,20 @@ const CHAPTERS: { title: string; tagline: string; steps: number[] }[] = [
   },
 ];
 
+/* This hub edits the PLAYER's 12-step onboarding flow specifically
+   (cricket profile, fitness, etc.) — it makes no sense for Coach/Scout/
+   Academy accounts, which each have their own dashboard + onboarding page.
+   Without this guard, any non-player landing here saw player-only steps
+   under a generic top navbar with no connection to their actual role. */
+const ROLE_HOME: Record<string, string> = {
+  coach: "/dashboard/coach",
+  scout: "/scout/dashboard",
+  academy_admin: "/academy/dashboard",
+};
+
 function EditProfileHubInner() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [state, setState] = useState<OnboardingState | null>(null);
   const [me, setMe] = useState<ProfileMe | null>(null);
   const [cricket, setCricket] = useState<CricketProfile | null>(null);
@@ -73,8 +86,15 @@ function EditProfileHubInner() {
   const [loading, setLoading] = useState(true);
   const [openChapter, setOpenChapter] = useState<number | null>(null);
 
+  const sessionRole = (session?.user as any)?.role as string | undefined;
+  const wrongRole = status === "authenticated" && sessionRole && sessionRole !== "player";
+
   useEffect(() => {
-    if (status !== "authenticated") return;
+    if (wrongRole) router.replace(ROLE_HOME[sessionRole!] ?? "/dashboard");
+  }, [wrongRole, sessionRole, router]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || wrongRole) return;
     let cancelled = false;
     (async () => {
       try {
@@ -100,7 +120,7 @@ function EditProfileHubInner() {
     return () => { cancelled = true; };
   }, [status]);
 
-  if (status === "loading" || loading) {
+  if (status === "loading" || loading || wrongRole) {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <Loader />
@@ -121,14 +141,15 @@ function EditProfileHubInner() {
   const role = cricket?.player_role ?? me?.profile?.playing_role ?? null;
 
   return (
-    <main className="min-h-screen px-4 py-10">
+    <main className="hx-tokens eph-root min-h-screen px-4 py-10" style={{ background: "var(--hx-bg)", color: "var(--hx-text)" }}>
+      <style dangerouslySetInnerHTML={{ __html: EPH_STYLES }} />
       <div className="max-w-3xl mx-auto space-y-6">
         <header className="space-y-3">
-          <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm sx-link">
+          <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm" style={{ color: "var(--hx-accent-bright)", textDecoration: "none" }}>
             <ArrowLeft size={14} /> Back to dashboard
           </Link>
-          <h1 className="text-3xl font-bold">Edit Profile</h1>
-          <p style={{ color: "var(--muted)" }}>
+          <h1 className="text-3xl font-bold" style={{ fontFamily: "var(--font-space), sans-serif" }}>Edit Profile</h1>
+          <p style={{ color: "var(--hx-text-dim)" }}>
             One flow, four chapters. Pick any step to update — your dashboard, public profile, and
             AthlasX Score refresh as soon as you save.
           </p>
@@ -150,7 +171,7 @@ function EditProfileHubInner() {
         />
 
         {/* Unified flow card */}
-        <section className="sx-card overflow-hidden">
+        <section className="eph-card overflow-hidden">
           {CHAPTERS.map((chap, ci) => {
             const chapSteps = chap.steps.map((n) => getStepMeta(n)!).filter(Boolean);
             const chapDone = chap.steps.filter((n) => completed.has(n)).length;
@@ -160,7 +181,7 @@ function EditProfileHubInner() {
               <div
                 key={chap.title}
                 style={{
-                  borderTop: ci === 0 ? "none" : "1px solid var(--border)",
+                  borderTop: ci === 0 ? "none" : "1px solid var(--hx-card-border)",
                 }}
               >
                 {/* Chapter header — clickable to expand/collapse */}
@@ -175,25 +196,25 @@ function EditProfileHubInner() {
                     <span
                       className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
                       style={{
-                        background: allDone ? "var(--accent)" : "var(--border)",
-                        color: allDone ? "#000" : "var(--text)",
+                        background: allDone ? "var(--hx-accent)" : "var(--hx-field-bg)",
+                        color: allDone ? "#1a0e02" : "var(--hx-text)",
                       }}
                     >
                       {ci + 1}
                     </span>
                     <div>
-                      <p className="font-bold" style={{ color: "var(--text)" }}>{chap.title}</p>
-                      <p className="text-xs" style={{ color: "var(--muted)" }}>{chap.tagline}</p>
+                      <p className="font-bold" style={{ color: "var(--hx-text)" }}>{chap.title}</p>
+                      <p className="text-xs" style={{ color: "var(--hx-text-dim)" }}>{chap.tagline}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs" style={{ color: "var(--muted)" }}>
+                    <span className="text-xs" style={{ color: "var(--hx-text-dim)" }}>
                       {chapDone}/{chap.steps.length}
                     </span>
                     <ChevronDown
                       size={16}
                       style={{
-                        color: "var(--muted)",
+                        color: "var(--hx-text-dim)",
                         transition: "transform 200ms ease",
                         transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
                       }}
@@ -203,7 +224,7 @@ function EditProfileHubInner() {
 
                 {/* Chapter step rows — only render when open */}
                 {isOpen && (
-                  <ul style={{ borderTop: "1px solid var(--border)" }}>
+                  <ul style={{ borderTop: "1px solid var(--hx-card-border)" }}>
                     {chapSteps.map((s, i) => {
                       const isDone = completed.has(s.step);
                       const isReachable = s.step <= currentStep;
@@ -212,36 +233,36 @@ function EditProfileHubInner() {
                         <li
                           key={s.step}
                           style={{
-                            borderTop: i === 0 ? "none" : "1px solid var(--border)",
+                            borderTop: i === 0 ? "none" : "1px solid var(--hx-card-border)",
                             opacity: isReachable ? 1 : 0.45,
                           }}
                         >
                           <Link
                             href={href}
                             aria-disabled={!isReachable}
-                            className="flex items-center gap-3 px-5 py-3 hover:bg-white/[0.03] transition-colors"
+                            className="flex items-center gap-3 px-5 py-3 transition-colors eph-step-row"
                             style={{
                               textDecoration: "none",
                               cursor: isReachable ? "pointer" : "not-allowed",
                             }}
                           >
                             {isDone ? (
-                              <CheckCircle2 size={16} style={{ color: "var(--text)", flexShrink: 0 }} />
+                              <CheckCircle2 size={16} style={{ color: "var(--hx-accent-bright)", flexShrink: 0 }} />
                             ) : (
-                              <Circle size={16} style={{ color: "var(--muted)", flexShrink: 0 }} />
+                              <Circle size={16} style={{ color: "var(--hx-text-dim)", flexShrink: 0 }} />
                             )}
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium truncate" style={{ color: "var(--text)" }}>
-                                <span style={{ color: "var(--muted)", marginRight: 8 }}>
+                              <p className="text-sm font-medium truncate" style={{ color: "var(--hx-text)" }}>
+                                <span style={{ color: "var(--hx-text-dim)", marginRight: 8 }}>
                                   Step {s.step}
                                 </span>
                                 {s.name}
                               </p>
                             </div>
-                            <span className="text-xs" style={{ color: "var(--muted)" }}>
+                            <span className="text-xs" style={{ color: "var(--hx-text-dim)" }}>
                               {isDone ? "Edit" : isReachable ? "Continue" : "Locked"}
                             </span>
-                            <ChevronRight size={14} style={{ color: "var(--muted)", flexShrink: 0 }} />
+                            <ChevronRight size={14} style={{ color: "var(--hx-text-dim)", flexShrink: 0 }} />
                           </Link>
                         </li>
                       );
@@ -255,13 +276,13 @@ function EditProfileHubInner() {
           {/* Footer CTA */}
           <div
             className="px-5 py-4 flex items-center justify-between gap-3 flex-wrap"
-            style={{ borderTop: "1px solid var(--border)" }}
+            style={{ borderTop: "1px solid var(--hx-card-border)" }}
           >
             <div>
-              <p className="text-sm font-semibold" style={{ color: "var(--text)" }}>
+              <p className="text-sm font-semibold" style={{ color: "var(--hx-text)" }}>
                 {percent === 100 ? "Everything's saved." : "Pick up where you left off"}
               </p>
-              <p className="text-xs" style={{ color: "var(--muted)" }}>
+              <p className="text-xs" style={{ color: "var(--hx-text-dim)" }}>
                 {percent === 100
                   ? "Edit any step above to update your profile in place."
                   : `You're on step ${currentStep} of ${ONBOARDING_STEPS.length}.`}
@@ -269,7 +290,7 @@ function EditProfileHubInner() {
             </div>
             <Link
               href="/onboarding"
-              className="sx-btn inline-flex items-center gap-2"
+              className="eph-btn inline-flex items-center gap-2"
               style={{ width: "auto", padding: "10px 16px" }}
             >
               {percent === 100 ? "Open editor" : "Resume flow"} <ArrowRight size={14} />
@@ -280,6 +301,18 @@ function EditProfileHubInner() {
     </main>
   );
 }
+
+const EPH_STYLES = `
+.eph-card { background: var(--hx-bg-soft); border: 1px solid var(--hx-card-border); border-radius: 14px; }
+.eph-step-row:hover { background: var(--hx-field-bg); }
+.eph-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  background: var(--hx-accent); color: #1a0e02; border: 1.5px solid var(--hx-accent);
+  border-radius: 9px; font-weight: 700; font-size: 0.86rem; text-decoration: none;
+  transition: background 0.18s, border-color 0.18s;
+}
+.eph-btn:hover { background: var(--hx-accent-bright); border-color: var(--hx-accent-bright); }
+`;
 
 export default function EditProfileHubPage() {
   return (

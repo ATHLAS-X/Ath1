@@ -1,6 +1,9 @@
 import { sql } from "@/lib/db";
 import { advanceStep } from "@/lib/onboarding";
 import { clientIp, fail, ok, requireUserId, saveUpload } from "@/lib/onboarding-server";
+import { IMAGE_OR_PDF_ALLOWLIST, UploadValidationError, readAndValidateUpload } from "@/lib/upload-validation";
+
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export async function POST(req: Request) {
   const guard = await requireUserId();
@@ -20,7 +23,14 @@ export async function POST(req: Request) {
   if (!disclaimerSigned) return fail("Disclaimer must be confirmed");
   if (!file) return fail("Guardian ID document is required");
 
-  const docUrl = await saveUpload(guard.userId, file, "guardian");
+  let upload;
+  try {
+    upload = await readAndValidateUpload(file, MAX_BYTES, IMAGE_OR_PDF_ALLOWLIST);
+  } catch (e) {
+    if (e instanceof UploadValidationError) return fail(e.message);
+    throw e;
+  }
+  const docUrl = await saveUpload(guard.userId, upload, "guardian");
   const ip = clientIp(req);
   const pts = 1;
 

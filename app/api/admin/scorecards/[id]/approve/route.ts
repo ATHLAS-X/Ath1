@@ -1,4 +1,4 @@
-import { sql } from "@/lib/db";
+﻿import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/admin-server";
 import { ok, fail } from "@/lib/onboarding-server";
 import { calculateAthlasXScore } from "@/lib/score-engine";
@@ -25,6 +25,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
             ${`Your match vs ${m.opponent} has been verified. +3 verification points awarded.`})
   `;
 
+  // Recompute AthlasX score.
   await calculateAthlasXScore(m.user_id);
   return ok({ status: "VERIFIED" });
 }

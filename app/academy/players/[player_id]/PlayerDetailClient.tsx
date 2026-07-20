@@ -55,7 +55,7 @@ const VL_META: Record<number, { label: string; bg: string; fg: string; border: s
   2: { label: "Identity Verified",    bg: "#FEF3C7", fg: "#92400E", border: "#FCD34D",
        description: "Identity confirmed via Aadhaar OTP or in-person check by the academy." },
   3: { label: "Performance Verified", bg: "#DCFCE7", fg: "#15803D", border: "#86EFAC",
-       description: "At least three scorecards approved by SportX, or a verified coach endorsement on file." },
+       description: "At least three scorecards approved by AthlasX, or a verified coach endorsement on file." },
   4: { label: "Scout Verified",       bg: "#DBEAFE", fg: "#1D4ED8", border: "#93C5FD",
        description: "Endorsed by a verified scout after a trial, match, or video review." },
 };
@@ -590,7 +590,7 @@ function TabVerification({ level, onUpgraded, playerId }: { level: number; onUpg
             <p className="pd-confirm-body">
               Confirm you have verified this player&apos;s identity via phone OTP
               or ID document. This sets the player to <strong>Level 2 — Identity Verified</strong>
-              and will be visible to SportX admins and scouts.
+              and will be visible to AthlasX admins and scouts.
             </p>
             {error && <p className="pd-error">{error}</p>}
             <div style={{ display: "flex", gap: 8 }}>
@@ -602,7 +602,7 @@ function TabVerification({ level, onUpgraded, playerId }: { level: number; onUpg
           </div>
         )}
         <p className="pd-hint" style={{ marginTop: 14 }}>
-          Performance Verified (L3) and Scout Verified (L4) are managed by SportX —
+          Performance Verified (L3) and Scout Verified (L4) are managed by AthlasX —
           they need approved scorecards and a verified scout endorsement.
         </p>
       </div>

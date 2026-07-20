@@ -3,24 +3,70 @@ import { Agent, setGlobalDispatcher } from "undici";
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 
 // Some ISP resolvers (e.g. Reliance JIO in IN) refuse Neon's c-*.region.aws.neon.tech
-// hostnames. Force Node to use public resolvers AND route undici/fetch through a
-// custom lookup that uses dns.resolve4 (which honors setServers — getaddrinfo does not).
+// hostnames over the OS's default resolver. The original fix forced every lookup
+// through public DNS-over-UDP servers (8.8.8.8 etc.) via dns.resolve4/6 (which honor
+// setServers — getaddrinfo/dns.lookup do not). That's a single point of failure on
+// any network that itself blocks outbound UDP:53 to those servers (confirmed: on at
+// least one dev network, `nslookup ep-*.neon.tech 8.8.8.8` and even `ping 8.8.8.8`
+// both time out, while the OS's own resolver — same one curl/the browser use —
+// resolves and connects to the exact same host in under a second). Forcing the
+// public-DNS path on a network like that turned a non-issue into every single DB
+// call failing the same way every time, not flaking — confirmed by 10+ consecutive
+// identical timeouts that didn't change. Fixed by racing both resolvers and taking
+// whichever answers first, instead of trusting one exclusively.
 try {
   dns.setServers(["8.8.8.8", "1.1.1.1", "8.8.4.4"]);
-  const lookup: any = (hostname: string, opts: any, cb: any) => {
-    const wantAll = opts && opts.all;
-    dns.resolve4(hostname, (err4, addrs4) => {
-      dns.resolve6(hostname, (err6, addrs6) => {
-        const out: Array<{ address: string; family: number }> = [];
-        if (!err4 && addrs4) for (const a of addrs4) out.push({ address: a, family: 4 });
-        if (!err6 && addrs6) for (const a of addrs6) out.push({ address: a, family: 6 });
-        if (out.length === 0) return cb(err4 || err6 || new Error("DNS lookup failed: " + hostname));
-        if (wantAll) return cb(null, out);
-        cb(null, out[0].address, out[0].family);
+  const PUBLIC_DNS_TIMEOUT_MS = 1500;
+
+  function viaPublicDns(hostname: string): Promise<{ address: string; family: number }[]> {
+    return new Promise((resolve, reject) => {
+      dns.resolve4(hostname, (err4, addrs4) => {
+        dns.resolve6(hostname, (err6, addrs6) => {
+          const out: Array<{ address: string; family: number }> = [];
+          if (!err4 && addrs4) for (const a of addrs4) out.push({ address: a, family: 4 });
+          if (!err6 && addrs6) for (const a of addrs6) out.push({ address: a, family: 6 });
+          if (out.length === 0) return reject(err4 || err6 || new Error("public DNS: no records"));
+          resolve(out);
+        });
       });
     });
+  }
+
+  function viaOsResolver(hostname: string): Promise<{ address: string; family: number }[]> {
+    return new Promise((resolve, reject) => {
+      dns.lookup(hostname, { all: true, verbatim: true }, (err, addrs) => {
+        if (err || !addrs?.length) return reject(err ?? new Error("OS resolver: no records"));
+        resolve(addrs.map((a) => ({ address: a.address, family: a.family })));
+      });
+    });
+  }
+
+  function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error("timed out")), ms);
+      p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+    });
+  }
+
+  const lookup: any = (hostname: string, opts: any, cb: any) => {
+    const wantAll = opts && opts.all;
+    /* Try the OS resolver and the forced-public-DNS path concurrently —
+       whichever actually works on this network wins. Neither blocks the
+       other, and a 1.5s cap on the public-DNS leg means a network that
+       silently drops UDP:53 to 8.8.8.8 no longer holds up every request. */
+    Promise.any([viaOsResolver(hostname), withTimeout(viaPublicDns(hostname), PUBLIC_DNS_TIMEOUT_MS)])
+      .then((out) => {
+        if (wantAll) return cb(null, out);
+        cb(null, out[0].address, out[0].family);
+      })
+      .catch(() => cb(new Error("DNS lookup failed via both OS and public resolvers: " + hostname)));
   };
-  setGlobalDispatcher(new Agent({ connect: { lookup } }));
+  /* connect.timeout bounds a single TCP/TLS connect attempt — undici's
+     default is ~10s, which is what made a fully-failing query take up to
+     ~55s (5 attempts × up to 10s + backoff sleeps). 3s is still generous for
+     a real connect, and means a dead attempt fails fast enough that the
+     retry ladder below actually feels like "retrying", not "hanging". */
+  setGlobalDispatcher(new Agent({ connect: { lookup, timeout: 3000 } }));
 } catch {}
 
 let _sql: NeonQueryFunction<false, false> | null = null;
@@ -61,13 +107,14 @@ function isRetryable(err: unknown): boolean {
   return /fetch failed|connect timeout|socket hang up/i.test(msg);
 }
 
-/* Tuned for very flaky last-mile network (JIO DNS / NAT). Up to 5 attempts,
-   backoffs at 250ms / 750ms / 1.5s / 2.5s — total ~5s of grace before we
-   give up. Each attempt itself can spend ~10s in the Neon HTTP client
-   timeout, so a fully-failing query can take up to ~55s before throwing.
-   That's intentional: the page-level fallbacks already handle the throw,
-   and surfacing a flapping connection as a 500 is worse than waiting. */
-const RETRY_BACKOFFS_MS = [250, 750, 1500, 2500];
+/* Tuned for very flaky last-mile network (JIO DNS / NAT), but capped so a
+   fully-failing query can't drag a user-facing action like login out for
+   a minute. Up to 3 attempts total, backoffs at 200ms / 500ms. Combined
+   with the 3s connect timeout above, a fully-dead connection now throws in
+   well under 10s instead of up to ~55s — still enough grace to ride out a
+   single dropped packet, not enough to make "slow" indistinguishable from
+   "hung" to the person waiting on it. */
+const RETRY_BACKOFFS_MS = [200, 500];
 
 async function withRetry<T>(fn: () => Promise<T>): Promise<T> {
   let lastErr: unknown;

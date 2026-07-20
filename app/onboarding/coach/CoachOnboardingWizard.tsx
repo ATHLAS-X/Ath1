@@ -1,8 +1,11 @@
 ﻿"use client";
 
 import { useState, useCallback } from "react";
-import Link from "next/link";
-import "@/app/athlasx.css";
+import { useRouter } from "next/navigation";
+import { anton, barlow, barlowSemiCondensed } from "@/components/landing/Hero/fonts";
+import { heroStyles } from "@/components/landing/Hero/styles";
+import StepTransition from "@/components/onboarding/StepTransition";
+import OnboardingShell from "@/components/onboarding/OnboardingShell";
 
 /* Coach onboarding — V1 self-signup path (the doc's V2 row).
    Coaches added by academies redeem an invite at /coach/register?token=…
@@ -38,6 +41,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function CoachOnboardingWizard(p: Props) {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormState>(p.initial);
   const [busy, setBusy] = useState(false);
@@ -97,62 +101,46 @@ export default function CoachOnboardingWizard(p: Props) {
     return false;
   })();
 
+  const stepBody = (
+    <StepTransition step={step}>
+      {step === 0 && <Step1 form={form} set={set} userName={p.userName} userEmail={p.userEmail} />}
+      {step === 1 && <Step2 form={form} set={set} />}
+      {step === 2 && <Step3 form={form} set={set} />}
+      {step === 3 && <Step4 form={form} submitted={submitted} userName={p.userName} userEmail={p.userEmail} status={p.coachStatus} />}
+    </StepTransition>
+  );
+
   return (
-    <div className="sx-root cw-root">
+    <div className={`cw-root ${anton.variable} ${barlow.variable} ${barlowSemiCondensed.variable}`}>
+      <style dangerouslySetInnerHTML={{ __html: heroStyles }} />
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
       <div className="cw-shell">
-
-        {submitted && step === 3 && <SubmittedBanner status={p.coachStatus} />}
-
-        <div className="cw-stepper">
-          {STEPS.map((s, i) => (
-            <button key={s.n}
-              type="button"
-              className={`cw-step${i === step ? " on" : ""}${i < step ? " done" : ""}`}
-              onClick={() => i <= step && setStep(i)}>
-              <div className="cw-step-dot">{i < step ? "✓" : i + 1}</div>
-              <div className="cw-step-text">
-                <div className="cw-step-n">{s.n}</div>
-                <div className="cw-step-d">{s.d}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        <div className="card cw-card">
-          {step === 0 && <Step1 form={form} set={set} userName={p.userName} userEmail={p.userEmail} />}
-          {step === 1 && <Step2 form={form} set={set} />}
-          {step === 2 && <Step3 form={form} set={set} />}
-          {step === 3 && <Step4 form={form} submitted={submitted} userName={p.userName} userEmail={p.userEmail} status={p.coachStatus} />}
-
-          {error && <p className="cw-error">{error}</p>}
-
-          {!submitted && (
-            <div className="cw-actions">
-              <button className="btn" disabled={busy || step === 0} onClick={prev}>← Back</button>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                {saved && <span style={{ fontSize: 12, color: "var(--green)" }}>✓ Saved</span>}
-                {step < 3 ? (
-                  <button className="btn green" disabled={busy || cantContinue} onClick={next}>
-                    {busy ? "Saving…" : "Save & Continue →"}
-                  </button>
-                ) : (
-                  <button className="btn green" disabled={busy} onClick={submit}>
-                    {busy ? "Submitting…" : "Submit for AthlasX Review"}
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {submitted && (
-            <div className="cw-actions" style={{ justifyContent: "center" }}>
-              <Link href="/dashboard/coach" className="btn green" style={{ textDecoration: "none" }}>
-                Go to Coach Dashboard
-              </Link>
-            </div>
-          )}
-        </div>
+        <OnboardingShell
+          role="coach"
+          eyebrow="Coach Onboarding"
+          title={<>Get verified to <b>evaluate</b> talent.</>}
+          desc="Four short steps. AthlasX reviews your credentials before granting evaluation permissions."
+          steps={STEPS.map((s) => ({ label: s.n }))}
+          stepIdx={step}
+          onStepClick={(i) => i <= step && setStep(i)}
+          footMeta={`Step ${step + 1} of ${STEPS.length}`}
+          progressPct={((step + 1) / STEPS.length) * 100}
+          nextLabel={submitted ? "Go to Coach Dashboard" : busy ? (step < 3 ? "Saving…" : "Submitting…") : step < 3 ? "Save & Continue →" : "Submit for AthlasX Review"}
+          onNext={submitted ? () => router.push("/dashboard/coach") : step < 3 ? next : submit}
+          nextDisabled={!submitted && (busy || (step < 3 && cantContinue))}
+          onBack={prev}
+          backHidden={step === 0 || submitted}
+          userName={p.userName}
+          belowBody={
+            <>
+              {submitted && step === 3 && <SubmittedBanner status={p.coachStatus} />}
+              {error && <p className="cw-error">{error}</p>}
+              {saved && <p style={{ fontSize: 12, color: "var(--hx-accent-bright)", marginTop: 10 }}>✓ Saved</p>}
+            </>
+          }
+        >
+          {stepBody}
+        </OnboardingShell>
       </div>
     </div>
   );
@@ -338,45 +326,73 @@ function ReviewRow({ k, v, link }: { k: string; v: string; link?: boolean }) {
 }
 
 const STYLES = `
-.cw-root { min-height: 100vh; padding: 24px 18px 48px; }
-.cw-shell { max-width: 880px; margin: 0 auto; }
+.cw-root { min-height: 100vh; padding: 24px 18px 48px; background: var(--hx-bg); color: var(--hx-text); font-family: var(--font-barlow), system-ui, sans-serif; }
+
+/* athlasx.css's .sx-root .btn/.card no longer apply once this page drops
+   .sx-root — equivalents scoped under .cw-shell so the existing className
+   strings in the JSX below don't need to change. */
+.cw-shell .card { background: var(--hx-bg-soft); border: 1px solid var(--hx-card-border); border-radius: 12px; }
+.cw-shell .btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 30px; padding: 0 14px; border-radius: 8px;
+  font-family: var(--font-barlow-semi), sans-serif; font-size: 11.5px; font-weight: 600;
+  border: 1px solid var(--hx-card-border); background: var(--hx-bg-soft);
+  color: var(--hx-text); cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  text-decoration: none;
+}
+.cw-shell .btn:hover { border-color: var(--hx-text-dim); background: var(--hx-field-bg); }
+.cw-shell .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cw-shell .btn.green { background: var(--hx-accent); border-color: var(--hx-accent); color: #1a0e02; }
+.cw-shell .btn.green:hover { background: var(--hx-accent-bright); border-color: var(--hx-accent-bright); }
+/* Same gap as .card/.btn above — .sx-root .sinput's real rule (athlasx.css)
+   no longer applies, which is why these were rendering as bare unstyled
+   browser-default white inputs instead of the dark theme. */
+.cw-shell .sinput { display: block; width: 100%; height: 34px; padding: 0 11px; background: var(--hx-field-bg); border: 1px solid var(--hx-card-border); border-radius: 8px; color: var(--hx-text); font-family: inherit; font-size: 13px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+.cw-shell .sinput::placeholder { color: var(--hx-text-dim); }
+.cw-shell .sinput:focus { border-color: var(--hx-accent); box-shadow: 0 0 8px var(--hx-overlay-accent-22); }
+.cw-shell .sinput:disabled { opacity: 0.6; cursor: default; }
+
+/* No max-width here — OnboardingShell now owns the full-bleed two-column
+   layout (rail + form, edge-to-edge like the Hero section); this wrapper
+   only scopes the cw-* field/step classes used inside it. */
+.cw-shell { width: 100%; }
 .cw-stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
-.cw-step { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 11px; background: var(--card-alt); border: 1px solid var(--line); cursor: pointer; text-align: left; transition: all 0.15s; min-width: 0; }
-.cw-step:hover:not(:disabled) { border-color: var(--line2); }
-.cw-step.done { background: linear-gradient(168deg, rgba(46,224,123,0.08), transparent); border-color: var(--green-bd); }
-.cw-step.on { background: linear-gradient(168deg, rgba(46,224,123,0.13), rgba(46,224,123,0.04)); border-color: var(--green-bd); box-shadow: 0 6px 18px -10px var(--green-glow); }
-.cw-step-dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-family: var(--num); font-size: 11.5px; font-weight: 700; background: var(--card-base); border: 1.5px solid var(--line2); color: var(--mut); flex-shrink: 0; }
-.cw-step.on .cw-step-dot { border-color: var(--green); color: var(--green); }
-.cw-step.done .cw-step-dot { background: radial-gradient(circle at 32% 28%, #46ff97, #0e6e33 75%); border-color: rgba(46,224,123,0.5); color: #04140a; }
+.cw-step { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 11px; background: var(--hx-field-bg); border: 1px solid var(--hx-card-border); cursor: pointer; text-align: left; transition: all 0.15s; min-width: 0; }
+.cw-step:hover:not(:disabled) { border-color: var(--hx-text-dim); }
+.cw-step.done { background: linear-gradient(168deg, var(--hx-overlay-accent-08), transparent); border-color: var(--hx-accent); }
+.cw-step.on { background: linear-gradient(168deg, var(--hx-overlay-accent-14), var(--hx-overlay-accent-08)); border-color: var(--hx-accent); box-shadow: 0 6px 18px -10px var(--hx-overlay-accent-22); }
+.cw-step-dot { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-barlow-semi), sans-serif; font-size: 11.5px; font-weight: 700; background: var(--hx-bg-soft); border: 1.5px solid var(--hx-card-border); color: var(--hx-text-dim); flex-shrink: 0; }
+.cw-step.on .cw-step-dot { border-color: var(--hx-accent); color: var(--hx-accent-bright); }
+.cw-step.done .cw-step-dot { background: var(--hx-accent); border-color: var(--hx-accent); color: #1a0e02; }
 .cw-step-text { min-width: 0; }
-.cw-step-n { font-family: var(--num); font-size: 12.5px; font-weight: 700; color: var(--text); }
-.cw-step-d { font-size: 10px; color: var(--mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cw-step-n { font-family: var(--font-barlow-semi), sans-serif; font-size: 12.5px; font-weight: 700; color: var(--hx-text); }
+.cw-step-d { font-size: 10px; color: var(--hx-text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .cw-card { padding: 28px 26px; }
 .cw-head { margin-bottom: 22px; }
-.cw-h2 { font-family: var(--num); font-size: 24px; font-weight: 700; margin: 6px 0 8px; }
-.cw-sub { font-size: 13px; color: var(--mut); line-height: 1.55; max-width: 640px; }
-.cw-sub code { background: var(--card-alt); padding: 1px 6px; border-radius: 5px; font-size: 11.5px; color: var(--green); }
+.cw-h2 { font-family: var(--font-anton), sans-serif; text-transform: uppercase; font-weight: 400; font-size: 24px; margin: 6px 0 8px; }
+.cw-sub { font-size: 13px; color: var(--hx-text-dim); line-height: 1.55; max-width: 640px; }
+.cw-sub code { background: var(--hx-field-bg); padding: 1px 6px; border-radius: 5px; font-size: 11.5px; color: var(--hx-accent-bright); }
 
 .cw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 700px) { .cw-grid, .cw-stepper { grid-template-columns: 1fr; } }
 .cw-field { display: block; }
-.cw-hint { display: block; font-size: 11px; color: var(--mut); margin-top: 5px; }
+.cw-hint { display: block; font-size: 11px; color: var(--hx-text-dim); margin-top: 5px; }
 
-.cw-error { margin-top: 14px; padding: 10px 12px; border-radius: 9px; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--red); font-size: 12.5px; }
-.cw-note { margin-top: 16px; padding: 12px; border-radius: 10px; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); color: var(--amber); font-size: 12.5px; line-height: 1.55; }
-.cw-note code { background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 5px; font-size: 11px; color: var(--amber); }
+.cw-error { margin-top: 14px; padding: 10px 12px; border-radius: 9px; background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: #F87171; font-size: 12.5px; }
+.cw-note { margin-top: 16px; padding: 12px; border-radius: 10px; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); color: #FBBF24; font-size: 12.5px; line-height: 1.55; }
+.cw-note code { background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 5px; font-size: 11px; color: #FBBF24; }
 
-.cw-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+.cw-actions { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--hx-card-border); }
 
 .cw-review { display: flex; flex-direction: column; gap: 0; }
 .cw-rev-row { display: flex; gap: 12px; padding: 10px 0; align-items: flex-start; }
-.cw-rev-row + .cw-rev-row { border-top: 1px solid var(--line); }
-.cw-rev-k { width: 180px; flex-shrink: 0; font-size: 12px; color: var(--mut); }
-.cw-rev-v { flex: 1; font-size: 12.5px; font-weight: 600; color: var(--text); word-break: break-word; }
+.cw-rev-row + .cw-rev-row { border-top: 1px solid var(--hx-card-border); }
+.cw-rev-k { width: 180px; flex-shrink: 0; font-size: 12px; color: var(--hx-text-dim); }
+.cw-rev-v { flex: 1; font-size: 12.5px; font-weight: 600; color: var(--hx-text); word-break: break-word; }
 
-.cw-success-banner { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 12px; background: linear-gradient(168deg, rgba(46,224,123,0.12), rgba(46,224,123,0.04)); border: 1px solid var(--green-bd); margin-bottom: 18px; }
-.cw-success-dot { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: radial-gradient(circle at 32% 28%, #46ff97, #0e6e33 75%); box-shadow: 0 0 16px var(--green-glow); flex-shrink: 0; }
-.cw-success-h { font-family: var(--num); font-size: 16px; font-weight: 700; }
-.cw-success-s { font-size: 12.5px; color: var(--mut); line-height: 1.5; margin-top: 3px; }
+.cw-success-banner { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 12px; background: linear-gradient(168deg, var(--hx-overlay-accent-14), var(--hx-overlay-accent-08)); border: 1px solid var(--hx-accent); margin-bottom: 18px; }
+.cw-success-dot { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: var(--hx-accent); box-shadow: 0 0 16px var(--hx-overlay-accent-22); flex-shrink: 0; color: #1a0e02; }
+.cw-success-h { font-family: var(--font-barlow-semi), sans-serif; font-size: 16px; font-weight: 700; }
+.cw-success-s { font-size: 12.5px; color: var(--hx-text-dim); line-height: 1.5; margin-top: 3px; }
 `;

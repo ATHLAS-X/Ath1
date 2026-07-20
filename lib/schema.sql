@@ -1,4 +1,4 @@
--- ============================================================
+﻿-- ============================================================
 -- AthlasX — complete idempotent schema
 -- Safe to run on a fresh DB or re-run on an existing one.
 -- All ALTER TABLE columns are merged into their CREATE TABLE
