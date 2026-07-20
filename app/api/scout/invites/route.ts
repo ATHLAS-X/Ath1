@@ -8,28 +8,16 @@ export async function GET() {
   if (!session?.user?.id) return NextResponse.json([]);
 
   try {
-    /* Ensure table exists (idempotent) */
-    await sql`
-      CREATE TABLE IF NOT EXISTS trial_invites (
-        id SERIAL PRIMARY KEY,
-        scout_user_id TEXT NOT NULL,
-        player_user_id TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'Pending',
-        sent_at TIMESTAMPTZ DEFAULT NOW(),
-        UNIQUE(scout_user_id, player_user_id)
-      )
-    `;
-
     const rows = (await sql`
       SELECT
         ti.id,
         u.name AS player_name,
         ti.status,
-        ti.sent_at
-      FROM trial_invites ti
-      JOIN users u ON ti.player_user_id = u.id
-      WHERE ti.scout_user_id = ${session.user.id}
-      ORDER BY ti.sent_at DESC
+        ti.created_at AS sent_at
+      FROM scout_trial_invites ti
+      JOIN users u ON ti.player_user_id::uuid = u.id
+      WHERE ti.scout_user_id::uuid = ${(session.user as any).id}
+      ORDER BY ti.created_at DESC
       LIMIT 10
     `) as any[];
 

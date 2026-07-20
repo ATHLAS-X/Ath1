@@ -55,9 +55,11 @@ CREATE TABLE IF NOT EXISTS academies (
   age_groups          TEXT[],
   facilities          TEXT[],
   specialties         TEXT[],
-  profile_status      VARCHAR(40)  DEFAULT 'Draft',
-  submitted_at        TIMESTAMPTZ,
-  created_at          TIMESTAMPTZ  DEFAULT NOW()
+  profile_status          VARCHAR(40)  DEFAULT 'Draft',
+  submitted_at            TIMESTAMPTZ,
+  onboarding_step         INTEGER      DEFAULT 1,
+  onboarding_completed_at TIMESTAMPTZ,
+  created_at              TIMESTAMPTZ  DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS academies_name_idx   ON academies USING gin (to_tsvector('simple', academy_name));
 CREATE INDEX IF NOT EXISTS academies_state_idx  ON academies(state);
@@ -264,6 +266,11 @@ CREATE TABLE IF NOT EXISTS match_logs (
   reviewed_at       TIMESTAMP,
   reject_reason     TEXT,
   rejection_reason  TEXT,
+  -- compute service integration
+  compute_task_id   TEXT,
+  compute_status    TEXT,
+  review_status     TEXT         DEFAULT 'PENDING_REVIEW',
+  is_stub           BOOLEAN NOT NULL DEFAULT false,
   created_at        TIMESTAMP    DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS match_logs_user_id_idx ON match_logs(user_id);
@@ -289,16 +296,22 @@ CREATE UNIQUE INDEX IF NOT EXISTS fitness_data_user_id_uidx ON fitness_data(user
 
 -- ── behavioral assessment (player self-assessment) ───────────
 CREATE TABLE IF NOT EXISTS behavioral_assessment (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id       UUID REFERENCES users(id) ON DELETE CASCADE,
-  mcq_answers   JSONB,
-  free_text     TEXT,
-  strengths     TEXT[],
-  gaps          TEXT[],
-  mental_rating INTEGER,
-  coaching_tip  TEXT,
-  mindset_score INTEGER,
-  created_at    TIMESTAMP DEFAULT NOW()
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id             UUID REFERENCES users(id) ON DELETE CASCADE,
+  mcq_answers         JSONB,
+  free_text           TEXT,
+  strengths           TEXT[],
+  gaps                TEXT[],
+  mental_rating       INTEGER,
+  coaching_tip        TEXT,
+  mindset_score       INTEGER,
+  -- compute service integration
+  acsi_raw_responses  JSONB,
+  compute_task_id     TEXT,
+  compute_status      TEXT,
+  compute_result      JSONB,
+  is_stub             BOOLEAN NOT NULL DEFAULT false,
+  created_at          TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS behavioral_assessment_user_id_idx ON behavioral_assessment(user_id);
 
@@ -317,6 +330,10 @@ CREATE TABLE IF NOT EXISTS video_analysis (
   style_classification TEXT,
   technique_notes      TEXT,
   video_analysed       BOOLEAN DEFAULT false,
+  -- compute service integration
+  compute_task_id      TEXT,
+  compute_status       TEXT,
+  is_stub              BOOLEAN NOT NULL DEFAULT false,
   created_at           TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS video_analysis_user_id_idx ON video_analysis(user_id);
@@ -554,3 +571,94 @@ CREATE TABLE IF NOT EXISTS coach_evaluations (
 );
 CREATE INDEX IF NOT EXISTS coach_evaluations_coach_idx  ON coach_evaluations(coach_user_id);
 CREATE INDEX IF NOT EXISTS coach_evaluations_player_idx ON coach_evaluations(player_user_id);
+
+-- ── scout profiles ───────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS scout_profiles (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id              UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  designation          TEXT,
+  organization_name    TEXT,
+  org_type             TEXT,
+  region               TEXT,
+  years_experience     INTEGER,
+  proof_url            TEXT,
+  preferred_age_groups TEXT[],
+  preferred_roles      TEXT[],
+  preferred_regions    TEXT[],
+  profile_status       VARCHAR(40) DEFAULT 'Draft',
+  submitted_at         TIMESTAMPTZ,
+  updated_at           TIMESTAMPTZ DEFAULT NOW(),
+  created_at           TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (user_id)
+);
+CREATE INDEX IF NOT EXISTS scout_profiles_user_idx   ON scout_profiles(user_id);
+CREATE INDEX IF NOT EXISTS scout_profiles_status_idx ON scout_profiles(profile_status);
+
+-- ── player performance summary (academy-managed stats) ───────
+CREATE TABLE IF NOT EXISTS player_performance_summary (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id            UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  matches            INTEGER,
+  innings            INTEGER,
+  runs               INTEGER,
+  batting_average    DECIMAL(6,2),
+  strike_rate        DECIMAL(6,2),
+  highest_score      INTEGER,
+  fifties            INTEGER,
+  hundreds           INTEGER,
+  bowling_matches    INTEGER,
+  wickets            INTEGER,
+  overs              DECIMAL(6,1),
+  economy            DECIMAL(5,2),
+  bowling_average    DECIMAL(6,2),
+  catches            INTEGER,
+  stumpings          INTEGER,
+  runouts            INTEGER,
+  best_figures       VARCHAR(10),
+  updated_at         TIMESTAMPTZ DEFAULT NOW(),
+  updated_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  UNIQUE (user_id)
+);
+CREATE INDEX IF NOT EXISTS player_performance_summary_user_idx ON player_performance_summary(user_id);
+
+-- ── email verifications ──
+CREATE TABLE IF NOT EXISTS email_verifications (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token      TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at    TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS email_verifications_user_idx  ON email_verifications(user_id);
+CREATE INDEX IF NOT EXISTS email_verifications_token_idx ON email_verifications(token);
+
+-- ── batches ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS batches (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  academy_id        UUID NOT NULL REFERENCES academies(id) ON DELETE CASCADE,
+  coach_id          UUID REFERENCES academy_coaches(id) ON DELETE SET NULL,
+  batch_name        VARCHAR(120) NOT NULL,
+  age_group         VARCHAR(20),
+  schedule_days     TEXT[],
+  schedule_time     VARCHAR(40),
+  max_players       INTEGER,
+  batch_status      VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+  created_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  updated_at        TIMESTAMPTZ DEFAULT NOW(),
+  created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS batches_academy_idx ON batches(academy_id);
+CREATE INDEX IF NOT EXISTS batches_coach_idx   ON batches(coach_id);
+CREATE INDEX IF NOT EXISTS batches_status_idx  ON batches(batch_status);
+
+-- ── batch_players ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS batch_players (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  batch_id          UUID NOT NULL REFERENCES batches(id) ON DELETE CASCADE,
+  player_profile_id UUID NOT NULL REFERENCES player_profiles(id) ON DELETE CASCADE,
+  joined_at         TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (batch_id, player_profile_id)
+);
+CREATE INDEX IF NOT EXISTS batch_players_batch_idx  ON batch_players(batch_id);
+CREATE INDEX IF NOT EXISTS batch_players_player_idx ON batch_players(player_profile_id);

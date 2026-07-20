@@ -1,7 +1,9 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import { sql } from "@/lib/db";
 import { ROLES, type UserRole } from "@/lib/auth";
+import { sendVerificationEmail } from "@/lib/email";
 
 interface SignupBody {
   name?: string;
@@ -66,5 +68,19 @@ export async function POST(req: Request) {
     account_status: string;
   }[];
 
-  return NextResponse.json({ success: true, data: { user: inserted[0] } }, { status: 201 });
+  const user = inserted[0];
+
+  // Generate a 32-byte URL-safe verification token, valid for 24 hours
+  const token = randomBytes(32).toString("hex");
+  await sql`
+    INSERT INTO email_verifications (user_id, token, expires_at)
+    VALUES (${user.id}, ${token}, NOW() + INTERVAL '24 hours')
+  `;
+
+  // Fire-and-forget — don't block signup response on email delivery
+  sendVerificationEmail({ to: email, name: user.name, token }).catch((e) =>
+    console.error("[signup] Failed to send verification email:", e),
+  );
+
+  return NextResponse.json({ success: true, data: { user } }, { status: 201 });
 }

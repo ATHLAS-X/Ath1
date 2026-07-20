@@ -26,10 +26,17 @@ export async function GET() {
   /* Pull live coaches (deleted_at IS NULL) with the count of fitness
      assessments each one has on file — the Remove action needs this. */
   const rows = (await sql`
-    SELECT c.id, c.coach_name, c.specialization, c.years_experience,
-           c.certifications, c.can_submit_fitness, c.can_submit_evaluations,
-           c.coach_status, c.created_at,
-           COALESCE(fa.n, 0) AS assessment_count
+    SELECT
+      c.id, c.coach_name, c.specialization, c.years_experience,
+      c.certifications, c.can_submit_fitness, c.can_submit_evaluations,
+      c.coach_status, c.created_at,
+      COALESCE(fa.n, 0) AS assessment_count,
+      COALESCE(
+        json_agg(
+          json_build_object('id', b.id, 'batch_name', b.batch_name, 'age_group', b.age_group, 'player_count', bp_counts.n)
+        ) FILTER (WHERE b.id IS NOT NULL),
+        '[]'
+      ) AS batches
     FROM academy_coaches c
     JOIN academies a ON a.id = c.academy_id
     LEFT JOIN (
@@ -37,7 +44,12 @@ export async function GET() {
       FROM player_fitness_assessments
       GROUP BY assessed_by_coach_id
     ) fa ON fa.assessed_by_coach_id = c.id
+    LEFT JOIN batches b ON b.coach_id = c.id AND b.batch_status = 'ACTIVE'
+    LEFT JOIN (
+      SELECT batch_id, COUNT(*)::int AS n FROM batch_players GROUP BY batch_id
+    ) bp_counts ON bp_counts.batch_id = b.id
     WHERE a.user_id = ${userId} AND c.deleted_at IS NULL
+    GROUP BY c.id, fa.n
     ORDER BY c.created_at DESC
   `) as any[];
   return NextResponse.json({ success: true, coaches: rows });

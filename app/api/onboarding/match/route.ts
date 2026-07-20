@@ -45,9 +45,10 @@ export async function POST(req: Request) {
 
   const scorecardUrl = await saveUpload(guard.userId, file, "matches");
 
-  // MVP simulated OCR — always auto-verified.
-  const ocrStatus = "VERIFIED";
-  const pts = 3;
+  // Scorecard goes to the player's coach for manual verification.
+  // Verification pts (3) are awarded only after a coach approves — never auto-granted.
+  const ocrStatus = "PENDING_COACH_REVIEW";
+  const pts = 0;
 
   await sql`
     INSERT INTO match_logs
