@@ -37,3 +37,6 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+tsconfig.tsbuildinfo
+
+.env*
