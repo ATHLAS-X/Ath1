@@ -53,7 +53,17 @@ export async function POST(req: Request) {
   `;
 
   /* Stash the phone on the user row if it wasn't already set. */
-  await sql`UPDATE users SET phone = ${phone} WHERE id = ${userId} AND phone IS NULL`;
+  try {
+    await sql`UPDATE users SET phone = ${phone} WHERE id = ${userId} AND phone IS NULL`;
+  } catch (e: any) {
+    if (e?.code === "23505") {
+      return NextResponse.json(
+        { success: false, error: "This phone number is already registered to another account" },
+        { status: 409 },
+      );
+    }
+    throw e;
+  }
 
   await sendSms(phone, `Your AthlasX verification code is ${code}. Expires in 10 minutes.`);
 
