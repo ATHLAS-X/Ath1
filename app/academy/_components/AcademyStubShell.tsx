@@ -4,9 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 
-/* Reused sidebar + topbar wrapper for the not-yet-built academy pages
-   (Players list / Coaches / Fitness / Settings). Keeps nav consistent
-   with /academy/dashboard so links don't break. */
+/* Reused sidebar + topbar wrapper for stub academy pages (e.g. Settings).
+   Keeps nav consistent with /academy/dashboard so links don't break. */
 
 interface Props {
   title: string;
@@ -26,14 +25,13 @@ const NAV = [
 export default function AcademyStubShell({ title, sub, desc, note }: Props) {
   const pathname = usePathname() ?? "";
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#F5F5F5", color: "#0F172A", fontFamily: "'Instrument Sans', system-ui, sans-serif" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--ax-bg)", color: "var(--ax-text)", fontFamily: "var(--ax-font-body)" }}>
       <style>{STYLES}</style>
 
       <aside className="ss-sidebar">
         <div className="ss-brand">
-          <div className="ss-ball" />
           <div>
-            <div className="ss-word">SPORT<em>X</em></div>
+            <div className="ss-word">ATHLAS<em>X</em></div>
             <div className="ss-sub">Academy admin</div>
           </div>
         </div>
@@ -73,27 +71,27 @@ export default function AcademyStubShell({ title, sub, desc, note }: Props) {
 }
 
 const STYLES = `
-.ss-sidebar { width: 240px; flex-shrink: 0; background: #0A1628; color: #F1F5F9; display: flex; flex-direction: column; padding: 20px 14px; position: sticky; top: 0; height: 100vh; }
+.ss-sidebar { width: 240px; flex-shrink: 0; background: var(--ax-bg-soft); color: var(--ax-text); display: flex; flex-direction: column; padding: 20px 14px; position: sticky; top: 0; height: 100vh; border-right: 1px solid var(--ax-border); }
 .ss-brand { display: flex; align-items: center; gap: 11px; padding: 4px 4px 14px; }
-.ss-ball { width: 28px; height: 28px; border-radius: 50%; background: radial-gradient(circle at 32% 28%, #46ff97, #0e6e33 72%); box-shadow: 0 0 16px rgba(46,224,123,0.45); flex-shrink: 0; }
-.ss-word { font-family: 'Space Grotesk', monospace; font-size: 16px; font-weight: 700; letter-spacing: 0.05em; }
-.ss-word em { font-style: normal; color: #22C55E; }
-.ss-sub { font-size: 10px; color: #94A3B8; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px; }
+.ss-word { font-family: var(--ax-font-display); font-size: 16px; font-weight: 700; letter-spacing: 0.05em; }
+.ss-word em { font-style: normal; color: var(--ax-accent); }
+.ss-sub { font-size: 10px; color: var(--ax-text-faint); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 1px; }
 .ss-nav { display: flex; flex-direction: column; gap: 4px; padding-top: 8px; }
-.ss-link { display: block; padding: 10px 14px; border-radius: 9px; color: #94A3B8; font-size: 13px; font-weight: 500; text-decoration: none; border-left: 3px solid transparent; }
-.ss-link:hover { color: #F1F5F9; background: rgba(255,255,255,0.04); }
-.ss-link.on { background: rgba(34,197,94,0.12); color: #FFFFFF; border-left-color: #22C55E; }
-.ss-topbar { display: flex; justify-content: space-between; align-items: center; padding: 18px 28px; background: #FFFFFF; border-bottom: 1px solid #E2E8F0; }
-.ss-title h1 { font-size: 18px; font-weight: 700; color: #0F172A; margin: 0; }
-.ss-tsub { font-size: 11.5px; color: #64748B; margin-top: 2px; }
-.ss-logout { padding: 7px 12px; border-radius: 7px; background: #F1F5F9; border: 1px solid #CBD5E1; color: #475569; font-size: 12px; font-weight: 600; cursor: pointer; }
+.ss-link { display: block; padding: 10px 14px; border-radius: var(--ax-radius-md); color: var(--ax-text-dim); font-size: 13px; font-weight: 500; text-decoration: none; border-left: 3px solid transparent; }
+.ss-link:hover { color: var(--ax-text); background: var(--ax-bg-elevated); }
+.ss-link.on { background: var(--ax-accent-14); color: var(--ax-accent-bright); border-left-color: var(--ax-accent); }
+.ss-topbar { display: flex; justify-content: space-between; align-items: center; padding: 18px 28px; background: rgba(13,13,13,0.6); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-bottom: 1px solid var(--ax-border); position: sticky; top: 0; z-index: 10; }
+.ss-title h1 { font-size: 18px; font-weight: 700; color: var(--ax-text); margin: 0; }
+.ss-tsub { font-size: 11.5px; color: var(--ax-text-faint); margin-top: 2px; }
+.ss-logout { padding: 7px 12px; border-radius: var(--ax-radius-md); background: var(--ax-field); border: 1px solid var(--ax-border); color: var(--ax-text-dim); font-size: 12px; font-weight: 600; cursor: pointer; }
+.ss-logout:hover { background: var(--ax-bad-soft); color: var(--ax-bad-text); border-color: var(--ax-bad); }
 .ss-main { padding: 32px 28px; max-width: 800px; }
-.ss-card { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 12px; padding: 36px 32px; text-align: center; }
+.ss-card { background: var(--ax-card); border: 1px solid var(--ax-border); border-radius: var(--ax-radius-xl); padding: 36px 32px; text-align: center; box-shadow: var(--ax-shadow-card); }
 .ss-stub-icon { font-size: 38px; }
-.ss-h2 { font-size: 22px; font-weight: 700; color: #0F172A; margin: 10px 0 6px; font-family: 'Space Grotesk', monospace; }
-.ss-p { font-size: 13.5px; color: #475569; line-height: 1.55; max-width: 460px; margin: 6px auto 0; }
-.ss-note { font-size: 11.5px; color: #94A3B8; max-width: 460px; margin: 12px auto 0; font-style: italic; }
-.ss-back { display: inline-block; margin-top: 22px; padding: 9px 16px; background: #22C55E; color: #FFFFFF; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none; }
-.ss-back:hover { background: #16A34A; }
+.ss-h2 { font-size: 22px; font-weight: 700; color: var(--ax-text); margin: 10px 0 6px; font-family: var(--ax-font-display); }
+.ss-p { font-size: 13.5px; color: var(--ax-text-dim); line-height: 1.55; max-width: 460px; margin: 6px auto 0; }
+.ss-note { font-size: 11.5px; color: var(--ax-text-faint); max-width: 460px; margin: 12px auto 0; font-style: italic; }
+.ss-back { display: inline-block; margin-top: 22px; padding: 9px 16px; background: var(--ax-accent); color: var(--ax-text-on-accent); border-radius: var(--ax-radius-md); font-size: 12px; font-weight: 600; text-decoration: none; box-shadow: var(--ax-glow-accent); }
+.ss-back:hover { background: var(--ax-accent-bright); }
 @media (max-width: 800px) { .ss-sidebar { width: 60px; padding: 16px 8px; } .ss-link { padding: 10px 8px; font-size: 10px; text-align: center; } .ss-brand div:nth-child(2) { display: none; } }
 `;

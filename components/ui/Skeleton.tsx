@@ -1,8 +1,7 @@
 "use client";
 
 /* Minimal shadcn-style Skeleton — a pulsing placeholder used in fetch
-   loading states. Keeps the academy admin pages on the light theme so the
-   shimmer reads as "loading" rather than dark-mode chrome. */
+   loading states across the academy admin's --ax-* dark theme. */
 
 import React from "react";
 
@@ -19,7 +18,7 @@ export function Skeleton({ width, height, circle, style, ...rest }: SkeletonProp
       style={{
         width: width ?? "100%",
         height: height ?? 12,
-        background: "linear-gradient(90deg, #E2E8F0 0%, #F1F5F9 50%, #E2E8F0 100%)",
+        background: "linear-gradient(90deg, var(--ax-field) 0%, var(--ax-bg-elevated) 50%, var(--ax-field) 100%)",
         backgroundSize: "200% 100%",
         borderRadius: circle ? "50%" : 8,
         animation: "sx-skeleton-pulse 1.4s ease-in-out infinite",
