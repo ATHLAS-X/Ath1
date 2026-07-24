@@ -1,4 +1,4 @@
-"""FastAPI application entrypoint for the ATHLASX compute service."""
+﻿"""FastAPI application entrypoint for the ATHLASX compute service."""
 
 from __future__ import annotations
 

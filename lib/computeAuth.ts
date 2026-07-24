@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Auth bridge — mints short-lived HS256 JWTs that the Backend/AI compute
  * service accepts as Bearer tokens.
  *

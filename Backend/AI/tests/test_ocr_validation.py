@@ -1,4 +1,4 @@
-"""TIER 1/2 — OCR image validation logic (pure; no Gemini, no network)."""
+﻿"""TIER 1/2 — OCR image validation logic (pure; no Gemini, no network)."""
 
 from __future__ import annotations
 

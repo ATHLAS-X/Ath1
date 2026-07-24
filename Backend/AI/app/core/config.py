@@ -1,4 +1,4 @@
-"""Application configuration via Pydantic Settings.
+﻿"""Application configuration via Pydantic Settings.
 
 All environment variables for the compute service are declared here. Defaults are
 chosen so the service boots for local development against the isolated stack in

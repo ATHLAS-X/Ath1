@@ -27,6 +27,7 @@ export async function GET() {
   const [
     countsRows, viewsRows, savesRows, invitesRows,
     fitnessRows, behavRows, topRows, recentRows,
+    batchRows, coachRows,
   ] = await Promise.all([
     safe(sql`
       SELECT
@@ -98,11 +99,37 @@ export async function GET() {
       ORDER BY pp.created_at DESC
       LIMIT 8
     ` as unknown as Promise<any[]>, [] as any[]),
+
+    safe(sql`
+      SELECT
+        b.id, b.batch_name, b.age_group, b.schedule_days, b.schedule_time, b.batch_status,
+        ac.id AS coach_id, ac.coach_name,
+        COUNT(bp.id)::int AS player_count
+      FROM batches b
+      LEFT JOIN academy_coaches ac ON ac.id = b.coach_id AND ac.deleted_at IS NULL
+      LEFT JOIN batch_players bp ON bp.batch_id = b.id
+      WHERE b.academy_id = ${academyId} AND b.batch_status = 'ACTIVE'
+      GROUP BY b.id, ac.id, ac.coach_name
+      ORDER BY b.created_at DESC
+    ` as unknown as Promise<any[]>, [] as any[]),
+
+    safe(sql`
+      SELECT
+        ac.id, ac.coach_name, ac.specialization, ac.coach_status,
+        COUNT(DISTINCT b.id)::int AS batch_count,
+        COUNT(DISTINCT bp.player_profile_id)::int AS player_count
+      FROM academy_coaches ac
+      LEFT JOIN batches b ON b.coach_id = ac.id AND b.batch_status = 'ACTIVE'
+      LEFT JOIN batch_players bp ON bp.batch_id = b.id
+      WHERE ac.academy_id = ${academyId} AND ac.deleted_at IS NULL AND ac.coach_status = 'ACTIVE'
+      GROUP BY ac.id
+      ORDER BY ac.coach_name
+    ` as unknown as Promise<any[]>, [] as any[]),
   ]);
 
   return NextResponse.json({
-    academy_name: academy.academy_name,
-    counts: (countsRows as any[])[0] ?? {},
+    academy_name:    academy.academy_name,
+    counts:          (countsRows as any[])[0] ?? {},
     scout_views_30d: (viewsRows as any[])[0]?.cnt ?? 0,
     scout_saves:     (savesRows as any[])[0]?.cnt ?? 0,
     invites:         (invitesRows as any[])[0] ?? {},
@@ -110,5 +137,7 @@ export async function GET() {
     behavioural:     (behavRows as any[])[0] ?? {},
     top_performers:  topRows as any[],
     recent_players:  recentRows as any[],
+    batches:         batchRows as any[],
+    coaches:         coachRows as any[],
   });
 }

@@ -1122,6 +1122,7 @@ select.pw-input option { background: var(--hx-bg-soft); color: var(--hx-text); }
 .pw-aadhaar-warn-title { font-size: 13px; font-weight: 600; color: var(--hx-text); }
 .pw-aadhaar-warn-sub { font-size: 12px; color: var(--hx-text-dim); margin-top: 2px; }
 .pw-aadhaar-error { color: #F87171; margin-top: 10px; }
+<<<<<<< HEAD
 
 /* Age badge (Step 1 DOB field) */
 .pw-age-badge { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; font-family: var(--font-barlow-semi), sans-serif; letter-spacing: 0.02em; }

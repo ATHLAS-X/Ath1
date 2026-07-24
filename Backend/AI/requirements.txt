@@ -1,4 +1,4 @@
-# ATHLASX Compute Service — Python dependencies
+﻿# ATHLASX Compute Service — Python dependencies
 #
 # NOTE: ARM64 (Oracle Ampere A1) is the eventual deployment target. All pinned
 # packages below publish manylinux aarch64 wheels (or are pure-Python), so the

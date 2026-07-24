@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Email stub. Replace with Resend / SES / Postmark in production.
  *
  * The log here must NOT echo the recipient address or the body — `body`

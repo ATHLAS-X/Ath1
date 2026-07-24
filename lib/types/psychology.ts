@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TypeScript types for the full ACSI-28 Cricket Development Profile submission.
  *
  * Mirrors the compute service's PsychAnalyzeRequest (psychology.py) and the

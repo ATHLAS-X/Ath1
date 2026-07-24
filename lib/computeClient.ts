@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Typed HTTP client for the Backend/AI compute service.
  *
  * Every call mints a fresh forwarding JWT via computeAuth.ts, builds the full

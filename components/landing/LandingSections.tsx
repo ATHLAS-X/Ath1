@@ -1,4 +1,4 @@
-import Image from "next/image";
+﻿import Image from "next/image";
 import Link from "next/link";
 import { anton, barlow, barlowSemiCondensed } from "@/components/landing/Hero/fonts";
 import { heroStyles } from "@/components/landing/Hero/styles";

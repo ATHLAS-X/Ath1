@@ -1,4 +1,4 @@
-"""Submission validation.
+﻿"""Submission validation.
 
   * Video: YouTube URL format (Engineering Doc 3.2) + oEmbed accessibility check.
   * OCR: image source validation for base64 (magic-byte + size cap) and URL
