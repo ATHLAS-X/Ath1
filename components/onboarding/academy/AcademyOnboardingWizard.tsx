@@ -61,7 +61,12 @@ function validate(step: number, data: AcademyFormData): Record<string, string> {
   const errs: Record<string, string> = {};
   if (step === 0) {
     if (data.phone.length !== 10) errs.phone = "Enter a valid 10-digit mobile number.";
-    if (!data.otpVerified)        errs.otp   = "Verify the OTP before continuing.";
+    /* TEMP BYPASS (2026-07-25): OTP verification is not required to advance
+       past this step. lib/sms.ts has no real SMS provider wired up yet, so
+       codes never reach a real phone outside dev (where the dev_otp hint
+       covers it) — this unblocks onboarding testing until that's connected.
+       RE-ENABLE before real users hit this flow:
+       if (!data.otpVerified) errs.otp = "Verify the OTP before continuing."; */
   }
   if (step === 1) {
     if (!data.academyName.trim())        errs.academyName        = "Academy name is required.";
