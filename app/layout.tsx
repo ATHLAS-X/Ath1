@@ -4,7 +4,6 @@ import "./globals.css";
 import "./athlasx.css";
 import Providers from "@/components/Providers";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
-import AppBackground from "@/components/AppBackground";
 import { Toaster } from "sonner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -31,7 +30,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${instrumentSans.variable}`}>
       <body style={{ background: "#000000" }}>
         <Providers>
-          <AppBackground />
           <div style={{ position: "relative", zIndex: 1 }}>
             <ConditionalNavbar />
             {children}

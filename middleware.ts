@@ -45,8 +45,17 @@ const ONBOARDING_BY_ROLE: Record<string, string> = {
    checks). Mirrors the page-level role rules above but returns JSON 401/403
    instead of redirecting, since these are fetched by client code, not
    navigated to. */
+/* Order matters — Array.find() takes the first match, so the
+   /api/scout/profile exception must come before the general /api/scout
+   rule below it. A pending scout is BY DEFINITION not yet "active" — that's
+   exactly the state onboarding is meant to resolve, so its own save/submit
+   endpoints can't require active status without making onboarding
+   unfinishable. requireActive stays on the real discovery/feature routes
+   (players, shortlist, notes, invites, etc.), which a scout should only
+   reach once an admin has approved them. */
 const API_ROLE_PREFIXES: Array<{ prefix: string; roles: string[]; requireActive?: string[] }> = [
   { prefix: "/api/admin", roles: ["admin", "athlasx_admin"] },
+  { prefix: "/api/scout/profile", roles: ["scout", "admin", "athlasx_admin"] },
   { prefix: "/api/scout", roles: ["scout", "admin", "athlasx_admin"], requireActive: ["scout"] },
   { prefix: "/api/academy", roles: ["academy_admin", "admin", "athlasx_admin"] },
 ];

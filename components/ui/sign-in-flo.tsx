@@ -275,8 +275,15 @@ export const Component: React.FC<ComponentProps> = ({ initialMode = "signin" }) 
         return;
       }
       /* If the user came from a specific protected route, send them there.
-         Otherwise let /dashboard handle role-based routing. */
-      router.push(dest);
+         Otherwise let /dashboard handle role-based routing.
+         A hard navigation (not router.push) on purpose: a client-side push
+         can briefly paint whatever's sitting in the Router Cache for this
+         segment from an earlier visit in the same browser session before
+         the server-side role/status redirect resolves — visible as a flash
+         of the wrong dashboard for a frame. window.location skips that
+         cache entirely, so the first paint is always the real destination,
+         for every role. */
+      window.location.href = dest;
     }
   };
 

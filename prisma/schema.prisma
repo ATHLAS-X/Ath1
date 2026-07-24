@@ -142,6 +142,15 @@ enum JoinStatus {
   REJECTED
 }
 
+enum GuardianRelationship {
+  FATHER
+  MOTHER
+  GRANDPARENT
+  LEGAL_GUARDIAN
+  SIBLING
+  OTHER
+}
+
 enum ScoutType {
   INDEPENDENT
   FRANCHISE
@@ -242,6 +251,7 @@ model PlayerProfile {
   gender              Gender
   // Location
   city                String?
+  district            String?
   state               String?
   country             String           @default("India")
   // Physical
@@ -286,6 +296,7 @@ model PlayerProfile {
 
   // Relations
   consents              PlayerConsent[]
+  guardian_consents     GuardianConsent[]
   media                 PlayerMedia[]
   performance_summaries PlayerPerformanceSummary[]
   fitness_assessments   FitnessAssessment[]
@@ -324,6 +335,26 @@ model PlayerConsent {
 
   @@index([player_id])
   @@map("player_consents")
+}
+
+// ─── GUARDIAN CONSENT ─────────────────────────────────────────────────────
+// One row per minor player — created when guardian OTP is verified during
+// Step 1 of the Player onboarding wizard.
+
+model GuardianConsent {
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  player_id            String                @db.Uuid
+  player               PlayerProfile         @relation(fields: [player_id], references: [id], onDelete: Cascade)
+
+  guardian_name        String
+  relationship         GuardianRelationship
+  guardian_phone       String
+  phone_verified       Boolean               @default(true)
+  consent_given        Boolean               @default(true)
+  created_at           DateTime              @default(now()) @db.Timestamptz(6)
+
+  @@index([player_id])
+  @@map("guardian_consents")
 }
 
 // ─── 4. PLAYER MEDIA ──────────────────────────────────────────────────────

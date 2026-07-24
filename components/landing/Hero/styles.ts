@@ -125,17 +125,6 @@ export const heroStyles = `
   padding: 6vmin;
   pointer-events: none;
 }
-.hx-brand .hx-eyebrow {
-  font-family: var(--font-barlow-semi), sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.42em;
-  font-weight: 600;
-  font-size: clamp(10px, 1.05vw, 14px);
-  color: var(--hx-accent-bright);
-  margin: 0 0 0.9rem 0;
-  padding-left: 0.42em;
-  text-shadow: 0 0.06em 0.5em rgba(0,0,0,0.65), 0 0 10px rgba(0,0,0,0.5);
-}
 .hx-brand .hx-logotype {
   font-family: var(--font-anton), var(--font-barlow-semi), sans-serif;
   text-transform: uppercase;
@@ -145,18 +134,17 @@ export const heroStyles = `
   font-size: clamp(64px, 17vw, 320px);
   margin: 0;
   color: var(--hx-text);
-  text-shadow: 0 0.06em 0.5em rgba(0,0,0,0.55);
+  /* Layered for contrast against a busy photo collage, not just a soft
+     drop shadow: a tight near-black outline (readable at small sizes),
+     a closer ambient shadow, and a wider dark halo so the white letters
+     separate from the background regardless of what's directly behind them. */
+  text-shadow:
+    0 0 2px rgba(0,0,0,0.9),
+    0 0.02em 0.08em rgba(0,0,0,0.85),
+    0 0.06em 0.5em rgba(0,0,0,0.65),
+    0 0.1em 1.2em rgba(0,0,0,0.5);
 }
 .hx-brand .hx-logotype .hx-x { color: var(--hx-accent); }
-.hx-brand .hx-tagline {
-  font-family: var(--font-barlow), sans-serif;
-  font-weight: 500;
-  font-size: clamp(15px, 2.1vw, 30px);
-  letter-spacing: 0.02em;
-  margin: 1.4rem 0 0 0;
-  color: var(--hx-text);
-}
-.hx-brand .hx-tagline b { color: var(--hx-accent-bright); font-weight: 700; }
 .hx-brand .hx-rule {
   width: clamp(120px, 18vw, 260px);
   height: 2px;
@@ -269,7 +257,6 @@ export const heroStyles = `
 
   .hx-brand { justify-content: flex-start; padding-top: 16vh; }
   .hx-brand .hx-logotype { font-size: clamp(64px, 22vw, 130px); }
-  .hx-brand .hx-tagline { font-size: clamp(14px, 4.4vw, 20px); }
 
   .hx-corner { top: 1.4rem; left: 1.4rem; }
 
@@ -302,6 +289,19 @@ export const heroStyles = `
 }
 .wd-shell { max-width: 1100px; margin: 0 auto; }
 
+/* Moved here from the Hero wordmark — same text, now a standalone caption
+   above this section's own "What We Do" eyebrow rather than overlaid on
+   the collage photos. */
+.wd-grassroots {
+  font-family: var(--font-barlow-semi), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.32em;
+  font-weight: 600;
+  font-size: clamp(9px, 0.85vw, 12px);
+  color: rgba(245, 245, 240, 0.4);
+  margin: 0 0 0.6rem 0;
+  padding-left: 0.32em;
+}
 .wd-eyebrow {
   font-family: var(--font-barlow-semi), sans-serif;
   text-transform: uppercase;
@@ -331,8 +331,19 @@ export const heroStyles = `
   line-height: 1.6;
   color: var(--hx-text-dim);
   max-width: 620px;
+  margin: 0 0 1.2rem 0;
+}
+/* Moved here from the Hero wordmark — same tagline, now closing out this
+   section's copy instead of sitting under the collage. */
+.wd-tagline {
+  font-family: var(--font-barlow), sans-serif;
+  font-weight: 500;
+  font-size: clamp(15px, 1.6vw, 20px);
+  letter-spacing: 0.02em;
+  color: var(--hx-text);
   margin: 0 0 calc(var(--hx-phi2) * 0.9) 0;
 }
+.wd-tagline b { color: var(--hx-accent-bright); font-weight: 700; }
 
 /* Glass cards — same surface treatment as .hx-auth (the account bar) */
 .wd-grid {

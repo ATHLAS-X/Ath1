@@ -13,17 +13,20 @@ export default function Step1Account({
 }) {
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
 
   async function sendOtp() {
     if (data.phone.length !== 10) { return; }
     setSending(true);
     try {
-      await fetch("/api/auth/otp/send", {
+      const res = await fetch("/api/auth/otp/send", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone: data.phone }),
       });
+      const d = await res.json().catch(() => ({}));
       patch({ otpSent: true });
       clearError("phone");
+      if (d.dev_otp) setDevOtp(d.dev_otp);
     } catch {}
     setSending(false);
   }
@@ -35,7 +38,7 @@ export default function Step1Account({
     try {
       const res = await fetch("/api/auth/otp/verify", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: data.phone, otp: code }),
+        body: JSON.stringify({ phone: data.phone, code }),
       });
       const d = await res.json();
       if (!res.ok) { clearError("otp"); return; }
@@ -73,6 +76,15 @@ export default function Step1Account({
             </button>
           )}
         </div>
+        {data.otpSent && !data.otpVerified && (
+          <button
+            type="button"
+            onClick={() => { patch({ otpSent: false, otp: ["","","","","",""] }); setDevOtp(null); clearError("phone"); clearError("otp"); }}
+            style={{ background: "none", border: "none", color: "var(--acc)", fontSize: "0.78rem", cursor: "pointer", padding: "4px 0", textDecoration: "underline" }}
+          >
+            Change number
+          </button>
+        )}
       </Field>
 
       {data.otpVerified ? (
@@ -99,6 +111,11 @@ export default function Step1Account({
               {verifying ? "…" : "Verify"}
             </button>
           </div>
+          {devOtp && (
+            <p style={{ marginTop: "0.5rem", fontSize: "0.78rem", color: "var(--acc)", opacity: 0.85 }}>
+              Dev OTP: <strong style={{ letterSpacing: "0.15em", fontFamily: "monospace" }}>{devOtp}</strong>
+            </p>
+          )}
         </Field>
       )}
     </>

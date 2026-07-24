@@ -2,6 +2,9 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import StepTransition from "@/components/onboarding/StepTransition";
+import { ctaVariants, SPRING } from "@/lib/motion";
 import Step1Account from "./steps/Step1Account";
 import Step2Identity from "./steps/Step2Identity";
 import Step3Facilities from "./steps/Step3Facilities";
@@ -103,8 +106,8 @@ const CSS = `
 .ob{display:grid;grid-template-columns:1fr 2fr;min-height:100vh;min-height:100dvh;}
 
 /* ── LEFT RAIL ── */
-.rail{position:relative;overflow:hidden;display:flex;flex-direction:column;padding:var(--phi2);background:var(--bg-soft);}
-.rail::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 0% 0%,var(--ov14),transparent 55%),radial-gradient(110% 70% at 0% 100%,var(--ov08),transparent 55%),linear-gradient(180deg,rgba(16,26,20,.5) 0%,rgba(26,14,10,.55) 100%);}
+.rail{position:relative;overflow:hidden;display:flex;flex-direction:column;padding:var(--phi2);background:var(--bg-soft) url("/images/hero/PlayerOnboardingImage.jpg") center/cover no-repeat;}
+.rail::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 0% 0%,var(--ov14),transparent 55%),radial-gradient(110% 70% at 0% 100%,var(--ov08),transparent 55%),linear-gradient(180deg,rgba(13,13,13,.82) 0%,rgba(13,13,13,.94) 100%);}
 .rail::after{content:"";position:absolute;inset:0;opacity:.04;pointer-events:none;background:repeating-linear-gradient(90deg,var(--text) 0 1px,transparent 1px 56px);}
 .rail>*{position:relative;z-index:1;}
 .brandmark{font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:.22em;font-weight:700;font-size:.95rem;}
@@ -158,7 +161,8 @@ const CSS = `
 .field.invalid input,.field.invalid select{border-color:var(--bad);box-shadow:0 0 0 3px rgba(255,90,77,.16);}
 .field .err{display:none;font-size:.76rem;color:#ff8a7e;margin:.45rem 0 0;}
 .field.invalid .err{display:block;}
-.field select{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23FFA64D' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right .9rem center;padding-right:2.4rem;}
+.field select{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23FFA64D' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right .9rem center;padding-right:2.4rem;color-scheme:dark;}
+.field select option{background:#1C1A18;color:var(--text);}
 
 /* ── OPT CARDS ── */
 .cardset{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
@@ -226,6 +230,8 @@ const CSS = `
 .gocard h4 svg{width:17px;height:17px;color:var(--accent);}
 .gocard input,.gocard select{padding:.68rem .85rem;font-size:.9rem;background:rgba(245,245,240,.05);}
 .gocard input:focus,.gocard select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--ov22);}
+.gocard select{appearance:none;cursor:pointer;color-scheme:dark;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23FFA64D' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right .85rem center;padding-right:2.3rem;}
+.gocard select option{background:#1C1A18;color:var(--text);}
 
 /* ── FOOTER ── */
 .form-foot{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem clamp(1.25rem,3.5vw,3rem);border-top:1px solid var(--card-border);background:rgba(13,13,13,.6);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
@@ -277,10 +283,14 @@ export default function AcademyOnboardingWizard() {
   const [done, setDone] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState<string | null>(null);
   const [form, setForm] = useState<AcademyFormData>(() => {
     try {
       const raw = typeof window !== "undefined" ? localStorage.getItem(LS_KEY) : null;
-      return raw ? { ...INIT, ...JSON.parse(raw) } : INIT;
+      if (!raw) return INIT;
+      const saved = JSON.parse(raw);
+      // OTP flow state must never persist — phone stays editable on reload
+      return { ...INIT, ...saved, otpSent: false, otpVerified: false, otp: ["","","","","",""] };
     } catch { return INIT; }
   });
 
@@ -297,16 +307,21 @@ export default function AcademyOnboardingWizard() {
   }
 
   async function handleNext() {
-    if (done) { router.push("/dashboard/academy"); return; }
+    if (done) { router.push("/academy/dashboard"); return; }
 
     const errs = validate(step, form);
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      scrollerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     setErrors({});
+    setApiError(null);
 
     if (step === 4) {
       setFinishing(true);
       try {
-        await fetch("/api/academy/onboarding", {
+        const res = await fetch("/api/academy/onboarding", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             phone: form.phone,
@@ -329,21 +344,32 @@ export default function AcademyOnboardingWizard() {
             state_association_name: form.stateAssociationName,
           }),
         });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setApiError(d.error ?? `Save failed (${res.status}) — please try again.`);
+          scrollerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+          setFinishing(false);
+          return;
+        }
         try { localStorage.removeItem(LS_KEY); } catch {}
         setDone(true);
-      } catch {}
+      } catch (e: any) {
+        setApiError(e?.message ?? "Network error — check your connection and try again.");
+        scrollerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      }
       setFinishing(false);
       return;
     }
 
     setStep((s) => s + 1);
-    scrollerRef.current?.scrollTo({ top: 0 });
+    scrollerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function handleBack() {
     if (step > 0 && !done) {
       setStep((s) => s - 1);
       setErrors({});
+      setApiError(null);
       scrollerRef.current?.scrollTo({ top: 0 });
     }
   }
@@ -370,14 +396,27 @@ export default function AcademyOnboardingWizard() {
               const isCurrent = !done && i === step;
               return (
                 <div key={i} className={`step${isCurrent ? " current" : ""}${isDone ? " done" : ""}`}>
-                  <span className="num">
-                    {isDone ? (
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}
-                        strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
-                        <polyline points="20 6 9 17 4 11" />
-                      </svg>
-                    ) : i + 1}
-                  </span>
+                  <motion.span
+                    className="num"
+                    animate={{ scale: isCurrent ? 1.05 : 1 }}
+                    transition={SPRING}
+                  >
+                    <AnimatePresence mode="wait" initial={false}>
+                      {isDone ? (
+                        <motion.svg
+                          key="check"
+                          initial={{ scale: 0 }} animate={{ scale: 1 }} transition={SPRING}
+                          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}
+                          strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+                          <polyline points="20 6 9 17 4 11" />
+                        </motion.svg>
+                      ) : (
+                        <motion.span key="num" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={SPRING}>
+                          {i + 1}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </motion.span>
                   <span className="lbl">{s.lbl}<small>{s.sub}</small></span>
                 </div>
               );
@@ -405,30 +444,66 @@ export default function AcademyOnboardingWizard() {
           </div>
 
           <div className="progress-line">
-            <i style={{ width: `${pct}%` }} />
+            <motion.i
+              animate={{ width: `${pct}%` }}
+              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+              style={{ display: "block" }}
+            />
           </div>
 
           <div className="scroller" ref={scrollerRef}>
             <div className="form-body">
+              {apiError && (
+                <div style={{
+                  margin: "0 0 16px", padding: "12px 16px",
+                  background: "rgba(255,90,77,0.1)", border: "1px solid rgba(255,90,77,0.35)",
+                  borderRadius: 10, color: "#ff5a4d", fontSize: 13, lineHeight: 1.5,
+                }}>
+                  {apiError}
+                </div>
+              )}
+              {Object.keys(errors).length > 0 && (
+                <div style={{
+                  margin: "0 0 16px", padding: "12px 16px",
+                  background: "rgba(255,90,77,0.08)", border: "1px solid rgba(255,90,77,0.3)",
+                  borderRadius: 10, color: "#ff5a4d", fontSize: 12.5, lineHeight: 1.6,
+                }}>
+                  <strong style={{ display: "block", marginBottom: 4 }}>Fix the following before continuing:</strong>
+                  {Object.values(errors).map((e, i) => <div key={i}>· {e}</div>)}
+                </div>
+              )}
               {done ? (
-                <div className="done-screen">
-                  <div className="seal">
+                <motion.div className="done-screen" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                  <motion.div
+                    className="seal"
+                    initial={{ scale: 0.4, rotate: -20, opacity: 0 }}
+                    animate={{ scale: 1, rotate: 0, opacity: 1, transition: { ...SPRING, delay: 0.1 } }}
+                  >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
                       strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 11" />
+                      <motion.polyline
+                        points="20 6 9 17 4 11"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1], delay: 0.35 }}
+                      />
                     </svg>
-                  </div>
-                  <h2>{form.academyName || "Your academy"} is <b>live.</b></h2>
-                  <p>Your profile is submitted and pending verification. Invite links are active — start adding players now.</p>
-                </div>
+                  </motion.div>
+                  <motion.h2 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.3 } }}>
+                    {form.academyName || "Your academy"} is <b>live.</b>
+                  </motion.h2>
+                  <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0, transition: { delay: 0.38 } }}>
+                    Your profile is submitted and pending verification. Invite links are active — start adding players now.
+                  </motion.p>
+                </motion.div>
               ) : (
-                <>
+                <StepTransition step={step}>
                   {step === 0 && <Step1Account {...stepProps} />}
                   {step === 1 && <Step2Identity {...stepProps} />}
                   {step === 2 && <Step3Facilities {...stepProps} />}
                   {step === 3 && <Step4Programs {...stepProps} />}
                   {step === 4 && <Step5GoLive data={form} patch={patch} />}
-                </>
+                </StepTransition>
               )}
             </div>
           </div>
@@ -437,13 +512,17 @@ export default function AcademyOnboardingWizard() {
             <div className="meta">{done ? "Done" : `Step ${step + 1} of 5`}</div>
             <div className="btns">
               {!done && step > 0 && (
-                <button type="button" className="btn btn-ghost" onClick={handleBack}>Back</button>
+                <motion.button
+                  type="button" className="btn btn-ghost" onClick={handleBack}
+                  variants={ctaVariants} initial="rest" whileHover="hover" whileTap="tap"
+                >Back</motion.button>
               )}
-              <button
+              <motion.button
                 type="button"
                 className="btn btn-fill"
                 onClick={handleNext}
                 disabled={finishing}
+                variants={ctaVariants} initial="rest" whileHover="hover" whileTap="tap"
               >
                 {done
                   ? "Go to Dashboard →"
@@ -452,7 +531,7 @@ export default function AcademyOnboardingWizard() {
                   : step === 4
                   ? "Finish & Go Live →"
                   : "Save & Continue →"}
-              </button>
+              </motion.button>
             </div>
           </div>
         </main>

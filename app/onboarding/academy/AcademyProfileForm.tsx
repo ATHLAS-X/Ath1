@@ -95,7 +95,7 @@ export default function AcademyProfileForm({ userName }: { userName: string }) {
         else setError(subData.error ?? "Submission failed");
         return;
       }
-      router.push("/academy/dashboard");
+      router.push("/dashboard/academy");
     } finally {
       setSubmitting(false);
     }
@@ -108,8 +108,8 @@ export default function AcademyProfileForm({ userName }: { userName: string }) {
             <Field label="Academy name *">
               <input className="ap-input" value={form.academy_name ?? ""} onChange={(e) => set("academy_name", e.target.value)} />
             </Field>
-            <Field label="Logo URL">
-              <input className="ap-input" placeholder="https://…" value={form.logo_url ?? ""} onChange={(e) => set("logo_url", e.target.value)} />
+            <Field label="Website">
+              <input className="ap-input" placeholder="https://…" value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} />
             </Field>
             <Field label="Founded year *">
               <input type="number" min={1900} max={new Date().getFullYear()} className="ap-input"
@@ -146,9 +146,6 @@ export default function AcademyProfileForm({ userName }: { userName: string }) {
             <Field label="Contact phone">
               <input className="ap-input" value={form.contact_phone ?? ""} onChange={(e) => set("contact_phone", e.target.value)} />
             </Field>
-            <Field label="Website">
-              <input className="ap-input" placeholder="https://…" value={form.website ?? ""} onChange={(e) => set("website", e.target.value)} />
-            </Field>
           </div>
         </Section>
 
@@ -179,7 +176,7 @@ export default function AcademyProfileForm({ userName }: { userName: string }) {
   );
 
   return (
-    <div className={`ap-root hx-tokens ${anton.variable} ${barlow.variable} ${barlowSemiCondensed.variable}`}>
+    <div className={`ap-root ${anton.variable} ${barlow.variable} ${barlowSemiCondensed.variable}`}>
       <style dangerouslySetInnerHTML={{ __html: heroStyles }} />
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       <div className="ap-shell">
@@ -244,6 +241,9 @@ function ChipRow({ items, selected, onToggle }: { items: string[]; selected: str
 }
 
 const styles = `
+/* No max-width here — OnboardingShell now owns the full-bleed two-column
+   layout (rail + form, edge-to-edge like the Hero section); this wrapper
+   only scopes the ap-* field/step classes used inside it. */
 .ap-shell { width: 100%; }
 
 /* athlasx.css's .sx-root .btn/.card no longer apply once this page drops
@@ -267,18 +267,15 @@ const styles = `
 .ap-title { font-family: var(--font-anton), sans-serif; text-transform: uppercase; font-weight: 400; font-size: 28px; margin-top: 4px; }
 .ap-section { padding: 20px 22px; margin-bottom: 14px; }
 .ap-section-head { display: flex; align-items: center; margin-bottom: 14px; }
-.ap-section-head .sect-title { font-size: 18px !important; font-family: var(--font-barlow-semi), sans-serif !important; font-weight: 700 !important; letter-spacing: 0.02em !important; text-transform: none !important; color: var(--hx-text) !important; }
 .ap-grid { display: grid; gap: 14px; }
 .ap-grid--2 { grid-template-columns: 1fr 1fr; }
 .ap-grid--3 { grid-template-columns: 1fr 1fr 1fr; }
 @media (max-width: 720px) { .ap-grid--2, .ap-grid--3 { grid-template-columns: 1fr; } }
 .ap-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
-.ap-label { font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--hx-text-dim); font-family: var(--font-barlow-semi), sans-serif; font-weight: 600; }
-.ap-input { height: 42px; padding: 0 14px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.25); border-radius: 8px; color: var(--hx-text); font-family: inherit; font-size: 15px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; width: 100%; box-sizing: border-box; }
-.ap-input:focus { border-color: var(--hx-accent); box-shadow: 0 0 8px var(--hx-overlay-accent-22); background: rgba(255,255,255,0.08); }
-.ap-input::placeholder { color: rgba(245,245,240,0.3); }
-.ap-input option { background: #1a1a1a; color: #f5f5f0; }
-select.ap-input { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(245,245,240,0.5)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
+.ap-label { font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--hx-text-dim); font-family: var(--font-barlow-semi), sans-serif; font-weight: 600; }
+.ap-input { height: 34px; padding: 0 11px; background: var(--hx-field-bg); border: 1px solid var(--hx-card-border); border-radius: 8px; color: var(--hx-text); font-family: inherit; font-size: 13px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+select.ap-input option { background: var(--hx-bg-soft); color: var(--hx-text); }
+.ap-input:focus { border-color: var(--hx-accent); box-shadow: 0 0 8px var(--hx-overlay-accent-22); }
 .ap-textarea { height: 80px; padding: 8px 11px; resize: vertical; }
 .ap-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .ap-chip { height: 28px; padding: 0 14px; border-radius: 99px; display: inline-flex; align-items: center; background: var(--hx-field-bg); border: 1px solid var(--hx-card-border); color: var(--hx-text-dim); font-family: var(--font-barlow-semi), sans-serif; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all 0.13s; }

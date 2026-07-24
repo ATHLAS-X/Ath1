@@ -1,12 +1,12 @@
-/**
+﻿/**
  * Typed dashboard data layer — one contract per role.
  *
  * Every dashboard page (Player / Scout / Coach / Admin) reads its props from
  * this module via `load*Dashboard(userId)`. Today those loaders return mock
  * data so the UI can be developed and demoed without a DB. Each `MOCK_*` block
  * has a TODO marking exactly where to swap in the SQL/Prisma call later —
- * the existing live SQL in app/dashboard/{role}/page.tsx and app/scout/dashboard/page.tsx
- * and app/admin/page.tsx is the reference implementation for those swaps.
+ * the existing live SQL in each role's app/dashboard/<role>/page.tsx and app/scout/dashboard/page.tsx
+ * and `app/admin/page.tsx` is the reference implementation for those swaps.
  *
  * Why this layer exists:
  *   • One source of truth for view-model shapes — UI never invents its own props.

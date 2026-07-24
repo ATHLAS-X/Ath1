@@ -1,5 +1,7 @@
 "use client";
 import React, { useRef } from "react";
+import { motion } from "framer-motion";
+import { chipVariants, cardVariants } from "@/lib/motion";
 
 export const svgIcon = (path: string, sw = 2) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
@@ -27,15 +29,19 @@ export function Chips({
   return (
     <div className="chips">
       {options.map((opt) => (
-        <button
+        <motion.button
           key={opt}
           type="button"
           className="chip"
           aria-pressed={isPressed(opt)}
+          variants={chipVariants}
+          initial="rest"
+          whileHover="hover"
+          whileTap="pressed"
           onClick={() => toggle(opt)}
         >
           {opt}
-        </button>
+        </motion.button>
       ))}
     </div>
   );
@@ -52,11 +58,16 @@ export function OptCards({
   return (
     <div className="cardset">
       {options.map((opt) => (
-        <button
+        <motion.button
           key={opt.value}
           type="button"
           className="optcard"
           aria-pressed={value === opt.value}
+          variants={cardVariants}
+          initial="rest"
+          whileHover="hover"
+          whileTap={{ scale: 0.98 }}
+          animate={value === opt.value ? "selected" : "rest"}
           onClick={() => onChange(value === opt.value ? "" : opt.value)}
         >
           {opt.icon && (
@@ -69,7 +80,7 @@ export function OptCards({
             <b>{opt.label}</b>
             {opt.sub && <small>{opt.sub}</small>}
           </span>
-        </button>
+        </motion.button>
       ))}
     </div>
   );
@@ -131,12 +142,13 @@ export function OtpBoxes({
       e.preventDefault();
     }
   }
+  const allFilled = value.every(Boolean);
   return (
     <div className="otp-boxes">
       {value.map((v, i) => (
-        <input
+        <motion.input
           key={i}
-          ref={(el) => { refs.current[i] = el; }}
+          ref={(el: HTMLInputElement | null) => { refs.current[i] = el; }}
           type="text"
           inputMode="numeric"
           maxLength={1}
@@ -146,6 +158,9 @@ export function OtpBoxes({
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKey(i, e)}
           onPaste={handlePaste}
+          whileFocus={{ scale: 1.08, transition: { type: "spring", stiffness: 300, damping: 28 } }}
+          animate={allFilled ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+          transition={allFilled ? { duration: 0.3 } : undefined}
         />
       ))}
     </div>

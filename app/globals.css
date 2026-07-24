@@ -16,6 +16,56 @@
   --input-bg: #0a0a0a;
 }
 
+/* --ax-* — the app/_ds component kit's token set (DsIcon/DsPill/DsAvatar/
+   DsButton/DsToast, used by the Player and Coach dashboard clients). These
+   were never actually defined anywhere — every color/radius/shadow in both
+   dashboards was silently falling back to invalid values, which is why they
+   rendered looking broken. Aliased here to the same amber palette the
+   onboarding wizards use (components/landing/Hero/styles.ts's --hx-* set)
+   so dashboards built on either token system land on one consistent look.
+   Font tokens fall back to the site's globally-loaded next/font variables
+   (set on <html> in app/layout.tsx) rather than Anton/Barlow, since those
+   are only defined where their own font-loader .variable className is
+   applied — neither dashboard client applies it today. */
+:root {
+  --ax-bg: #0D0D0D;
+  --ax-bg-soft: #141312;
+  --ax-bg-elevated: rgba(245, 245, 240, 0.05);
+  --ax-card: #141312;
+  --ax-border: rgba(245, 245, 240, 0.14);
+  --ax-field: rgba(245, 245, 240, 0.06);
+  --ax-text: #F5F5F0;
+  --ax-text-dim: rgba(245, 245, 240, 0.62);
+  --ax-text-faint: rgba(245, 245, 240, 0.4);
+  --ax-text-on-accent: #1A0E02;
+  --ax-accent: #FF8A1E;
+  --ax-accent-bright: #FFA64D;
+  --ax-accent-08: rgba(255, 138, 30, 0.08);
+  --ax-accent-14: rgba(255, 138, 30, 0.14);
+  --ax-accent-22: rgba(255, 138, 30, 0.22);
+  --ax-ok: #38D39F;
+  --ax-ok-soft: rgba(56, 211, 159, 0.1);
+  --ax-ok-border: rgba(56, 211, 159, 0.4);
+  --ax-bad: #FF5A4D;
+  --ax-bad-soft: rgba(255, 90, 77, 0.1);
+  --ax-bad-text: #FF8A7E;
+  --ax-radius-sm: 6px;
+  --ax-radius-md: 9px;
+  --ax-radius-pill: 999px;
+  --ax-radius-xl: 16px;
+  --ax-shadow-card: 0 8px 24px -12px rgba(0,0,0,0.55);
+  --ax-shadow-pop: 0 12px 34px -14px rgba(0,0,0,0.6);
+  --ax-corner-glow: radial-gradient(120% 120% at 100% 0%, rgba(255,138,30,0.08), transparent 60%);
+  --ax-glow-dot: 0 0 8px #FF8A1E;
+  --ax-glow-accent: 0 0 16px rgba(255,138,30,0.4);
+  --ax-glow-accent-strong: 0 0 24px rgba(255,138,30,0.6);
+  --ax-dur-fast: 0.15s;
+  --ax-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ax-font-display: var(--font-space), sans-serif;
+  --ax-font-label: var(--font-inter), sans-serif;
+  --ax-font-body: var(--font-instrument), sans-serif;
+}
+
 html, body {
   background: var(--bg);
   color: var(--text);

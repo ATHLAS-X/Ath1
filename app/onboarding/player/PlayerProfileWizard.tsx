@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, ShieldAlert, Lock } from "lucide-react";
 import { anton, barlow, barlowSemiCondensed } from "@/components/landing/Hero/fonts";
 import { heroStyles } from "@/components/landing/Hero/styles";
+import { AnimatePresence, motion } from "framer-motion";
 import StepTransition from "@/components/onboarding/StepTransition";
 import OnboardingShell from "@/components/onboarding/OnboardingShell";
+import { revealVariants } from "@/lib/motion";
 
 interface StepMeta { n: number; name: string; optional?: boolean }
 const STEPS: readonly StepMeta[] = [
@@ -73,6 +75,17 @@ export default function PlayerProfileWizard({ userName }: { userName: string }) 
   const [aadhaarBusy, setAadhaarBusy] = useState(false);
   const [aadhaarError, setAadhaarError] = useState<string | null>(null);
   const [aadhaarResult, setAadhaarResult] = useState<AadhaarResult | null>(null);
+  /* /api/onboarding/aadhaar/initiate returns this in non-production only —
+     there's no real Surepass integration yet, so this IS the OTP; surfacing
+     it is what makes the dummy flow actually testable instead of a dead end. */
+  const [devOtp, setDevOtp] = useState<string | null>(null);
+
+  /* Guardian consent (step 1, minors only) */
+  const [guardianOtpDigits, setGuardianOtpDigits] = useState("");
+  const [guardianOtpSent, setGuardianOtpSent] = useState(false);
+  const [guardianOtpVerified, setGuardianOtpVerified] = useState(false);
+  const [guardianBusy, setGuardianBusy] = useState(false);
+  const [guardianError, setGuardianError] = useState<string | null>(null);
 
   /* Load existing draft on mount */
   useEffect(() => {
@@ -139,8 +152,37 @@ export default function PlayerProfileWizard({ userName }: { userName: string }) 
 
   async function next() {
     setError(null);
+
+    if (step === 1 && isMinor) {
+      if (!form.guardian_name?.trim()) { setError("Guardian name is required for minors"); return; }
+      if (!form.guardian_relationship) { setError("Guardian relationship is required"); return; }
+      if (!form.guardian_phone?.trim()) { setError("Guardian WhatsApp number is required"); return; }
+      if (!guardianOtpVerified) { setError("Guardian WhatsApp OTP must be verified before continuing"); return; }
+      if (!form.guardian_consent_checked) { setError("Guardian must check the consent box"); return; }
+    }
+
     const ok = await saveStep(stepPayload(step, form));
     if (!ok) return;
+
+    if (step === 1 && isMinor) {
+      const gRes = await fetch("/api/onboarding/player/guardian-otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: (form.guardian_phone ?? "").replace(/\s/g, ""),
+          otp: guardianOtpDigits,
+          guardianName: form.guardian_name,
+          guardianRelationship: form.guardian_relationship,
+          saveConsent: true,
+        }),
+      });
+      const gData = await gRes.json().catch(() => ({}));
+      if (!gRes.ok || !gData.success) {
+        setError(gData.error ?? "Failed to save guardian consent");
+        return;
+      }
+    }
+
     if (step === 6 && media.length === 0) {
       setError("Add at least one video URL — required to submit");
       return;
@@ -228,6 +270,7 @@ export default function PlayerProfileWizard({ userName }: { userName: string }) 
         return;
       }
       setOtpSent(true);
+      setDevOtp(data?.data?.dev_otp ?? null);
     } catch (e: any) {
       setAadhaarError(e?.message ?? "Network error");
     } finally {
@@ -266,6 +309,40 @@ export default function PlayerProfileWizard({ userName }: { userName: string }) 
     }
   }
 
+  async function sendGuardianOtp() {
+    setGuardianBusy(true);
+    setGuardianError(null);
+    const phone = (form.guardian_phone ?? "").replace(/\s/g, "");
+    if (!phone) { setGuardianError("Enter guardian's WhatsApp number"); setGuardianBusy(false); return; }
+    try {
+      const res = await fetch("/api/onboarding/player/guardian-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) { setGuardianError(data.error ?? "Could not send OTP"); return; }
+      setGuardianOtpSent(true);
+    } catch { setGuardianError("Network error"); }
+    finally { setGuardianBusy(false); }
+  }
+
+  async function verifyGuardianOtp() {
+    setGuardianBusy(true);
+    setGuardianError(null);
+    try {
+      const res = await fetch("/api/onboarding/player/guardian-otp/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: (form.guardian_phone ?? "").replace(/\s/g, ""), otp: guardianOtpDigits }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) { setGuardianError(data.error ?? "Verification failed"); return; }
+      setGuardianOtpVerified(true);
+    } catch { setGuardianError("Network error"); }
+    finally { setGuardianBusy(false); }
+  }
+
   async function addMedia(url: string, title: string) {
     const res = await fetch("/api/player/media", {
       method: "POST",
@@ -291,13 +368,23 @@ export default function PlayerProfileWizard({ userName }: { userName: string }) 
 
   const stepBody = (
     <StepTransition step={step}>
-      {step === 1 && <Step1 form={form} set={set} age={age} />}
+      {step === 1 && <Step1 form={form} set={set} age={age} isMinor={isMinor} gs={{
+        otp: guardianOtpDigits,
+        setOtp: setGuardianOtpDigits,
+        otpSent: guardianOtpSent,
+        otpVerified: guardianOtpVerified,
+        busy: guardianBusy,
+        error: guardianError,
+        onSend: sendGuardianOtp,
+        onVerify: verifyGuardianOtp,
+      }} />}
       {step === 2 && (
         <Step2Aadhaar
           aadhaar={aadhaar} setAadhaar={setAadhaar}
           otp={otp} setOtp={setOtp} otpSent={otpSent}
           busy={aadhaarBusy} error={aadhaarError} result={aadhaarResult}
           initiate={initiateAadhaar} confirm={confirmAadhaar}
+          devOtp={devOtp}
         />
       )}
       {step === 3 && <Step3 form={form} set={set} />}
@@ -350,7 +437,7 @@ function stepPayload(step: number, f: Form): Form {
   const pick = (...keys: string[]) =>
     Object.fromEntries(keys.map((k) => [k, f[k] ?? null]));
   switch (step) {
-    case 1: return pick("first_name", "last_name", "date_of_birth", "gender", "city", "state", "country");
+    case 1: return pick("first_name", "last_name", "date_of_birth", "gender", "city", "district", "state", "country");
     /* Aadhaar (step 2) is verified+persisted server-side via its own
        initiate/confirm endpoints, not the generic profile-save endpoint. */
     case 2: return {};
@@ -380,41 +467,168 @@ function Field({ label, children, hint }: any) {
   );
 }
 
-function Step1({ form, set, age }: any) {
+function Step1({ form, set, age, isMinor, gs }: any) {
+  const ageBadge = age !== null ? (
+    age < 18
+      ? <div className="pw-age-badge pw-age-badge--minor">⚠ Age {age} — Under 18 · Guardian consent required</div>
+      : <div className="pw-age-badge pw-age-badge--adult">✓ Age {age} — 18 or over · No guardian consent needed</div>
+  ) : null;
+
   return (
-    <div className="pw-grid pw-grid--2">
-      <Field label="First name">
-        <input className="pw-input" value={form.first_name ?? ""} onChange={(e) => set("first_name", e.target.value)} />
-      </Field>
-      <Field label="Last name">
-        <input className="pw-input" value={form.last_name ?? ""} onChange={(e) => set("last_name", e.target.value)} />
-      </Field>
-      <Field label="Date of birth" hint={age !== null ? `Age ${age}${age < 18 ? " — minor, parental consent required" : ""}` : undefined}>
-        <input type="date" className="pw-input" value={form.date_of_birth ?? ""} onChange={(e) => set("date_of_birth", e.target.value)} />
-      </Field>
-      <Field label="Gender">
-        <select className="pw-input" value={form.gender ?? ""} onChange={(e) => set("gender", e.target.value)}>
-          <option value="">Select</option>
-          <option>Male</option><option>Female</option><option>Other</option>
-        </select>
-      </Field>
-      <Field label="City">
-        <input className="pw-input" value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} />
-      </Field>
-      <Field label="State">
-        <select className="pw-input" value={form.state ?? ""} onChange={(e) => set("state", e.target.value)}>
-          <option value="">Select state</option>
-          {INDIAN_STATES.map((s) => <option key={s}>{s}</option>)}
-        </select>
-      </Field>
-      <Field label="Country">
-        <input className="pw-input" value={form.country ?? "India"} onChange={(e) => set("country", e.target.value)} />
-      </Field>
+    <div>
+      <div className="pw-grid pw-grid--2">
+        <Field label="First name">
+          <input className="pw-input" value={form.first_name ?? ""} onChange={(e) => set("first_name", e.target.value)} />
+        </Field>
+        <Field label="Last name">
+          <input className="pw-input" value={form.last_name ?? ""} onChange={(e) => set("last_name", e.target.value)} />
+        </Field>
+        <div>
+          <Field label="Date of birth">
+            <input type="date" className="pw-input" value={form.date_of_birth ?? ""} onChange={(e) => set("date_of_birth", e.target.value)} />
+          </Field>
+          {ageBadge}
+        </div>
+        <Field label="Gender">
+          <select className="pw-input" value={form.gender ?? ""} onChange={(e) => set("gender", e.target.value)}>
+            <option value="">Select</option>
+            <option>Male</option><option>Female</option><option>Other</option>
+          </select>
+        </Field>
+      </div>
+
+      <div className="pw-grid pw-grid--3" style={{ marginTop: 14 }}>
+        <Field label="City">
+          <input className="pw-input" value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} />
+        </Field>
+        <Field label="District">
+          <input className="pw-input" placeholder="e.g. Kanpur Nagar" value={form.district ?? ""} onChange={(e) => set("district", e.target.value)} />
+        </Field>
+        <Field label="State">
+          <select className="pw-input" value={form.state ?? ""} onChange={(e) => set("state", e.target.value)}>
+            <option value="">Select state</option>
+            {INDIAN_STATES.map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </Field>
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <Field label="Country">
+          <input className="pw-input" value={form.country ?? "India"} onChange={(e) => set("country", e.target.value)} />
+        </Field>
+      </div>
+
+      <AnimatePresence>
+        {isMinor && (
+          <motion.div
+            key="guardian-block"
+            variants={revealVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            style={{ overflow: "hidden" }}
+          >
+            <div style={{ paddingTop: "1rem" }}>
+              <GuardianBlock form={form} set={set} gs={gs} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function Step2Aadhaar({ aadhaar, setAadhaar, otp, setOtp, otpSent, busy, error, result, initiate, confirm }: any) {
+function GuardianBlock({ form, set, gs }: any) {
+  const { otp, setOtp, otpSent, otpVerified, busy, error, onSend, onVerify } = gs;
+
+  return (
+    <div className="pw-guardian">
+      <div className="pw-guardian-head">
+        <span className="pw-guardian-icon">🛡️</span>
+        <div>
+          <div className="pw-guardian-title">Guardian Consent Required</div>
+          <div className="pw-guardian-sub">This player is under 18. A parent or guardian must give consent on their behalf.</div>
+        </div>
+      </div>
+
+      <div className="pw-guardian-callout">
+        An OTP will be sent to the guardian's WhatsApp to verify consent before you can continue.
+      </div>
+
+      <div className="pw-grid pw-grid--2" style={{ marginTop: 14 }}>
+        <Field label="Guardian name">
+          <input className="pw-input" placeholder="Full name" value={form.guardian_name ?? ""} onChange={(e) => set("guardian_name", e.target.value)} />
+        </Field>
+        <Field label="Relationship">
+          <select className="pw-input" value={form.guardian_relationship ?? ""} onChange={(e) => set("guardian_relationship", e.target.value)}>
+            <option value="">Select</option>
+            <option value="FATHER">Father</option>
+            <option value="MOTHER">Mother</option>
+            <option value="GRANDPARENT">Grandparent</option>
+            <option value="LEGAL_GUARDIAN">Legal Guardian</option>
+            <option value="SIBLING">Sibling</option>
+            <option value="OTHER">Other</option>
+          </select>
+        </Field>
+      </div>
+
+      <div style={{ marginTop: 14 }}>
+        <Field label="Guardian WhatsApp number">
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              className="pw-input"
+              placeholder="+91 98765 43210"
+              value={form.guardian_phone ?? ""}
+              onChange={(e) => set("guardian_phone", e.target.value)}
+              disabled={otpVerified}
+              style={{ flex: 1 }}
+            />
+            {!otpVerified && (
+              <button type="button" className="btn green" onClick={onSend} disabled={busy || otpSent}>
+                {busy && !otpSent ? "Sending…" : otpSent ? "Sent ✓" : "Send OTP"}
+              </button>
+            )}
+          </div>
+        </Field>
+
+        {otpSent && !otpVerified && (
+          <div style={{ marginTop: 10 }}>
+            <Field label="OTP (6 digits)" hint="Sent to guardian's WhatsApp">
+              <div style={{ display: "flex", gap: 8 }}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="6-digit OTP"
+                  className="pw-input"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  style={{ flex: 1, textAlign: "center", fontFamily: "monospace", letterSpacing: "0.25em" }}
+                />
+                <button type="button" className="btn green" onClick={onVerify} disabled={busy || otp.length !== 6}>
+                  {busy ? "Verifying…" : "Verify"}
+                </button>
+              </div>
+            </Field>
+          </div>
+        )}
+
+        {otpVerified && (
+          <div className="pw-guardian-verified">✓ Guardian phone verified</div>
+        )}
+
+        {error && <div className="pw-hint" style={{ color: "#F87171", marginTop: 6 }}>{error}</div>}
+      </div>
+
+      <label className="pw-consent" style={{ marginTop: 14 }}>
+        <input type="checkbox" checked={!!form.guardian_consent_checked} onChange={(e) => set("guardian_consent_checked", e.target.checked)} />
+        <span>I confirm that the guardian named above has given consent for this player's registration on AthlasX and agrees to the platform's terms of service.</span>
+      </label>
+    </div>
+  );
+}
+
+function Step2Aadhaar({ aadhaar, setAadhaar, otp, setOtp, otpSent, busy, error, result, initiate, confirm, devOtp }: any) {
   const digits = aadhaar.replace(/\D/g, "");
   const displayMasked = maskAadhaar(aadhaar);
   const validAadhaar = digits.length === 12;
@@ -461,7 +675,14 @@ function Step2Aadhaar({ aadhaar, setAadhaar, otp, setOtp, otpSent, busy, error, 
 
       {otpSent && !result && (
         <div style={{ marginTop: 14 }}>
-          <Field label="OTP" hint="OTP sent to Aadhaar-linked mobile (MVP: any 6 digits work).">
+          <Field
+            label="OTP"
+            hint={
+              devOtp
+                ? `Dummy OTP for testing — use ${devOtp} (any 6 digits also work).`
+                : "OTP sent to Aadhaar-linked mobile (MVP: any 6 digits work)."
+            }
+          >
             <input
               type="text"
               inputMode="numeric"
@@ -812,6 +1033,9 @@ function Step9({ form, set, isMinor, age }: any) {
 }
 
 const wizardStyles = `
+/* No max-width here — OnboardingShell now owns the full-bleed two-column
+   layout (rail + form, edge-to-edge like the Hero section); this wrapper
+   only scopes the pw-* field/step classes used inside it. */
 .pw-shell { width: 100%; }
 
 /* athlasx.css's .sx-root .btn/.bdg/.card no longer apply once this page
@@ -841,7 +1065,7 @@ const wizardStyles = `
 .pw-shell .bdg.ghost { background: transparent; border: 1px solid var(--hx-card-border); color: var(--hx-text-dim); }
 
 .pw-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
-.pw-title { font-family: var(--font-anton), sans-serif; text-transform: uppercase; font-weight: 400; font-size: 32px; margin-top: 4px; }
+.pw-title { font-family: var(--font-anton), sans-serif; text-transform: uppercase; font-weight: 400; font-size: 28px; margin-top: 4px; }
 .pw-meta { font-size: 12px; color: var(--hx-text-dim); }
 .pw-stepper { list-style: none; padding: 0; margin: 0 0 16px; display: grid; grid-template-columns: repeat(9, 1fr); gap: 4px; counter-reset: step; }
 .pw-step { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border-radius: 8px; border: 1px solid var(--hx-card-border); background: var(--hx-field-bg); position: relative; }
@@ -863,11 +1087,15 @@ const wizardStyles = `
   .pw-stepper .pw-step:nth-child(n+5) { display: none; }
 }
 .pw-field { display: flex; flex-direction: column; gap: 4px; position: relative; }
-.pw-label { font-size: 12px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--hx-text-dim); font-family: var(--font-barlow-semi), sans-serif; font-weight: 600; }
-.pw-input { height: 42px; padding: 0 14px; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.25); border-radius: 8px; color: var(--hx-text); font-family: inherit; font-size: 16px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
-.pw-input option { background: #1a1a1a; color: #f5f5f0; }
-.pw-input:focus { border-color: var(--hx-accent); box-shadow: 0 0 8px var(--hx-overlay-accent-22); background: rgba(255,255,255,0.08); }
-.pw-input::placeholder { color: rgba(245,245,240,0.3); }
+.pw-label { font-size: 10.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--hx-text-dim); font-family: var(--font-barlow-semi), sans-serif; font-weight: 600; }
+.pw-input { height: 34px; padding: 0 11px; background: var(--hx-field-bg); border: 1px solid var(--hx-card-border); border-radius: 8px; color: var(--hx-text); font-family: inherit; font-size: 13px; outline: none; transition: border-color 0.15s, box-shadow 0.15s; }
+.pw-input:focus { border-color: var(--hx-accent); box-shadow: 0 0 8px var(--hx-overlay-accent-22); }
+/* The dropdown popup list itself is OS-rendered, but Chromium/Firefox do
+   honor background/color set directly on <option> — without this the list
+   falls back to default white-on-black system colors that clash hard with
+   the dark theme (visible as a plain white popup with default blue highlight). */
+select.pw-input { color-scheme: dark; }
+select.pw-input option { background: var(--hx-bg-soft); color: var(--hx-text); }
 .pw-textarea { height: 80px; padding: 8px 11px; resize: vertical; }
 .pw-hint { font-size: 10.5px; color: var(--hx-text-dim); }
 .pw-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 10; margin-top: 4px; background: var(--hx-bg-soft); border: 1px solid var(--hx-card-border); border-radius: 8px; overflow: hidden; }
@@ -894,4 +1122,18 @@ const wizardStyles = `
 .pw-aadhaar-warn-title { font-size: 13px; font-weight: 600; color: var(--hx-text); }
 .pw-aadhaar-warn-sub { font-size: 12px; color: var(--hx-text-dim); margin-top: 2px; }
 .pw-aadhaar-error { color: #F87171; margin-top: 10px; }
+
+/* Age badge (Step 1 DOB field) */
+.pw-age-badge { display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; font-family: var(--font-barlow-semi), sans-serif; letter-spacing: 0.02em; }
+.pw-age-badge--minor { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4); color: #FBBF24; }
+.pw-age-badge--adult { background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.35); color: #34D399; }
+
+/* Guardian consent block (Step 1, minors) */
+.pw-guardian { margin-top: 20px; padding: 16px; border: 1px solid rgba(251,191,36,0.4); border-radius: 12px; background: rgba(251,191,36,0.04); }
+.pw-guardian-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.pw-guardian-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
+.pw-guardian-title { font-size: 13px; font-weight: 700; color: #FBBF24; font-family: var(--font-barlow-semi), sans-serif; }
+.pw-guardian-sub { font-size: 12px; color: var(--hx-text-dim); margin-top: 3px; }
+.pw-guardian-callout { font-size: 11.5px; color: var(--hx-text-dim); padding: 8px 12px; background: var(--hx-field-bg); border: 1px solid var(--hx-card-border); border-radius: 8px; }
+.pw-guardian-verified { margin-top: 8px; font-size: 12px; font-weight: 600; color: #34D399; font-family: var(--font-barlow-semi), sans-serif; }
 `;
