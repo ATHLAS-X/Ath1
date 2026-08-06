@@ -65,7 +65,14 @@ export async function POST(req: Request) {
     throw e;
   }
 
-  await sendSms(phone, `Your AthlasX verification code is ${code}. Expires in 10 minutes.`);
+  try {
+    await sendSms(phone, `Your AthlasX verification code is ${code}. Expires in 10 minutes.`);
+  } catch (e: any) {
+    return NextResponse.json(
+      { success: false, error: e?.message ?? "SMS delivery is not available right now — please try again later" },
+      { status: 503 },
+    );
+  }
 
   const payload: Record<string, unknown> = {
     success: true,

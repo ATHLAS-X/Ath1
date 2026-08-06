@@ -39,45 +39,61 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email already registered" }, { status: 409 });
   }
 
+  // Check phone not already taken — users.phone has a unique constraint
+  // (users_phone_uidx), so without this check a duplicate phone falls
+  // through to the INSERT below and throws an uncaught 23505, which Next
+  // turns into a bare 500 with no JSON error body.
+  const phoneTaken = await sql`SELECT id FROM users WHERE phone = ${d.phone} LIMIT 1`;
+  if (phoneTaken.length > 0) {
+    return NextResponse.json({ error: "Phone number already registered to another account" }, { status: 409 });
+  }
+
   const passwordHash = await bcrypt.hash(d.password, 12);
 
-  // Insert user
-  const [user] = await sql`
-    INSERT INTO users (name, email, password_hash, role, phone, account_status)
-    VALUES (${d.contact_name}, ${d.email}, ${passwordHash}, 'academy_admin', ${d.phone}, 'pending')
-    RETURNING id
-  `;
+  try {
+    // Insert user
+    const [user] = await sql`
+      INSERT INTO users (name, email, password_hash, role, phone, account_status)
+      VALUES (${d.contact_name}, ${d.email}, ${passwordHash}, 'academy_admin', ${d.phone}, 'pending')
+      RETURNING id
+    `;
 
-  // Insert academy
-  await sql`
-    INSERT INTO academies (
-      user_id, academy_name, city, state, address, website,
-      founded_year, academy_description, contact_name, contact_email,
-      contact_phone, age_groups, facilities, specialties, profile_status
-    ) VALUES (
-      ${user.id}, ${d.academy_name}, ${d.city}, ${d.state},
-      ${d.address ?? null}, ${d.website || null},
-      ${d.founded_year ?? null}, ${d.academy_description ?? null},
-      ${d.contact_name}, ${d.email}, ${d.phone},
-      ${d.age_groups}, ${d.facilities}, ${d.specialties},
-      'Draft'
-    )
-  `;
+    // Insert academy
+    await sql`
+      INSERT INTO academies (
+        user_id, academy_name, city, state, address, website,
+        founded_year, academy_description, contact_name, contact_email,
+        contact_phone, age_groups, facilities, specialties, profile_status
+      ) VALUES (
+        ${user.id}, ${d.academy_name}, ${d.city}, ${d.state},
+        ${d.address ?? null}, ${d.website || null},
+        ${d.founded_year ?? null}, ${d.academy_description ?? null},
+        ${d.contact_name}, ${d.email}, ${d.phone},
+        ${d.age_groups}, ${d.facilities}, ${d.specialties},
+        'Draft'
+      )
+    `;
 
-  // Create email verification token (24h expiry)
-  const token = crypto.randomBytes(32).toString("hex");
-  await sql`
-    INSERT INTO email_verifications (user_id, token, expires_at)
-    VALUES (${user.id}, ${token}, now() + interval '24 hours')
-  `;
+    // Create email verification token (24h expiry)
+    const token = crypto.randomBytes(32).toString("hex");
+    await sql`
+      INSERT INTO email_verifications (user_id, token, expires_at)
+      VALUES (${user.id}, ${token}, now() + interval '24 hours')
+    `;
 
-  const verifyUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/api/auth/verify-email?token=${token}`;
+    const verifyUrl = `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/api/auth/verify-email?token=${token}`;
 
-  await sendEmail({
-    to: d.email,
-    subject: "Verify your AthlasX Academy account",
-    body: `Hi ${d.contact_name},\n\nWelcome to AthlasX! Please verify your email:\n\n${verifyUrl}\n\nThis link expires in 24 hours.\n\nThe AthlasX Team`,
-  });
+    await sendEmail({
+      to: d.email,
+      subject: "Verify your AthlasX Academy account",
+      body: `Hi ${d.contact_name},\n\nWelcome to AthlasX! Please verify your email:\n\n${verifyUrl}\n\nThis link expires in 24 hours.\n\nThe AthlasX Team`,
+    });
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true });
+  } catch (e: any) {
+    if (e?.code === "23505") {
+      return NextResponse.json({ error: "Email or phone already registered to another account" }, { status: 409 });
+    }
+    throw e;
+  }
 }

@@ -33,7 +33,16 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     `You'll fill in any missing details and submit for approval.`;
 
   if (inv.email) await sendEmail({ to: inv.email, subject: `Claim your AthlasX profile — ${inv.academy_name}`, body });
-  if (inv.phone) await sendSms(inv.phone, `AthlasX: ${inv.academy_name} created a profile for you. Claim it at ${claimUrl}`);
+  if (inv.phone) {
+    try {
+      await sendSms(inv.phone, `AthlasX: ${inv.academy_name} created a profile for you. Claim it at ${claimUrl}`);
+    } catch (e: any) {
+      return NextResponse.json(
+        { success: false, error: e?.message ?? "SMS delivery is not available right now — please try again later" },
+        { status: 503 },
+      );
+    }
+  }
 
   await sql`UPDATE player_invites SET sent_at = NOW(), status = 'Sent' WHERE id = ${inv.id}`;
   return NextResponse.json({ success: true });
