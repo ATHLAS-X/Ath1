@@ -8,6 +8,15 @@ import { AddCoachForm, AddPlayerForm, BulkCsvForm } from "@/components/academy/f
 import { DsIcon, DsButton, DsAvatar, DsPill } from "@/app/_ds";
 
 interface Stats { total: number; verified: number; live: number; scoutViews: number; }
+interface SessionSummary {
+  today_sessions: number;
+  upcoming_sessions: number;
+  marked_count: number;
+  unmarked_count: number;
+  present_count: number;
+  absent_count: number;
+  late_count: number;
+}
 interface PlayerRow {
   id: string;
   user_id: string | null;
@@ -22,12 +31,14 @@ interface Props {
   adminName: string;
   adminEmail: string;
   stats: Stats;
+  sessionSummary: SessionSummary;
   recentPlayers: PlayerRow[];
 }
 
 const NAV: Array<{ label: string; href: string; icon: string }> = [
   { label: "Dashboard", href: "/academy/dashboard", icon: "dashboard" },
   { label: "Players", href: "/academy/players", icon: "players" },
+  { label: "Sessions & Attendance", href: "/academy/sessions", icon: "calendar" },
   { label: "Coaches", href: "/academy/coaches", icon: "coaches" },
   { label: "Fitness & Assessments", href: "/academy/fitness", icon: "fitness" },
   { label: "Settings", href: "/academy/settings", icon: "settings" },
@@ -60,6 +71,35 @@ function StatCard({ icon, label, value, sub, tone = "accent", placeholder = fals
         {placeholder && <DsPill tone="neutral">V2</DsPill>}
       </div>
       <p style={{ margin: "0.5rem 0 0", fontSize: "0.74rem", color: "var(--ax-text-faint)", lineHeight: 1.4 }}>{sub}</p>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, tone }: { label: string; value: number; tone: "accent" | "ok" | "blue" }) {
+  const map = {
+    accent: { bg: "var(--ax-accent-14)", fg: "var(--ax-accent-bright)" },
+    ok: { bg: "var(--ax-ok-soft)", fg: "var(--ax-ok)" },
+    blue: { bg: "rgba(74,158,255,0.14)", fg: "#7DBBFF" },
+  }[tone];
+  return (
+    <div style={{ padding: "0.8rem 0.85rem", borderRadius: "var(--ax-radius-lg)", background: map.bg, border: "1px solid var(--ax-border)" }}>
+      <div style={{ fontFamily: "var(--ax-font-label)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.62rem", color: "var(--ax-text-faint)", fontWeight: 700 }}>{label}</div>
+      <div style={{ marginTop: "0.2rem", fontFamily: "var(--ax-font-display)", fontSize: "1.9rem", lineHeight: 1, color: map.fg }}>{value}</div>
+    </div>
+  );
+}
+
+function SessionLine({ label, value, tone }: { label: string; value: number; tone: "ok" | "bad" | "orange" | "neutral" }) {
+  const fg = {
+    ok: "var(--ax-ok)",
+    bad: "var(--ax-bad-text)",
+    orange: "#FFB35C",
+    neutral: "var(--ax-text-dim)",
+  }[tone];
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.55rem 0.7rem", borderRadius: "var(--ax-radius-md)", background: "var(--ax-field)", border: "1px solid var(--ax-border)" }}>
+      <span style={{ fontSize: "0.82rem", color: "var(--ax-text-dim)", fontWeight: 600 }}>{label}</span>
+      <span style={{ fontFamily: "var(--ax-font-display)", fontSize: "1.15rem", lineHeight: 1, color: fg }}>{value}</span>
     </div>
   );
 }
@@ -182,6 +222,34 @@ export default function AcademyAdminDashboard(p: Props) {
               <StatCard icon="dashboard" label="Verified Players" value={p.stats.verified.toLocaleString("en-IN")} sub="Identity Verified or higher" tone="ok" />
               <StatCard icon="eye" label="Scout Views" value="—" sub="Coming in V2" tone="neutral" placeholder />
               <StatCard icon="fitness" label="Players Live" value={p.stats.live.toLocaleString("en-IN")} sub="profile_status = Live" tone="blue" />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr", gap: "0.9rem", marginBottom: "1.8rem" }}>
+              <div style={{ padding: "1rem 1.1rem", borderRadius: "var(--ax-radius-xl)", background: "var(--ax-card)", border: "1px solid var(--ax-border)", boxShadow: "var(--ax-shadow-card)" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "0.85rem" }}>
+                  <div>
+                    <div style={{ fontFamily: "var(--ax-font-label)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.68rem", fontWeight: 700, color: "var(--ax-text-faint)" }}>Sessions & Attendance</div>
+                    <div style={{ fontSize: "1rem", fontWeight: 700, marginTop: "0.2rem" }}>Quick attendance snapshot</div>
+                  </div>
+                  <Link href="/academy/sessions" style={{ textDecoration: "none" }}>
+                    <DsButton variant="outline" size="sm" leadingIcon={<DsIcon name="calendar" size={14} />}>Open sessions</DsButton>
+                  </Link>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "0.75rem" }}>
+                  <MiniStat label="Today" value={p.sessionSummary.today_sessions} tone="accent" />
+                  <MiniStat label="Upcoming" value={p.sessionSummary.upcoming_sessions} tone="blue" />
+                  <MiniStat label="Marked" value={p.sessionSummary.marked_count} tone="ok" />
+                </div>
+              </div>
+              <div style={{ padding: "1rem 1.1rem", borderRadius: "var(--ax-radius-xl)", background: "var(--ax-card)", border: "1px solid var(--ax-border)", boxShadow: "var(--ax-shadow-card)" }}>
+                <div style={{ fontFamily: "var(--ax-font-label)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: "0.68rem", fontWeight: 700, color: "var(--ax-text-faint)", marginBottom: "0.35rem" }}>Attendance totals</div>
+                <div style={{ display: "grid", gap: "0.55rem" }}>
+                  <SessionLine label="Present" value={p.sessionSummary.present_count} tone="ok" />
+                  <SessionLine label="Absent" value={p.sessionSummary.absent_count} tone="bad" />
+                  <SessionLine label="Late" value={p.sessionSummary.late_count} tone="orange" />
+                  <SessionLine label="Unmarked" value={p.sessionSummary.unmarked_count} tone="neutral" />
+                </div>
+              </div>
             </div>
 
             {/* quick actions */}

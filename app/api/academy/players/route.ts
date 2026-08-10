@@ -9,6 +9,7 @@ import { sql } from "@/lib/db";
 
 const ROLE_FILTER_VALUES = new Set(["Batter", "Bowler", "All-Rounder", "Wicketkeeper"]);
 const STATUS_FILTER_VALUES = new Set(["Draft", "Pending Approval", "Live"]);
+const AGE_GROUP_FILTER_VALUES = new Set(["U-10", "U-13", "U-17", "Senior"]);
 /* DB uses "Batsman", but the filter dropdown reads "Batter" per the spec. */
 const ROLE_DB_MAP: Record<string, string> = { Batter: "Batsman" };
 
@@ -31,12 +32,14 @@ export async function GET(req: Request) {
   const roleParam = (url.searchParams.get("role") ?? "All").trim();
   const levelParam = (url.searchParams.get("level") ?? "All").trim();
   const statusParam = (url.searchParams.get("status") ?? "All").trim();
+  const ageGroupParam = (url.searchParams.get("age_group") ?? "All").trim();
   const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
   const size = Math.max(1, Math.min(100, Number(url.searchParams.get("size") ?? "20") || 20));
   const offset = (page - 1) * size;
 
   const roleDb = ROLE_FILTER_VALUES.has(roleParam) ? (ROLE_DB_MAP[roleParam] ?? roleParam) : null;
   const statusDb = STATUS_FILTER_VALUES.has(statusParam) ? statusParam : null;
+  const ageGroupDb = AGE_GROUP_FILTER_VALUES.has(ageGroupParam) ? ageGroupParam : null;
   const levelNum = ["1", "2", "3", "4"].includes(levelParam) ? Number(levelParam) : null;
   const searchPattern = search ? `%${search.toLowerCase()}%` : null;
 
@@ -49,13 +52,31 @@ export async function GET(req: Request) {
       COALESCE(pp.profile_status, 'Draft') AS profile_status,
       pp.invite_token IS NOT NULL AS invite_sent,
       pp.invite_sent_at, pp.claimed_at,
-      pp.created_at
+      pp.created_at,
+      COALESCE((
+        SELECT array_agg(DISTINCT b.age_group ORDER BY b.age_group)
+        FROM batch_players bp
+        JOIN batches b ON b.id = bp.batch_id
+        WHERE bp.player_profile_id = pp.id
+          AND b.academy_id = ${academyId}
+          AND b.batch_status = 'ACTIVE'
+          AND b.age_group IS NOT NULL
+      ), ARRAY[]::varchar[]) AS age_groups
     FROM player_profiles pp
     WHERE pp.academy_id = ${academyId}
       AND (${searchPattern}::text IS NULL OR LOWER(COALESCE(pp.first_name, '') || ' ' || COALESCE(pp.last_name, '')) LIKE ${searchPattern})
       AND (${roleDb}::text IS NULL OR pp.playing_role = ${roleDb})
       AND (${levelNum}::int IS NULL OR COALESCE(pp.verification_level, 1) = ${levelNum})
       AND (${statusDb}::text IS NULL OR COALESCE(pp.profile_status, 'Draft') = ${statusDb})
+      AND (${ageGroupDb}::text IS NULL OR EXISTS (
+        SELECT 1
+        FROM batch_players bp
+        JOIN batches b ON b.id = bp.batch_id
+        WHERE bp.player_profile_id = pp.id
+          AND b.academy_id = ${academyId}
+          AND b.batch_status = 'ACTIVE'
+          AND b.age_group = ${ageGroupDb}
+      ))
     ORDER BY pp.created_at DESC NULLS LAST
     LIMIT ${size} OFFSET ${offset}
   ` as unknown as Promise<any[]>;
@@ -66,6 +87,15 @@ export async function GET(req: Request) {
       AND (${roleDb}::text IS NULL OR pp.playing_role = ${roleDb})
       AND (${levelNum}::int IS NULL OR COALESCE(pp.verification_level, 1) = ${levelNum})
       AND (${statusDb}::text IS NULL OR COALESCE(pp.profile_status, 'Draft') = ${statusDb})
+      AND (${ageGroupDb}::text IS NULL OR EXISTS (
+        SELECT 1
+        FROM batch_players bp
+        JOIN batches b ON b.id = bp.batch_id
+        WHERE bp.player_profile_id = pp.id
+          AND b.academy_id = ${academyId}
+          AND b.batch_status = 'ACTIVE'
+          AND b.age_group = ${ageGroupDb}
+      ))
   ` as unknown as Promise<any[]>;
 
   const [rows, countRows] = await Promise.all([rowsP, countP]);

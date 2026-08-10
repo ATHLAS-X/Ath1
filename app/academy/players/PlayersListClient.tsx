@@ -32,6 +32,7 @@ interface PlayerRow {
   invite_sent_at: string | null;
   claimed_at: string | null;
   created_at: string;
+  age_groups: string[];
 }
 
 const NAV = [
@@ -69,6 +70,7 @@ export default function PlayersListClient(p: Props) {
   const [role, setRole] = useState("All");
   const [level, setLevel] = useState("All");
   const [status, setStatus] = useState("All");
+  const [ageGroup, setAgeGroup] = useState("All");
 
   /* Selection (Set of row ids) */
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -90,6 +92,7 @@ export default function PlayersListClient(p: Props) {
       ...(role !== "All" ? { role } : {}),
       ...(level !== "All" ? { level } : {}),
       ...(status !== "All" ? { status } : {}),
+      ...(ageGroup !== "All" ? { age_group: ageGroup } : {}),
     });
     try {
       const res = await fetch(`/api/academy/players?${qs.toString()}`);
@@ -105,14 +108,14 @@ export default function PlayersListClient(p: Props) {
     } finally {
       setLoading(false);
     }
-  }, [page, search, role, level, status]);
+  }, [page, search, role, level, status, ageGroup]);
 
   useEffect(() => { fetchList(); }, [fetchList]);
 
   /* Reset to page 1 whenever filters change. */
-  useEffect(() => { setPage(1); setSelected(new Set()); }, [search, role, level, status]);
+  useEffect(() => { setPage(1); setSelected(new Set()); }, [search, role, level, status, ageGroup]);
 
-  const clearFilters = () => { setSearch(""); setRole("All"); setLevel("All"); setStatus("All"); };
+  const clearFilters = () => { setSearch(""); setRole("All"); setLevel("All"); setStatus("All"); setAgeGroup("All"); };
 
   const toggle = (id: string) => setSelected((s) => {
     const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n;
@@ -234,8 +237,11 @@ export default function PlayersListClient(p: Props) {
             <select className="ap-input" value={status} onChange={(e) => setStatus(e.target.value)}>
               {["All", "Draft", "Pending Approval", "Live"].map((o) => <option key={o}>{o}</option>)}
             </select>
+            <select className="ap-input" value={ageGroup} onChange={(e) => setAgeGroup(e.target.value)} aria-label="Filter by age group">
+              {["All", "U-10", "U-13", "U-17", "Senior"].map((o) => <option key={o}>{o === "All" ? "All age groups" : o}</option>)}
+            </select>
             <button className="ap-clear" onClick={clearFilters}
-              disabled={search === "" && role === "All" && level === "All" && status === "All"}>
+              disabled={search === "" && role === "All" && level === "All" && status === "All" && ageGroup === "All"}>
               Clear filters
             </button>
             <button className="ap-add" onClick={() => setOpenAddPlayer(true)}>+ Add player</button>
@@ -266,6 +272,7 @@ export default function PlayersListClient(p: Props) {
                     </th>
                     <th>Name</th>
                     <th>Role</th>
+                    <th>Age group</th>
                     <th>Batting Style</th>
                     <th>Verification</th>
                     <th>Status</th>
@@ -281,6 +288,7 @@ export default function PlayersListClient(p: Props) {
                           <td><Skeleton width={16} height={16} /></td>
                           <td><Skeleton width="65%" height={14} /></td>
                           <td><Skeleton width="55%" height={14} /></td>
+                          <td><Skeleton width="55%" height={14} /></td>
                           <td><Skeleton width="70%" height={14} /></td>
                           <td><Skeleton width={120} height={20} /></td>
                           <td><Skeleton width={80} height={20} /></td>
@@ -291,7 +299,7 @@ export default function PlayersListClient(p: Props) {
                     </>
                   )}
                   {!loading && fetchError && (
-                    <tr><td colSpan={8} className="ap-empty">
+                    <tr><td colSpan={9} className="ap-empty">
                       <div style={{ fontSize: 14, fontWeight: 600, color: "#0F172A", marginBottom: 6 }}>
                         Something went wrong loading players
                       </div>
@@ -304,8 +312,8 @@ export default function PlayersListClient(p: Props) {
                     </td></tr>
                   )}
                   {!loading && !fetchError && players.length === 0 && (
-                    <tr><td colSpan={8} className="ap-empty">
-                      {(search || role !== "All" || level !== "All" || status !== "All") ? (
+                    <tr><td colSpan={9} className="ap-empty">
+                      {(search || role !== "All" || level !== "All" || status !== "All" || ageGroup !== "All") ? (
                         <>
                           No players match these filters.{" "}
                           <button className="ap-link-btn" onClick={clearFilters}>Clear filters</button>
@@ -338,6 +346,7 @@ export default function PlayersListClient(p: Props) {
                         </td>
                         <td className="ap-name">{row.name || "—"}</td>
                         <td>{row.playing_role ?? "—"}</td>
+                        <td className="ap-muted">{row.age_groups?.length ? row.age_groups.join(", ") : "—"}</td>
                         <td className="ap-muted">{row.batting_style ?? "—"}</td>
                         <td><Badge bg={lvl.bg} fg={lvl.fg} border={lvl.border}>{lvl.label}</Badge></td>
                         <td><Badge bg={st.bg} fg={st.fg}>{row.profile_status}</Badge></td>

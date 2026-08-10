@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AthlasX — Sequence Diagrams</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+<style>
+  :root{
+    --bg:#f7faf8; --surface:#ffffff; --surface-2:#f2f7f4;
+    --text:#1c2622; --text-2:#4a5a53; --muted:#75857d;
+    --accent:#16624a; --accent-2:#14342a; --accent-soft:#eaf3ef;
+    --border:#e2ebe7; --border-2:#cfdcd6;
+    --warn:#a85a52; --warn-bg:#faf3f2;
+    --radius:12px;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  a{color:var(--accent);}
+  .shell{display:grid;grid-template-columns:270px 1fr;min-height:100vh;}
+  .sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--surface);border-right:1px solid var(--border);padding:1.5rem 0;}
+  .brand{padding:0 1.4rem 1.2rem;border-bottom:1px solid var(--border);margin-bottom:0.8rem;}
+  .brand .name{font-size:1.05rem;font-weight:800;letter-spacing:-0.01em;}
+  .brand .name span{color:var(--accent);}
+  .brand .sub{font-size:0.72rem;color:var(--muted);margin-top:0.25rem;line-height:1.4;}
+  .nav-group{padding:0 0.7rem;}
+  .nav-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:700;padding:0.8rem 0.7rem 0.3rem;}
+  .nav-item{display:block;padding:0.5rem 0.7rem;border-radius:8px;font-size:0.83rem;color:var(--text-2);text-decoration:none;cursor:pointer;font-weight:500;transition:background 0.15s;}
+  .nav-item:hover{background:var(--surface-2);color:var(--text);}
+  .nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:700;}
+  .main{padding:2.2rem clamp(1.2rem,3vw,3.2rem) 6rem;max-width:1180px;}
+  .section{display:none;}
+  .section.active{display:block;animation:fadeIn 0.25s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .sec-kicker{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:0.4rem;}
+  .sec-title{font-size:1.7rem;font-weight:800;letter-spacing:-0.015em;margin:0 0 0.5rem;}
+  .sec-desc{font-size:0.95rem;color:var(--text-2);line-height:1.6;max-width:52rem;margin-bottom:0.6rem;}
+  .badge-row{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.4rem;}
+  .badge{font-size:0.74rem;padding:0.3rem 0.7rem;border-radius:20px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);}
+  .diagram-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.6rem;overflow:hidden;box-shadow:0 1px 2px rgba(20,52,42,0.04);}
+  .diagram-head{padding:0.9rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.6rem;background:var(--surface-2);}
+  .diagram-tag{font-size:0.62rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;padding:0.22rem 0.55rem;border-radius:6px;background:var(--accent-soft);color:var(--accent);}
+  .diagram-head h3{font-size:0.92rem;font-weight:700;margin:0;}
+  .diagram-body{padding:1.4rem;overflow-x:auto;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem;}
+  @media(max-width:980px){.grid2{grid-template-columns:1fr;}.shell{grid-template-columns:1fr;}.sidebar{position:relative;height:auto;}}
+  .note-box{background:var(--warn-bg);border:1px solid rgba(168,90,82,0.3);border-radius:10px;padding:0.9rem 1.1rem;font-size:0.84rem;color:#7a3b3b;line-height:1.55;margin:1rem 0 1.6rem;}
+  .note-box b{color:var(--warn);}
+  .mermaid{font-size:14px;}
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="name">Athlas<span>X</span></div>
+      <div class="sub">Doc A — Sequence Diagrams Only</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">System</div>
+      <div class="nav-item active" data-target="overview"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">&#9670;</span>Master / End-to-End</div>
+      <div class="nav-label">Product Site</div>
+      <div class="nav-item" data-target="auth"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">&middot;</span>Auth & Role Routing</div>
+      <div class="nav-item" data-target="academy-onboard"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">&middot;</span>Academy Onboarding</div>
+      <div class="nav-item" data-target="coach-onboard"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">&middot;</span>Coach Onboarding</div>
+      <div class="nav-item" data-target="player-onboard"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">&middot;</span>Player Onboarding</div>
+      <div class="nav-item" data-target="academy-dash"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">&middot;</span>Academy Dashboard</div>
+      <div class="nav-item" data-target="coach-dash"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">&middot;</span>Coach Dashboard</div>
+      <div class="nav-item" data-target="player-dash"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">&middot;</span>Player Dashboard</div>
+      <div class="nav-label">Association Pivot</div>
+      <div class="nav-item" data-target="w1"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">W1</span>Association Onboarding & Ingest</div>
+      <div class="nav-item" data-target="w2"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">W2</span>Player Identity & Claim</div>
+      <div class="nav-item" data-target="w3"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">W3</span>Trial Cycle &rarr; Dossier</div>
+      <div class="nav-item" data-target="w4"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">W4</span>Selection Committee</div>
+      <div class="nav-item" data-target="w5"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">W5</span>Weekly Tracking</div>
+      <div class="nav-item" data-target="w6"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">W6</span>Player Development Loop</div>
+      <div class="nav-item" data-target="w7"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">W7</span>Coach</div>
+      <div class="nav-item" data-target="w8"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">W8</span>Academy Affiliation Capture</div>
+      <div class="nav-item" data-target="w9"><span class="code" style="display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);">W9</span>Master Flow (source)</div>
+    </div>
+  </nav>
+  <main class="main">
+    <section class="section active" id="sec-overview">
+      <div class="sec-kicker">System Overview</div>
+      <div class="sec-title">End-to-End Pathway Platform</div>
+      <p class="sec-desc">How each role interacts with the system over time, across the whole product: Auth, onboarding, dashboards, and all nine association-pivot workflows. Use case and class diagrams have been removed from this set - they were not rendering reliably.</p>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Master / Whole-Site View</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant U as New User
+    participant Auth as Auth and Router
+    participant Onb as Onboarding (role-specific)
+    participant Dash as Dashboard (role-specific)
+    participant Assoc as Association
+    participant AX as AthlasX Platform (W1-W9)
+
+    U-&gt;&gt;Auth: Open app, verify OTP
+    alt New user
+        Auth-&gt;&gt;Onb: Route to Academy / Coach / Player onboarding
+        Onb--&gt;&gt;Auth: onboardingComplete = true
+    end
+    Auth-&gt;&gt;Dash: Route to role dashboard
+    par Direct product path
+        Dash-&gt;&gt;AX: Player self-registers, appears in pool
+    and Association data path
+        Assoc-&gt;&gt;AX: W1 ingest, W2 identity resolution
+        AX-&gt;&gt;AX: Player discovered, appears in pool
+    end
+    AX-&gt;&gt;AX: W3 Trial cycle -&gt; pre-camp dossier
+    AX-&gt;&gt;AX: W4 Selection committee -&gt; squad locked
+    AX-&gt;&gt;AX: W5 Weekly tracking, in-season
+    AX--&gt;&gt;AX: Longitudinal record enriches next cycle
+        </pre></div>
+      </div>
+
+      <div class="note-box"><b>Note:</b> This is the key synthesis: there are two entry paths into the same player record pool. Direct self-registration (Player Onboarding, product-led) and association-data-discovery (W1/W2 ingest, institution-led) both converge into one player pool before the selection and tracking loop begins. The platform's whole value depends on those two paths writing to one canonical Player record, never two.</div>
+
+    </section>
+    <section class="section" id="sec-auth">
+      <div class="sec-kicker">Site · Entry Point</div>
+      <div class="sec-title">Auth & Role Routing</div>
+      <p class="sec-desc">Every session starts here: pick a role, verify a phone number, and get routed either into an onboarding wizard (new user) or straight to a dashboard (returning, onboarded user).</p>
+      <div class="badge-row"><span class="badge">Actor: Any User</span><span class="badge">Output: Routed to onboarding or dashboard</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Auth & Role Routing</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant App as AthlasX App
+    participant OTP as OTP Service
+    participant Router as Role Router
+
+    U-&gt;&gt;App: Open app, select role
+    U-&gt;&gt;App: Enter mobile number
+    App-&gt;&gt;OTP: Send OTP
+    OTP--&gt;&gt;U: SMS / WhatsApp OTP
+    U-&gt;&gt;App: Enter OTP
+    App-&gt;&gt;OTP: Verify OTP
+    OTP--&gt;&gt;App: Verified
+    App-&gt;&gt;Router: Check onboardingComplete for role
+    alt New user
+        Router-&gt;&gt;App: Redirect to onboarding wizard
+    else Returning, onboarded
+        Router-&gt;&gt;App: Redirect to dashboard
+    end
+        </pre></div>
+      </div>
+
+
+    </section>
+    <section class="section" id="sec-academy-onboard">
+      <div class="sec-kicker">Site · Onboarding</div>
+      <div class="sec-title">Academy Onboarding (5 Steps)</div>
+      <p class="sec-desc">Account &rarr; Academy Identity &rarr; Facilities and Staff &rarr; Programs &rarr; Go Live. Ends with an invite-coach and create-first-batch step, both optional.</p>
+      <div class="badge-row"><span class="badge">Actor: Academy Admin</span><span class="badge">Output: onboardingComplete = true, redirect to Academy Dashboard</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Academy Onboarding (5 Steps)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Admin as Academy Admin
+    participant Wiz as Onboarding Wizard
+    participant API as Academy API
+
+    Admin-&gt;&gt;Wiz: Complete Step 1 (Account)
+    Wiz-&gt;&gt;API: Save step 1
+    Admin-&gt;&gt;Wiz: Complete Step 2 (Identity)
+    Wiz-&gt;&gt;API: Save step 2
+    Admin-&gt;&gt;Wiz: Complete Step 3 (Facilities and Staff)
+    Wiz-&gt;&gt;API: Save step 3
+    Admin-&gt;&gt;Wiz: Complete Step 4 (Programs)
+    Wiz-&gt;&gt;API: Save step 4
+    Admin-&gt;&gt;Wiz: Complete Step 5 (Go Live) - invite coach, create batch
+    Wiz-&gt;&gt;API: Mark onboardingComplete
+    API--&gt;&gt;Admin: Redirect to Academy Dashboard
+        </pre></div>
+      </div>
+
+
+    </section>
+    <section class="section" id="sec-coach-onboard">
+      <div class="sec-kicker">Site · Onboarding</div>
+      <div class="sec-title">Coach Onboarding (4 Steps)</div>
+      <p class="sec-desc">Account &rarr; Experience &rarr; Certifications &rarr; Join Academy. Certification upload is optional but drives a verified badge; joining an academy can happen via invite code or browse-and-apply.</p>
+      <div class="badge-row"><span class="badge">Actor: Coach</span><span class="badge">Output: onboardingComplete = true, redirect to Coach Dashboard</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Coach Onboarding (4 Steps)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Coach as Coach
+    participant Wiz as Onboarding Wizard
+    participant API as Coach API
+    participant Assoc as Academy
+
+    Coach-&gt;&gt;Wiz: Complete Step 1 (Account)
+    Coach-&gt;&gt;Wiz: Complete Step 2 (Experience)
+    Coach-&gt;&gt;Wiz: Complete Step 3 (Certifications)
+    Wiz-&gt;&gt;API: Upload certificate, status = PENDING
+    Coach-&gt;&gt;Wiz: Step 4 - enter invite code or browse academies
+    alt Invite code valid
+        Wiz-&gt;&gt;Assoc: Verify code
+        Assoc--&gt;&gt;Wiz: Academy confirmed
+    else Browse and apply
+        Wiz-&gt;&gt;Assoc: Send application
+        Assoc--&gt;&gt;Wiz: Application pending
+    end
+    Wiz-&gt;&gt;API: Mark onboardingComplete
+    API--&gt;&gt;Coach: Redirect to Coach Dashboard
+        </pre></div>
+      </div>
+
+
+    </section>
+    <section class="section" id="sec-player-onboard">
+      <div class="sec-kicker">Site · Onboarding</div>
+      <div class="sec-title">Player Onboarding (3 Steps + Guardian Consent)</div>
+      <p class="sec-desc">About You (identity, DOB, city/district/state) &rarr; Cricket Profile &rarr; Join Academy. A DOB confirming under-18 branches into a mandatory guardian consent flow before the player can proceed.</p>
+      <div class="badge-row"><span class="badge">Actors: Player, Guardian</span><span class="badge">Output: onboardingComplete = true, redirect to Player Dashboard</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Player Onboarding (3 Steps + Guardian Consent)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Player as Player
+    participant Guardian as Guardian
+    participant Wiz as Onboarding Wizard
+    participant API as Player API
+
+    Player-&gt;&gt;Wiz: Complete Step 1 (About You: name, DOB, district)
+    alt Under 18
+        Wiz-&gt;&gt;Guardian: Request guardian details + OTP
+        Guardian--&gt;&gt;Wiz: OTP verified, consent given
+    end
+    Player-&gt;&gt;Wiz: Complete Step 2 (Cricket Profile)
+    Player-&gt;&gt;Wiz: Step 3 - join academy via code or QR
+    Wiz-&gt;&gt;API: Verify academy code
+    API--&gt;&gt;Wiz: Academy linked
+    Wiz-&gt;&gt;API: Mark onboardingComplete
+    API--&gt;&gt;Player: Redirect to Player Dashboard
+        </pre></div>
+      </div>
+
+
+    </section>
+    <section class="section" id="sec-academy-dash">
+      <div class="sec-kicker">Site · Dashboard</div>
+      <div class="sec-title">Academy Dashboard</div>
+      <p class="sec-desc">Home view of KPIs, sessions, and squad list; drills into per-player detail and coach management.</p>
+      <div class="badge-row"><span class="badge">Actor: Academy Admin</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Academy Dashboard</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Admin as Academy Admin
+    participant Dash as Academy Dashboard
+    participant API as Academy API
+
+    Admin-&gt;&gt;Dash: Open dashboard
+    Dash-&gt;&gt;API: Fetch KPIs, sessions, squad list
+    API--&gt;&gt;Dash: Data
+    Admin-&gt;&gt;Dash: Select player
+    Dash-&gt;&gt;API: Fetch player detail
+    API--&gt;&gt;Dash: Player detail
+    Admin-&gt;&gt;Dash: Manage coach roster
+        </pre></div>
+      </div>
+
+
+    </section>
+    <section class="section" id="sec-coach-dash">
+      <div class="sec-kicker">Site · Dashboard</div>
+      <div class="sec-title">Coach Dashboard</div>
+      <p class="sec-desc">Batch-tabbed view for marking attendance, logging player notes, and reviewing an attention list of players on a declining trend.</p>
+      <div class="badge-row"><span class="badge">Actor: Coach</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Coach Dashboard</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Coach as Coach
+    participant Dash as Coach Dashboard
+    participant API as Coach API
+
+    Coach-&gt;&gt;Dash: Select batch tab
+    Coach-&gt;&gt;Dash: Mark attendance
+    Dash-&gt;&gt;API: Save attendance
+    Coach-&gt;&gt;Dash: Add player note
+    Dash-&gt;&gt;API: Save note
+    Dash-&gt;&gt;API: Fetch attention-flagged players
+    API--&gt;&gt;Coach: Attention list
+        </pre></div>
+      </div>
+
+
+    </section>
+    <section class="section" id="sec-player-dash">
+      <div class="sec-kicker">Site · Dashboard</div>
+      <div class="sec-title">Player Dashboard</div>
+      <p class="sec-desc">Own stats, AthlasX Score and trend, profile view count (role only, never identity), and media upload.</p>
+      <div class="badge-row"><span class="badge">Actor: Player</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Player Dashboard</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Player as Player
+    participant Dash as Player Dashboard
+    participant API as Player API
+
+    Player-&gt;&gt;Dash: Open dashboard
+    Dash-&gt;&gt;API: Fetch stats, score, trend
+    API--&gt;&gt;Dash: Data
+    Player-&gt;&gt;Dash: Upload video
+    Dash-&gt;&gt;API: Store media
+    Player-&gt;&gt;Dash: View profile view count
+        </pre></div>
+      </div>
+
+
+    </section>
+    <section class="section" id="sec-w1">
+      <div class="sec-kicker">Pivot &middot; Workflow 1</div>
+      <div class="sec-title">Association Onboarding & Historical Ingest</div>
+      <p class="sec-desc">The gating workflow. Everything downstream depends on it, and its cost is set entirely by one variable: what form the association's records are already in.</p>
+      <div class="badge-row"><span class="badge">Actors: AthlasX Ops, Association Staff</span><span class="badge">Output: Season live, association-verified</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Association Onboarding & Historical Ingest</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Ops as AthlasX Ops
+    participant Assoc as Association (Data Owner)
+    participant Pipe as Ingest Pipeline
+    participant W2 as Identity Resolution (W2)
+
+    Ops-&gt;&gt;Assoc: Approach with data-sharing proposal
+    Assoc--&gt;&gt;Ops: Sign agreement (or decline)
+    Ops-&gt;&gt;Ops: Scope seasons, formats, age categories
+    Ops-&gt;&gt;Pipe: Audit source format
+    Assoc-&gt;&gt;Pipe: Hand over records / grant access
+    alt Already on scoring platform
+        Pipe-&gt;&gt;Pipe: API / export sync
+    else Digital scorecards
+        Pipe-&gt;&gt;Pipe: Structured parser
+    else Scanned / paper
+        Pipe-&gt;&gt;Pipe: OCR + human review queue
+    else Excel / registers
+        Pipe-&gt;&gt;Pipe: Column-mapping template
+    end
+    Pipe-&gt;&gt;Pipe: Normalise to Tournament / Match / Performance
+    Pipe-&gt;&gt;W2: Send rows for identity resolution
+    W2--&gt;&gt;Pipe: Resolved rows + confidence scores
+    Pipe-&gt;&gt;Assoc: Present normalised output for review
+    Assoc--&gt;&gt;Pipe: Approve season (or send back for rework)
+    Pipe-&gt;&gt;Ops: Season live, association-verified
+        </pre></div>
+      </div>
+
+      <div class="note-box"><b>Note:</b> Design flag: P0 (source format) is the single biggest cost driver in the business - determine it in the first conversation with any association, before signing. Given CricHeroes' penetration (23+ state associations), API/export sync should likely be treated as the primary path, not one of four equal branches.</div>
+
+    </section>
+    <section class="section" id="sec-w2">
+      <div class="sec-kicker">Pivot &middot; Workflow 2</div>
+      <div class="sec-title">Player Identity Resolution & Claim</div>
+      <p class="sec-desc">Ingested performance rows refer to people who mostly do not have accounts. The platform creates and maintains shadow profiles that exist before any player signs up, then lets the real person claim one.</p>
+      <div class="badge-row"><span class="badge">Actors: Player/Guardian, Association Staff</span><span class="badge">Output: Claimed or unclaimed player record in pool</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Player Identity Resolution & Claim</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Row as Ingested Row (W1)
+    participant Res as Resolution Engine
+    participant Staff as Association Staff
+    participant Player as Player / Guardian
+    participant Auth as Auth Service
+
+    Row-&gt;&gt;Res: Performance row (name, team, academy, DOB, category)
+    Res-&gt;&gt;Res: Normalise name, handle transliteration
+    alt High confidence (name+DOB+district)
+        Res-&gt;&gt;Res: Attach to existing shadow profile
+    else Ambiguous
+        Res-&gt;&gt;Staff: Route to exception queue
+        Staff--&gt;&gt;Res: Confirm / split / merge
+    else No match
+        Res-&gt;&gt;Res: Create shadow profile (unclaimed, no login)
+    end
+    Res--&gt;&gt;Row: Player record in pool
+    Player-&gt;&gt;Player: Discovers profile (SMS / notice / search)
+    Player-&gt;&gt;Auth: Phone OTP
+    alt Under 18
+        Auth-&gt;&gt;Player: Require guardian consent
+        Player--&gt;&gt;Auth: Guardian consents
+    end
+    Auth-&gt;&gt;Staff: Confirm identity (registration ID / DOB)
+    Staff--&gt;&gt;Auth: Confirmed (or manual review)
+    Auth--&gt;&gt;Player: Profile claimed, dashboard unlocked
+    Player--)Auth: (any time) Withdraw consent
+    Auth-&gt;&gt;Res: Processing stops, profile delisted
+        </pre></div>
+      </div>
+
+      <div class="note-box"><b>Note:</b> Hard requirement (source, Section 7): a large share of these players are minors - guardian consent is a precondition of activation, and withdrawal must be honoured at any point, not an afterthought.</div>
+
+    </section>
+    <section class="section" id="sec-w3">
+      <div class="sec-kicker">Pivot &middot; Workflow 3 &middot; Core Loop</div>
+      <div class="sec-title">Trial Cycle &rarr; Pre-Camp Dossier</div>
+      <p class="sec-desc">The wedge product. This is the workflow that must work perfectly before anything else ships - converting a registered trialist into a one-page, evidence-backed profile the selection panel sees before the camp.</p>
+      <div class="badge-row"><span class="badge">Actors: Association, Player/Guardian, Selection Panel</span><span class="badge">Output: Every trialist retains a record</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Trial Cycle &rarr; Pre-Camp Dossier</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Assoc as Association
+    participant Player as Player / Guardian
+    participant AX as AthlasX
+    participant Panel as Selection Panel
+
+    Assoc-&gt;&gt;Assoc: Open trial cycle (age categories, DOB windows, fee)
+    Assoc-&gt;&gt;Player: Publish venues and dates
+    Player-&gt;&gt;Assoc: Register online (routed to DCA by pincode)
+    Player-&gt;&gt;Assoc: Pay fee
+    Player-&gt;&gt;AX: Upload documents (DOB, residency)
+    Player--)AX: (optional) Attach footage
+    AX-&gt;&gt;AX: Match registrant to existing record (W2)
+    alt Prior tournament history on file
+        AX-&gt;&gt;AX: Build dossier from tournament record
+    else No history
+        AX-&gt;&gt;AX: Build thin dossier (declared history + footage)
+    end
+    AX-&gt;&gt;AX: Compute percentile vs cohort (age + district)
+    AX-&gt;&gt;Panel: Generate and deliver pre-camp pack
+    Panel-&gt;&gt;Panel: Pre-read, flag players to watch
+    Assoc-&gt;&gt;Panel: Camp day, check-in by registration ID
+    Panel-&gt;&gt;AX: Grade on device during trial
+    AX-&gt;&gt;AX: Attach notes to permanent player record
+    AX--&gt;&gt;Assoc: Every trialist retains a record
+        </pre></div>
+      </div>
+
+      <div class="note-box"><b>Note:</b> Validation flag (source, Section 9, item 3): the dossier's headline pitch - converting a single over of cold first impression into confirmation of known ability - rests on the unverified one-over-vs-three-to-five-overs claim from a single player interview. Verify before it appears in an external pitch deck.</div>
+
+    </section>
+    <section class="section" id="sec-w4">
+      <div class="sec-kicker">Pivot &middot; Workflow 4</div>
+      <div class="sec-title">Selection Committee</div>
+      <p class="sec-desc">Selection is a committee act. Independent grading first, convergence second, meeting third, recorded outcome last - deliberately resistant to a single loud voice anchoring the room.</p>
+      <div class="badge-row"><span class="badge">Actors: Selection Panel, Association Head</span><span class="badge">Output: Immutable selection record</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Selection Committee</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Pool as Candidate Pool
+    participant A as Selector A
+    participant B as Selector B
+    participant C as Selector C
+    participant Conv as Convergence
+    participant Head as Association Head
+
+    Pool-&gt;&gt;A: Filtered candidates (role/age/district/format)
+    Pool-&gt;&gt;B: Filtered candidates
+    Pool-&gt;&gt;C: Filtered candidates
+    A-&gt;&gt;Conv: Grade (blind to peers)
+    B-&gt;&gt;Conv: Grade (blind to peers)
+    C-&gt;&gt;Conv: Grade (blind to peers)
+    Conv-&gt;&gt;Conv: Build agreement view (unanimous/split/contested)
+    alt Consensus reached
+        Conv-&gt;&gt;Conv: Resolve
+    else No consensus
+        Conv-&gt;&gt;Conv: Committee session, side-by-side comparison
+        Conv-&gt;&gt;Conv: Resolve
+    end
+    Conv-&gt;&gt;Conv: Lock squad (20-30 players)
+    Conv-&gt;&gt;Head: Written rationale per selection
+    opt If enabled by association
+        Conv-&gt;&gt;Head: Rationale for notable omissions
+    end
+    Head--&gt;&gt;Conv: Immutable selection record confirmed
+        </pre></div>
+      </div>
+
+      <div class="note-box"><b>Note:</b> Design flag: the notable-omissions rationale (G8) is off by default - correctly, for sales safety. But if no association ever turns it on, the platform never produces the one audit trail that would meaningfully differentiate it from a nicer dashboard. That trade-off is deferred here, not resolved.</div>
+
+    </section>
+    <section class="section" id="sec-w5">
+      <div class="sec-kicker">Pivot &middot; Workflow 5</div>
+      <div class="sec-title">In-Season Weekly Tracking</div>
+      <p class="sec-desc">Applies to the selected squad only - 20 to 30 players. The design constraint is that this must create no new labour for anyone; the scorer's existing output is the input.</p>
+      <div class="badge-row"><span class="badge">Actors: Association Scorer, Coach</span><span class="badge">Output: Season trend line, feeds next cycle's dossier</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>In-Season Weekly Tracking</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Scorer as Association Scorer
+    participant AX as AthlasX
+    participant Coach as Coach
+    participant Sig as Signal Engine
+    participant Sel as Selector
+
+    Scorer-&gt;&gt;Scorer: Record match, existing routine
+    Scorer-&gt;&gt;AX: Auto-ingest to player record
+    Coach--)AX: (optional) Log session, attendance, fitness
+    AX-&gt;&gt;AX: Update weekly player card
+    AX-&gt;&gt;Sig: Check trend flag
+    alt Form drop / workload / gap detected
+        Sig-&gt;&gt;Coach: Alert
+        Sig-&gt;&gt;Sel: Alert
+    else No flag
+        Sig-&gt;&gt;Coach: Weekly digest only
+    end
+    Sig-&gt;&gt;AX: Update season trend line
+    AX--&gt;&gt;AX: Feeds next cycle's dossier (W3)
+        </pre></div>
+      </div>
+
+      <div class="note-box"><b>Note:</b> Load-bearing assumption (source): if weekly tracking ever requires new data entry from anyone, it will not survive contact with a real season. Verify the scorer's existing workflow per association before promising this.</div>
+
+    </section>
+    <section class="section" id="sec-w6">
+      <div class="sec-kicker">Pivot &middot; Workflow 6</div>
+      <div class="sec-title">Player Development Loop</div>
+      <p class="sec-desc">The player-side product. Free, and the reason players claim profiles - which is what makes the dataset real rather than administrative.</p>
+      <div class="badge-row"><span class="badge">Actor: Player</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Player Development Loop</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Player as Player
+    participant AX as AthlasX
+    participant Vis as Visibility Control
+
+    Player-&gt;&gt;AX: View own record (every match on file)
+    AX--&gt;&gt;Player: Percentile vs cohort (age/district/role)
+    AX--&gt;&gt;Player: Identified gaps vs next-level benchmark
+    Player-&gt;&gt;AX: Upload footage
+    Player--)AX: (optional) Self-assessment
+    Player-&gt;&gt;Vis: Set visibility
+    alt Default
+        Vis-&gt;&gt;Vis: Association only
+    else Opt in
+        Vis-&gt;&gt;Vis: Selection panels across associations
+    else Opt in, adult only (parked, phase 1)
+        Vis-&gt;&gt;Vis: Franchise and league scouts
+    end
+    Vis--&gt;&gt;Player: Trial and camp notifications
+    Player-&gt;&gt;AX: Registration deep link (-&gt; W3)
+        </pre></div>
+      </div>
+
+      <div class="note-box"><b>Note:</b> Default worth keeping: profile visibility defaults to association-only; franchise/scout-tier exposure is opt-in and adult-only, and explicitly parked for phase 1. Resist pressure to widen it early for a more impressive demo.</div>
+
+    </section>
+    <section class="section" id="sec-w7">
+      <div class="sec-kicker">Pivot &middot; Workflow 7</div>
+      <div class="sec-title">Coach</div>
+      <p class="sec-desc">District or state squad coaches. Deliberately thin in phase 1 - the coach is a contributor to the record, not the primary customer, and advises selection rather than deciding it.</p>
+      <div class="badge-row"><span class="badge">Actor: Coach</span><span class="badge">Output: Feeds weekly cycle (W5) and advisory input to W4</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Coach</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Assoc as Association
+    participant Coach as Coach
+    participant AX as AthlasX
+    participant Panel as Selection Panel
+
+    Assoc-&gt;&gt;Coach: Assign to squad
+    Coach-&gt;&gt;AX: View squad (20-30 players)
+    Coach-&gt;&gt;Coach: Plan session
+    Coach-&gt;&gt;AX: Mark attendance
+    Coach-&gt;&gt;AX: Log session notes (tied to players)
+    Coach-&gt;&gt;AX: Post-match review
+    AX--&gt;&gt;Coach: Read-only player cards (form and workload trend)
+    Coach--)Panel: Advisory input (-&gt; W4)
+    AX--&gt;&gt;AX: Feeds weekly cycle (W5)
+        </pre></div>
+      </div>
+
+      <div class="note-box"><b>Note:</b> Permission model: read access to the pool, write access only to their own squad's notes, advisory-only input into W4. Do not over-invest here in phase 1 - this tier is already the most crowded part of the market.</div>
+
+    </section>
+    <section class="section" id="sec-w8">
+      <div class="sec-kicker">Pivot &middot; Workflow 8</div>
+      <div class="sec-title">Academy Affiliation Capture</div>
+      <p class="sec-desc">Runs silently off W1. No academy signs up, no academy is sold to, and the academy dataset accumulates anyway - the byproduct that later becomes an inbound sales asset.</p>
+      <div class="badge-row"><span class="badge">Actor: AthlasX Ops</span><span class="badge">Output: Ranked academy view - evidenced production, not claimed</span></div>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Academy Affiliation Capture</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Row as Ingest Row (W1)
+    participant Match as Match Engine
+    participant Staff as Association Staff / Ops
+
+    Row-&gt;&gt;Match: Academy/club string
+    Match-&gt;&gt;Match: Normalise, fuzzy match to registry
+    alt Confident match
+        Match-&gt;&gt;Match: Attach player to academy (date range)
+    else Known variant
+        Match-&gt;&gt;Staff: Route to unmatched queue
+        Staff--&gt;&gt;Match: Periodic manual reconciliation
+    else Unseen academy
+        Match-&gt;&gt;Match: Create new academy stub
+    end
+    Match--&gt;&gt;Match: Build academy production record
+    Match--&gt;&gt;Staff: Ranked academy view
+    Staff--)Match: (later phase) Inbound academy signup
+        </pre></div>
+      </div>
+
+      <div class="note-box"><b>Note:</b> Budget for mess: academy names arrive as free text - abbreviations, Hindi/English variants, branch suffixes. Do not assume clean joins; the reconciliation queue is an ongoing operational cost, not a one-time cleanup.</div>
+
+    </section>
+    <section class="section" id="sec-w9">
+      <div class="sec-kicker">Pivot &middot; Workflow 9</div>
+      <div class="sec-title">Master Flow (Source, As Specified)</div>
+      <p class="sec-desc">How the nine workflows compose, exactly as your team drew it. Reproduced unmodified here; the expanded whole-site master is on the Overview page.</p>
+      <div class="badge-row"><span class="badge">Output: the compounding loop the business rests on</span></div>
+      <div class="note-box"><b>Note:</b> The compounding loop: Z5 -> Z6 -> Z7 -> Z8 -> Z10 -> Z5. Each cycle makes the next cycle's dossiers better, which makes the association more dependent, which makes the data richer. Everything else in the platform is scaffolding around that loop.</div>
+
+    </section>
+  </main>
+</div>
+<script>
+
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#eaf3ef', primaryTextColor: '#1c2622', primaryBorderColor: '#16624a',
+    lineColor: '#75857d', secondaryColor: '#f2f7f4', tertiaryColor: '#ffffff',
+    fontFamily: '-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif', fontSize: '14px'
+  },
+  flowchart: { curve: 'basis', htmlLabels: true },
+  sequence: { actorMargin: 60, messageMargin: 30 }
+});
+
+const navItems = document.querySelectorAll('.nav-item');
+const sections = document.querySelectorAll('.section');
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const target = item.dataset.target;
+    navItems.forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    sections.forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-' + target).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+});
+</script>
+</body>
+</html>
