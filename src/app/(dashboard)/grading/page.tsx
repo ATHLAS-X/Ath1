@@ -8,11 +8,16 @@ import {
   TrendingUp, TrendingDown, Minus,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { PlayingRole } from '@/types'
+import type { PlayingRole, TournamentLevel } from '@/types'
+import { calculateAthlasXScore, getProvenanceLabel, type VerifiedPerformanceRow } from '@/lib/athlasx-score'
 
 /* ─── Quick View card ─────────────────────────────────────────────────────────
    Batting and Bowling only — fielding/keeping excluded (scorecard incomplete)
    Ref: Pivot_Document W4 / QV1–QV2 update (Mrigank's insight)
+
+   Display numbers are derived from calculateAthlasXScore(), not hand-typed —
+   the seed below is raw verified-match rows, the same shape the ingest
+   pipeline will eventually produce.
 ───────────────────────────────────────────────────────────────────────────── */
 interface PlayerQV {
   id: string
@@ -24,18 +29,63 @@ interface PlayerQV {
   bowling_0_to_10?: number
   match_count: number
   tqi_weighted: number
-  top_level: 'district' | 'state'
+  top_level: TournamentLevel
   recent_form?: string
   percentile: number
 }
 
-const qvPool: PlayerQV[] = [
-  { id: 'p1', name: 'Arjun Sharma',   age: 17, district: 'Kanpur',   playing_role: 'Batsman',              batting_0_to_10: 7.8, match_count: 22, tqi_weighted: 15.5, top_level: 'district', recent_form: '↑', percentile: 91 },
-  { id: 'p2', name: 'Rohan Verma',    age: 18, district: 'Lucknow',  playing_role: 'All-rounder',          batting_0_to_10: 6.5, bowling_0_to_10: 6.8, match_count: 18, tqi_weighted: 13.5, top_level: 'district', recent_form: '→', percentile: 85 },
-  { id: 'p3', name: 'Dev Patel',      age: 16, district: 'Agra',     playing_role: 'Bowler',               bowling_0_to_10: 7.2, match_count: 15, tqi_weighted: 11.25, top_level: 'district', recent_form: '↓', percentile: 79 },
-  { id: 'p4', name: 'Aditya Singh',   age: 17, district: 'Varanasi', playing_role: 'Batsman',              batting_0_to_10: 6.1, match_count: 20, tqi_weighted: 15.0, top_level: 'district', recent_form: '→', percentile: 72 },
-  { id: 'p5', name: 'Karan Mehta',    age: 18, district: 'Meerut',   playing_role: 'Wicket-keeper Batsman',batting_0_to_10: 5.9, match_count: 12, tqi_weighted: 9.0, top_level: 'district', recent_form: '↑', percentile: 67 },
+interface QVSeed {
+  id: string
+  name: string
+  age: number
+  district: string
+  playing_role: PlayingRole
+  recent_form?: string
+  percentile: number
+  performances: VerifiedPerformanceRow[]
+}
+
+const qvSeeds: QVSeed[] = [
+  { id: 'p1', name: 'Arjun Sharma', age: 17, district: 'Kanpur', playing_role: 'Batsman', recent_form: '↑', percentile: 91,
+    performances: Array.from({ length: 22 }, (_, i) => ({ level: 'district' as const, batting_runs: 34 + (i % 5) * 6, batting_balls: 30, batting_dismissed: i % 4 !== 0 })) },
+  { id: 'p2', name: 'Rohan Verma', age: 18, district: 'Lucknow', playing_role: 'All-rounder', recent_form: '→', percentile: 85,
+    performances: Array.from({ length: 18 }, (_, i) => ({ level: 'district' as const, batting_runs: 26 + (i % 4) * 5, batting_balls: 28, batting_dismissed: true, bowling_overs: 4, bowling_wickets: i % 3 === 0 ? 2 : 1, bowling_runs_conceded: 26 })) },
+  { id: 'p3', name: 'Dev Patel', age: 16, district: 'Agra', playing_role: 'Bowler', recent_form: '↓', percentile: 79,
+    performances: Array.from({ length: 15 }, (_, i) => ({ level: 'district' as const, bowling_overs: 4, bowling_wickets: i % 3 === 0 ? 3 : 1, bowling_runs_conceded: 24 })) },
+  { id: 'p4', name: 'Aditya Singh', age: 17, district: 'Varanasi', playing_role: 'Batsman', recent_form: '→', percentile: 72,
+    performances: Array.from({ length: 20 }, (_, i) => ({ level: 'district' as const, batting_runs: 20 + (i % 5) * 4, batting_balls: 27, batting_dismissed: i % 3 !== 0 })) },
+  { id: 'p5', name: 'Karan Mehta', age: 18, district: 'Meerut', playing_role: 'Wicket-keeper Batsman', recent_form: '↑', percentile: 67,
+    performances: Array.from({ length: 12 }, (_, i) => ({ level: 'district' as const, batting_runs: 18 + (i % 4) * 5, batting_balls: 26, batting_dismissed: true })) },
 ]
+
+function topLevel(rows: VerifiedPerformanceRow[]): TournamentLevel {
+  if (rows.some(r => r.level === 'national')) return 'national'
+  if (rows.some(r => r.level === 'state')) return 'state'
+  if (rows.some(r => r.level === 'district')) return 'district'
+  return 'local'
+}
+
+const qvPool: PlayerQV[] = qvSeeds.map(seed => {
+  const result = calculateAthlasXScore({
+    playingRole: seed.playing_role,
+    performances: seed.performances,
+    yearsExperience: 3,
+  })
+  return {
+    id: seed.id,
+    name: seed.name,
+    age: seed.age,
+    district: seed.district,
+    playing_role: seed.playing_role,
+    batting_0_to_10: result.batting > 0 ? result.batting : undefined,
+    bowling_0_to_10: result.bowling > 0 ? result.bowling : undefined,
+    match_count: result.verifiedMatchCount,
+    tqi_weighted: result.tqiWeightedMatches,
+    top_level: topLevel(seed.performances),
+    recent_form: seed.recent_form,
+    percentile: seed.percentile,
+  }
+})
 
 // Grades the current selector has submitted — simulates blind state
 const myGrades: Record<string, number | undefined> = {
@@ -60,7 +110,7 @@ function FormIndicator({ form }: { form?: string }) {
 
 /* ─── Quick View card ────────────────────────────────────────────────────────── */
 function QuickViewCard({ player }: { player: PlayerQV }) {
-  const provenance = `${player.match_count} verified matches · ${player.top_level === 'state' ? 'State' : 'District'} level · TQI ${player.tqi_weighted.toFixed(1)}x`
+  const provenance = getProvenanceLabel(player.match_count, player.tqi_weighted, player.top_level)
 
   return (
     <div className="p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] space-y-3">
