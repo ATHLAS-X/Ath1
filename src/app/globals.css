@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ax-bg: #050505;
+  --ax-green: #22c55e;
+}
+
+html,
+body {
+  background: var(--ax-bg);
+  color: #e4e4e7;
+  min-height: 100%;
+}
+
+/* Glassmorphism surfaces used across dashboard pages */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+}
+
+.glass-dark {
+  background: rgba(7, 7, 7, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Gradient text for the AthlasX "X" and score highlights */
+.text-gradient-green {
+  background: linear-gradient(135deg, #22c55e, #4ade80);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Soft glow on brand mark / active accents */
+.glow-green-sm {
+  box-shadow: 0 0 16px rgba(34, 197, 94, 0.35);
+}
+
+/* Pulsing live-status dot */
+.live-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--ax-green);
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.8);
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.75); }
+}
