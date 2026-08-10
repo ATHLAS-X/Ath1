@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AthlasX — Pathway Platform: Full Diagram Suite</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.0/mermaid.min.js"></script>
+<style>
+  :root{
+    --bg:#f7faf8; --surface:#ffffff; --surface-2:#f2f7f4;
+    --text:#1c2622; --text-2:#4a5a53; --muted:#75857d;
+    --accent:#16624a; --accent-2:#14342a; --accent-soft:#eaf3ef;
+    --border:#e2ebe7; --border-2:#cfdcd6;
+    --warn:#a85a52; --warn-bg:#faf3f2;
+    --radius:12px;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  a{color:var(--accent);}
+
+  .shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh;}
+
+  .sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--surface);border-right:1px solid var(--border);padding:1.5rem 0;}
+  .brand{padding:0 1.4rem 1.2rem;border-bottom:1px solid var(--border);margin-bottom:0.8rem;}
+  .brand .name{font-size:1.05rem;font-weight:800;letter-spacing:-0.01em;}
+  .brand .name span{color:var(--accent);}
+  .brand .sub{font-size:0.72rem;color:var(--muted);margin-top:0.25rem;line-height:1.4;}
+
+  .nav-group{padding:0 0.7rem;}
+  .nav-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);font-weight:700;padding:0.8rem 0.7rem 0.3rem;}
+  .nav-item{display:block;padding:0.5rem 0.7rem;border-radius:8px;font-size:0.84rem;color:var(--text-2);text-decoration:none;cursor:pointer;font-weight:500;transition:background 0.15s;}
+  .nav-item:hover{background:var(--surface-2);color:var(--text);}
+  .nav-item.active{background:var(--accent-soft);color:var(--accent);font-weight:700;}
+  .nav-item .code{display:inline-block;width:28px;font-family:monospace;font-weight:700;color:var(--muted);}
+  .nav-item.active .code{color:var(--accent);}
+
+  .main{padding:2.2rem clamp(1.2rem,3vw,3.2rem) 6rem;max-width:1180px;}
+  .section{display:none;}
+  .section.active{display:block;animation:fadeIn 0.25s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  .sec-kicker{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin-bottom:0.4rem;}
+  .sec-title{font-size:1.7rem;font-weight:800;letter-spacing:-0.015em;margin:0 0 0.5rem;}
+  .sec-desc{font-size:0.95rem;color:var(--text-2);line-height:1.6;max-width:52rem;margin-bottom:0.6rem;}
+  .sec-source{font-size:0.78rem;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:0.5rem 0.8rem;display:inline-block;margin-bottom:1.6rem;}
+
+  .diagram-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1.6rem;overflow:hidden;box-shadow:0 1px 2px rgba(20,52,42,0.04);}
+  .diagram-head{padding:0.9rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.6rem;background:var(--surface-2);}
+  .diagram-tag{font-size:0.62rem;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;padding:0.22rem 0.55rem;border-radius:6px;background:var(--accent-soft);color:var(--accent);}
+  .diagram-head h3{font-size:0.92rem;font-weight:700;margin:0;}
+  .diagram-body{padding:1.4rem;overflow-x:auto;}
+  .diagram-body.dense{padding:0.8rem;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1.6rem;}
+  @media(max-width:980px){.grid2{grid-template-columns:1fr;}.shell{grid-template-columns:1fr;}.sidebar{position:relative;height:auto;}}
+
+  .badge-row{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.4rem;}
+  .badge{font-size:0.74rem;padding:0.3rem 0.7rem;border-radius:20px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);}
+
+  .note-box{background:var(--warn-bg);border:1px solid rgba(168,90,82,0.3);border-radius:10px;padding:0.9rem 1.1rem;font-size:0.84rem;color:#7a3b3b;line-height:1.55;margin:1rem 0 1.6rem;}
+  .note-box b{color:var(--warn);}
+
+  .mermaid{font-size:14px;}
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="name">Athlas<span>X</span></div>
+      <div class="sub">Pathway Platform — Full Diagram Suite<br/>Control flow · Sequence · Use case · Class</div>
+    </div>
+    <div class="nav-group">
+      <div class="nav-label">System</div>
+      <div class="nav-item" data-target="overview"><span class="code">◆</span>Master / End-to-End</div>
+      <div class="nav-label">Workflows</div>
+      <div class="nav-item" data-target="w1"><span class="code">W1</span>Association Onboarding & Ingest</div>
+      <div class="nav-item" data-target="w2"><span class="code">W2</span>Player Identity & Claim</div>
+      <div class="nav-item" data-target="w3"><span class="code">W3</span>Trial Cycle → Pre-Camp Dossier</div>
+      <div class="nav-item" data-target="w4"><span class="code">W4</span>Selection Committee</div>
+      <div class="nav-item" data-target="w5"><span class="code">W5</span>In-Season Weekly Tracking</div>
+      <div class="nav-item" data-target="w6"><span class="code">W6</span>Player Development Loop</div>
+      <div class="nav-item" data-target="w7"><span class="code">W7</span>Coach</div>
+      <div class="nav-item" data-target="w8"><span class="code">W8</span>Academy Affiliation Capture</div>
+      <div class="nav-item" data-target="w9"><span class="code">W9</span>Master Flow (source)</div>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ================= OVERVIEW / END-TO-END ================= -->
+    <section class="section active" id="sec-overview">
+      <div class="sec-kicker">System Overview</div>
+      <div class="sec-title">End-to-End Pathway Platform</div>
+      <p class="sec-desc">One lifecycle across all nine workflows: an association signs on, historical data is ingested and identities resolved, a trial cycle produces pre-camp dossiers, a committee selects a squad, and the selected squad is tracked weekly — feeding richer dossiers into the next cycle. This is the compounding loop the whole business rests on.</p>
+      <div class="sec-source">Grounded directly in §6 "Workflows" and the W9 master-flow diagram of the Pivot Document (v1.0, July 2026).</div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Control Flow</span><h3>Master End-to-End Flow (as specified — W9)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+flowchart TB
+
+Z1(["Association signs<br/>data-sharing agreement"]) --> Z2["W1 · Ingest<br/>historical tournament records"]
+Z2 --> Z3["W2 · Identity resolution<br/>shadow profiles created"]
+Z3 --> Z4["W8 · Academy affiliation<br/>captured as byproduct"]
+Z3 --> Z5["W3 · Trial cycle opens<br/>registrants matched to records"]
+Z5 --> Z6(["PRE-CAMP DOSSIER<br/>the wedge"])
+Z6 --> Z7["W4 · Selection committee<br/>grade → converge → squad"]
+Z7 --> Z8["W5 · In-season weekly tracking<br/>selected squad only"]
+Z8 --> Z9["W7 · Coach logs sessions"]
+Z8 --> Z10(["Longitudinal player record"])
+Z10 -. enriches next cycle .-> Z5
+Z3 --> Z11["W6 · Player claims profile"]
+Z11 --> Z10
+Z4 -. accumulates silently .-> Z12["Academy tier ·<br/>inbound, later phase"]
+
+class Z12 parked
+classDef parked fill:#f2f2f2,stroke:#c0c0c0,color:#8a8a8a,stroke-dasharray:5 3;
+        </pre></div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Master Sequence — One Full Player Lifecycle</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Assoc as Association
+    participant AX as AthlasX Platform
+    participant Player as Player / Guardian
+    participant Panel as Selection Panel
+    participant Coach as Coach
+
+    Assoc->>AX: Sign data-sharing agreement
+    AX->>AX: W1 · Ingest historical tournament records
+    AX->>AX: W2 · Identity resolution -> shadow profiles
+    AX->>AX: W8 · Academy affiliation captured (byproduct)
+    Assoc->>AX: W3 · Trial cycle opens
+    Player->>AX: Register & claim profile (W2 / W6)
+    AX->>Panel: Deliver pre-camp dossier
+    Panel->>AX: W4 · Grade, converge, lock squad
+    AX-->>Assoc: Immutable selection record
+    loop Weekly, in-season
+        Assoc->>AX: W5 · Match data auto-ingested
+        Coach--)AX: Optional session / attendance log
+        AX->>Coach: Trend flag, if triggered
+    end
+    AX-->>AX: Longitudinal record enriches next cycle's dossier
+        </pre></div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Use Case</span><h3>Master Use Case — All Roles, All Workflows</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+flowchart LR
+    actorAssoc(("Association"))
+    actorOps(("AthlasX Ops"))
+    actorPlayer(("Player / Guardian"))
+    actorPanel(("Selection Panel"))
+    actorCoach(("Coach"))
+
+    subgraph SYS["AthlasX Pathway Platform"]
+        UC1(["Onboard association<br/>& ingest history — W1"])
+        UC2(["Resolve & claim<br/>player identity — W2"])
+        UC3(["Run trial cycle,<br/>generate dossier — W3"])
+        UC4(["Select squad<br/>as committee — W4"])
+        UC5(["Track squad<br/>weekly — W5"])
+        UC6(["Manage own<br/>player profile — W6"])
+        UC7(["Log squad sessions<br/>& attendance — W7"])
+        UC8(["Capture academy<br/>affiliation — W8"])
+    end
+
+    actorOps --> UC1
+    actorAssoc --> UC1
+    actorOps --> UC2
+    actorPlayer --> UC2
+    actorPlayer --> UC3
+    actorAssoc --> UC3
+    actorPanel --> UC4
+    actorAssoc --> UC5
+    actorCoach --> UC5
+    actorPlayer --> UC6
+    actorCoach --> UC7
+    actorOps --> UC8
+        </pre></div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Class</span><h3>Master Class Diagram — Full Entity Model</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+classDiagram
+    class Association {
+      +String id
+      +String type
+      +String name
+      +String state
+      +String parentAssociationId
+    }
+    class Tournament {
+      +String id
+      +String associationId
+      +String season
+      +String format
+      +String ageCategory
+      +String level
+    }
+    class Match {
+      +String id
+      +String tournamentId
+      +Date date
+      +String sourceFormat
+      +Float confidenceScore
+    }
+    class Performance {
+      +String id
+      +String matchId
+      +String playerId
+      +Json battingLine
+      +Json bowlingLine
+    }
+    class Player {
+      +String id
+      +String canonicalName
+      +Date dob
+      +String district
+      +String claimStatus
+      +String consentStatus
+    }
+    class User {
+      +String id
+      +String loginPhone
+      +String role
+      +String linkedPlayerId
+    }
+    class Academy {
+      +String id
+      +String canonicalName
+      +String[] variantNames
+      +String district
+      +String verificationStatus
+    }
+    class TrialCycle {
+      +String id
+      +String associationId
+      +String ageCategory
+      +Date dobWindowStart
+      +Date dobWindowEnd
+    }
+    class Registration {
+      +String id
+      +String trialCycleId
+      +String playerId
+      +String feeStatus
+      +String[] documents
+    }
+    class Dossier {
+      +String id
+      +String registrationId
+      +DateTime generatedAt
+      +Json contentSnapshot
+      +Float percentileVsCohort
+    }
+    class Grade {
+      +String id
+      +String selectorId
+      +String playerId
+      +String trialCycleId
+      +Json scores
+      +Boolean isBlind
+    }
+    class Selection {
+      +String id
+      +String trialCycleId
+      +String squadId
+      +String rationale
+      +DateTime decidedAt
+      +Boolean isImmutable
+    }
+    class PlayerWeek {
+      +String id
+      +String playerId
+      +Date weekOf
+      +Json aggregatedPerformance
+      +Boolean trendFlag
+    }
+
+    Association "1" --> "*" Tournament : runs
+    Association "1" --> "*" TrialCycle : runs
+    Tournament "1" --> "*" Match : contains
+    Match "1" --> "*" Performance : generates
+    Player "1" --> "*" Performance : owns
+    Player "0..1" --> "0..1" User : claimed by
+    Player "many" --> "0..1" Academy : represents
+    Academy "1" --> "*" Player : produces
+    Player "1" --> "*" Registration : submits
+    TrialCycle "1" --> "*" Registration : receives
+    Registration "1" --> "0..1" Dossier : produces
+    Grade "many" --> "1" Player : evaluates
+    Grade "many" --> "1" Selection : informs
+    Selection "1" --> "*" Player : selects
+    Player "1" --> "*" PlayerWeek : accumulates
+        </pre></div>
+      </div>
+      <div class="note-box"><b>Structural note (from source §7):</b> Player must be decoupled from User — bulk ingest creates thousands of players who never log in. Provenance (source, ingest method, confidence, association-approval status) must travel with every Performance row; trust is represented in the data model, not asserted afterward.</div>
+    </section>
+
+    <!-- ================= W1 ================= -->
+    <section class="section" id="sec-w1">
+      <div class="sec-kicker">Workflow 1</div>
+      <div class="sec-title">Association Onboarding & Historical Ingest</div>
+      <p class="sec-desc">The gating workflow. Everything downstream depends on it, and its cost is set entirely by one variable: what form the association's records are already in.</p>
+      <div class="badge-row"><span class="badge">Actors: AthlasX Ops · Association Staff</span><span class="badge">Output: Season live, association-verified</span></div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Control Flow</span><h3>Onboarding & Ingest Pipeline (source)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+flowchart TB
+
+subgraph OPS["ATHLASX OPS"]
+  direction TB
+  O1["Approach State Board<br/>or District Association"] --> O2{"Data-sharing<br/>agreement signed?"}
+  O2 -->|No| O3(["Park · revisit next cycle"])
+  O2 -->|Yes| O4["Scope seasons · formats<br/>· age categories"]
+  O4 --> O5["Audit source format"]
+end
+
+subgraph ASSOC["ASSOCIATION"]
+  direction TB
+  S1["Nominate data owner<br/>Hony. Secretary · IT · ops"]
+  S1 --> S2["Hand over records<br/>or grant platform access"]
+  S3["Review normalised output"] --> S4{"Approve<br/>season?"}
+end
+
+subgraph PIPE["INGEST PIPELINE"]
+  direction TB
+  P0{"What form is<br/>the data in?"}
+  P0 -->|On a scoring platform| P1["API / export sync"]
+  P0 -->|Digital scorecards| P2["Structured parser"]
+  P0 -->|Scanned or paper| P3["OCR + human<br/>review queue"]
+  P0 -->|Excel · registers| P4["Column-mapping<br/>template"]
+  P1 --> P5["Normalise →<br/>Tournament · Match ·<br/>Innings · Performance"]
+  P2 --> P5
+  P3 --> P5
+  P4 --> P5
+  P5 --> P6["Identity resolution<br/>→ W2"]
+  P6 --> P7["Confidence scoring<br/>flag low-confidence rows"]
+end
+
+O1 --> S1
+O5 --> P0
+S2 --> P0
+P7 --> S3
+S4 -->|Rework| P3
+S4 -->|Yes| OUT(["Season live ·<br/>association-verified"])
+OUT -. academy strings extracted .-> W8REF(["→ W8 academy capture"])
+
+class W8REF parked
+classDef parked fill:#f2f2f2,stroke:#c0c0c0,color:#8a8a8a,stroke-dasharray:5 3;
+        </pre></div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Onboarding & Ingest</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Ops as AthlasX Ops
+    participant Assoc as Association (Data Owner)
+    participant Pipe as Ingest Pipeline
+    participant W2 as Identity Resolution (W2)
+
+    Ops->>Assoc: Approach with data-sharing proposal
+    Assoc-->>Ops: Sign agreement (or decline)
+    Ops->>Ops: Scope seasons, formats, age categories
+    Ops->>Pipe: Audit source format
+    Assoc->>Pipe: Hand over records / grant access
+    alt Already on scoring platform
+        Pipe->>Pipe: API / export sync
+    else Digital scorecards
+        Pipe->>Pipe: Structured parser
+    else Scanned / paper
+        Pipe->>Pipe: OCR + human review queue
+    else Excel / registers
+        Pipe->>Pipe: Column-mapping template
+    end
+    Pipe->>Pipe: Normalise to Tournament / Match / Performance
+    Pipe->>W2: Send rows for identity resolution
+    W2-->>Pipe: Resolved rows + confidence scores
+    Pipe->>Assoc: Present normalised output for review
+    Assoc-->>Pipe: Approve season (or send back for rework)
+    Pipe->>Ops: Season live, association-verified
+        </pre></div>
+      </div>
+
+      <div class="grid2">
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Use Case</span><h3>Onboarding & Ingest</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+flowchart LR
+    actorOps(("AthlasX Ops"))
+    actorAssoc(("Association Staff"))
+    subgraph SB1["W1 Onboarding & Ingest"]
+        UC1(["Approach association"])
+        UC2(["Sign data-sharing agreement"])
+        UC3(["Audit source format"])
+        UC4(["Grant records / access"])
+        UC5(["Review normalised output"])
+        UC6(["Approve season"])
+    end
+    actorOps --> UC1
+    actorOps --> UC3
+    actorAssoc --> UC2
+    actorAssoc --> UC4
+    actorAssoc --> UC5
+    actorAssoc --> UC6
+          </pre></div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Class</span><h3>Ingest Entities</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+classDiagram
+    class Association {
+      +String id
+      +String type
+      +String name
+      +String state
+    }
+    class Tournament {
+      +String id
+      +String associationId
+      +String season
+      +String level
+    }
+    class Match {
+      +String id
+      +String tournamentId
+      +Date date
+      +String sourceFormat
+      +Float confidenceScore
+    }
+    class Performance {
+      +String id
+      +String matchId
+      +String playerId
+    }
+    Association "1" --> "*" Tournament : runs
+    Tournament "1" --> "*" Match : contains
+    Match "1" --> "*" Performance : generates
+          </pre></div>
+        </div>
+      </div>
+      <div class="note-box"><b>Design flag:</b> P0 (source format) is the single biggest cost driver in the business — determine it in the first conversation with any association, before signing. Given CricHeroes' penetration (23+ state associations), API/export sync should likely be treated as the primary path, not one of four equal branches.</div>
+    </section>
+
+    <!-- ================= W2 ================= -->
+    <section class="section" id="sec-w2">
+      <div class="sec-kicker">Workflow 2</div>
+      <div class="sec-title">Player Identity Resolution & Claim</div>
+      <p class="sec-desc">Ingested performance rows refer to people who mostly do not have accounts. The platform creates and maintains shadow profiles that exist before any player signs up, then lets the real person claim one.</p>
+      <div class="badge-row"><span class="badge">Actors: Player / Guardian · Association Staff</span><span class="badge">Output: Claimed or unclaimed player record in pool</span></div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Control Flow</span><h3>Identity Resolution & Claim (source)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+flowchart TB
+
+subgraph ING["INGESTED RECORD"]
+  direction TB
+  I1["Performance row arrives<br/>name · team · academy ·<br/>date · age category"] --> I2["Normalise name<br/>handle transliteration variants"]
+  I2 --> I3{"Matches an<br/>existing player?"}
+end
+
+subgraph RES["RESOLUTION"]
+  direction TB
+  R1["High confidence<br/>name + DOB + district"] --> R2["Attach to existing<br/>shadow profile"]
+  R3["Ambiguous"] --> R4["Exception queue"]
+  R4 --> R5["Association staff<br/>confirms · splits · merges"]
+  R5 --> R2
+  R6["No match"] --> R7["Create shadow profile<br/>unclaimed · no login"]
+  R7 --> R2
+end
+
+subgraph CLAIM["PLAYER CLAIM"]
+  direction TB
+  K1["Claim link reached<br/>SMS · association notice · search"] --> K2["Phone OTP"]
+  K2 --> K3{"Under 18?"}
+  K3 -->|Yes| K4["Guardian consent required<br/>before activation"]
+  K3 -->|No| K5["Identity check<br/>registration ID or DOB"]
+  K4 --> K5
+  K5 --> K6{"Association<br/>confirms identity?"}
+  K6 -->|Yes| K7(["Profile claimed ·<br/>player dashboard unlocked"])
+  K6 -->|No| K8["Manual review"]
+  K8 --> K6
+  K7 -. consent withdrawn .-> KW["Processing stops ·<br/>profile delisted"]
+end
+
+I3 -->|High confidence| R1
+I3 -->|Ambiguous| R3
+I3 -->|No match| R6
+R2 --> POOL(["Player record in pool<br/>claimed or unclaimed"])
+POOL -. player finds themselves .-> K1
+
+class KW warn
+classDef warn fill:#faf3f2,stroke:#a85a52,color:#7a3b3b;
+        </pre></div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Identity Resolution & Claim</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Row as Ingested Row (W1)
+    participant Res as Resolution Engine
+    participant Staff as Association Staff
+    participant Player as Player / Guardian
+    participant Auth as Auth Service
+
+    Row->>Res: Performance row (name, team, academy, DOB, category)
+    Res->>Res: Normalise name, handle transliteration
+    alt High confidence (name+DOB+district)
+        Res->>Res: Attach to existing shadow profile
+    else Ambiguous
+        Res->>Staff: Route to exception queue
+        Staff-->>Res: Confirm / split / merge
+    else No match
+        Res->>Res: Create shadow profile (unclaimed, no login)
+    end
+    Res-->>Row: Player record in pool
+    Player->>Player: Discovers profile (SMS / notice / search)
+    Player->>Auth: Phone OTP
+    alt Under 18
+        Auth->>Player: Require guardian consent
+        Player-->>Auth: Guardian consents
+    end
+    Auth->>Staff: Confirm identity (registration ID / DOB)
+    Staff-->>Auth: Confirmed (or manual review)
+    Auth-->>Player: Profile claimed, dashboard unlocked
+    Player--)Auth: (any time) Withdraw consent
+    Auth->>Res: Processing stops, profile delisted
+        </pre></div>
+      </div>
+
+      <div class="grid2">
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Use Case</span><h3>Identity & Claim</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+flowchart LR
+    actorPlayer(("Player / Guardian"))
+    actorStaff(("Association Staff"))
+    subgraph SB2["W2 Identity & Claim"]
+        UC1(["Resolve ambiguous match"])
+        UC2(["Claim profile via OTP"])
+        UC3(["Give guardian consent"])
+        UC4(["Confirm identity"])
+        UC5(["Withdraw consent"])
+    end
+    actorStaff --> UC1
+    actorStaff --> UC4
+    actorPlayer --> UC2
+    actorPlayer --> UC3
+    actorPlayer --> UC5
+          </pre></div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Class</span><h3>Identity Entities</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+classDiagram
+    class Player {
+      +String id
+      +String canonicalName
+      +Date dob
+      +String district
+      +String claimStatus
+      +String consentStatus
+    }
+    class User {
+      +String id
+      +String loginPhone
+      +String role
+      +String linkedPlayerId
+    }
+    class Academy {
+      +String id
+      +String canonicalName
+    }
+    Player "0..1" --> "0..1" User : claimed by
+    Player "many" --> "0..1" Academy : represents
+          </pre></div>
+        </div>
+      </div>
+      <div class="note-box"><b>Hard requirement (source §7):</b> a large share of these players are minors — guardian consent is a precondition of activation, and withdrawal must be honoured at any point, not an afterthought.</div>
+    </section>
+
+    <!-- ================= W3 ================= -->
+    <section class="section" id="sec-w3">
+      <div class="sec-kicker">Workflow 3 · Core Loop</div>
+      <div class="sec-title">Trial Cycle → Pre-Camp Dossier</div>
+      <p class="sec-desc">The wedge product. This is the workflow that must work perfectly before anything else ships — converting a registered trialist into a one-page, evidence-backed profile the selection panel sees before the camp.</p>
+      <div class="badge-row"><span class="badge">Actors: Association · Player/Guardian · Selection Panel</span><span class="badge">Output: Every trialist retains a record</span></div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Control Flow</span><h3>Trial Cycle → Dossier (source)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+flowchart TB
+
+subgraph TASSOC["ASSOCIATION"]
+  direction TB
+  T1["Open trial cycle<br/>age categories · DOB windows · fee"] --> T2["Publish venues and dates<br/>by mandal / zone"]
+  T2 --> T3["Registration window opens"]
+  T7["Camp day ·<br/>check-in by registration ID"]
+end
+
+subgraph TPLAY["PLAYER / GUARDIAN"]
+  direction TB
+  U1["Register online<br/>routed to DCA by pincode"] --> U2["Pay fee"]
+  U2 --> U3["Upload documents<br/>DOB proof · residency"]
+  U3 --> U4["Optional: attach footage<br/>batting · bowling · keeping"]
+end
+
+subgraph TAX["ATHLASX"]
+  direction TB
+  D1["Match registrant to<br/>existing record → W2"] --> D2{"Prior match<br/>history on file?"}
+  D2 -->|Yes| D3["Build dossier from<br/>tournament record"]
+  D2 -->|No| D4["Thin dossier ·<br/>declared history + footage"]
+  D3 --> D5["Percentile vs cohort<br/>same age · same district"]
+  D4 --> D5
+  D5 --> D6["Generate pre-camp pack<br/>per venue · per category"]
+end
+
+subgraph TSEL["SELECTION PANEL"]
+  direction TB
+  V1["Receive pre-camp pack<br/>web + printable"] --> V2["Pre-read ·<br/>flag players to watch closely"]
+  V2 --> V3["Grade on device<br/>during trial"]
+  V3 --> V4["Notes attach to<br/>permanent player record"]
+end
+
+T3 --> U1
+U4 --> D1
+D6 --> V1
+T7 --> V3
+V4 --> REC(["Every trialist retains a record —<br/>selected or not"])
+REC --> W4REF(["→ W4 selection committee"])
+        </pre></div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Trial Cycle → Pre-Camp Dossier</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Assoc as Association
+    participant Player as Player / Guardian
+    participant AX as AthlasX
+    participant Panel as Selection Panel
+
+    Assoc->>Assoc: Open trial cycle (age categories, DOB windows, fee)
+    Assoc->>Player: Publish venues & dates
+    Player->>Assoc: Register online (routed to DCA by pincode)
+    Player->>Assoc: Pay fee
+    Player->>AX: Upload documents (DOB, residency)
+    Player--)AX: (optional) Attach footage
+    AX->>AX: Match registrant to existing record (W2)
+    alt Prior tournament history on file
+        AX->>AX: Build dossier from tournament record
+    else No history
+        AX->>AX: Build thin dossier (declared history + footage)
+    end
+    AX->>AX: Compute percentile vs cohort (age + district)
+    AX->>Panel: Generate & deliver pre-camp pack
+    Panel->>Panel: Pre-read, flag players to watch
+    Assoc->>Panel: Camp day, check-in by registration ID
+    Panel->>AX: Grade on device during trial
+    AX->>AX: Attach notes to permanent player record
+    AX-->>Assoc: Every trialist retains a record
+        </pre></div>
+      </div>
+
+      <div class="grid2">
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Use Case</span><h3>Trial & Dossier</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+flowchart LR
+    actorAssoc(("Association"))
+    actorPlayer(("Player / Guardian"))
+    actorPanel(("Selection Panel"))
+    subgraph SB3["W3 Trial to Dossier"]
+        UC1(["Open trial cycle"])
+        UC2(["Register & pay fee"])
+        UC3(["Upload footage/documents"])
+        UC4(["Generate pre-camp dossier"])
+        UC5(["Pre-read dossiers"])
+        UC6(["Grade at camp"])
+    end
+    actorAssoc --> UC1
+    actorPlayer --> UC2
+    actorPlayer --> UC3
+    actorPanel --> UC5
+    actorPanel --> UC6
+    UC3 --> UC4
+          </pre></div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Class</span><h3>Trial & Dossier Entities</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+classDiagram
+    class TrialCycle {
+      +String id
+      +String associationId
+      +String ageCategory
+      +Date dobWindowStart
+      +Date dobWindowEnd
+    }
+    class Registration {
+      +String id
+      +String trialCycleId
+      +String playerId
+      +String feeStatus
+      +String[] footageLinks
+    }
+    class Dossier {
+      +String id
+      +String registrationId
+      +DateTime generatedAt
+      +Float percentileVsCohort
+    }
+    TrialCycle "1" --> "*" Registration : receives
+    Registration "1" --> "0..1" Dossier : produces
+          </pre></div>
+        </div>
+      </div>
+      <div class="note-box"><b>Validation flag (source §9, item 3):</b> the dossier's headline pitch — "converts a single over of cold first impression into confirmation of known ability" — rests on the unverified 1-over-vs-3-to-5-overs claim from a single player interview. Verify before it appears in an external pitch deck.</div>
+    </section>
+
+    <!-- ================= W4 ================= -->
+    <section class="section" id="sec-w4">
+      <div class="sec-kicker">Workflow 4</div>
+      <div class="sec-title">Selection Committee</div>
+      <p class="sec-desc">Selection is a committee act. Independent grading first, convergence second, meeting third, recorded outcome last — deliberately resistant to a single loud voice anchoring the room.</p>
+      <div class="badge-row"><span class="badge">Actors: Selection Panel · Association Head</span><span class="badge">Output: Immutable selection record</span></div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Control Flow</span><h3>Selection Committee (source)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+flowchart TB
+
+subgraph POOL["CANDIDATE POOL"]
+  direction TB
+  Q1["Trial performers +<br/>tournament performers"] --> Q2["Filter<br/>role · age · district · format"]
+end
+
+subgraph IND["INDEPENDENT REVIEW"]
+  direction TB
+  N1["Selector A grades<br/>blind to peers"]
+  N2["Selector B grades<br/>blind to peers"]
+  N3["Selector C grades<br/>blind to peers"]
+end
+
+subgraph CONV["CONVERGENCE"]
+  direction TB
+  G1["Agreement view<br/>unanimous · split · contested"] --> G2{"Consensus<br/>reached?"}
+  G2 -->|No| G3["Committee session ·<br/>side-by-side comparison"]
+  G3 --> G4["Resolve"]
+  G2 -->|Yes| G4
+  G4 --> G5["Squad locked<br/>20–30 players"]
+end
+
+subgraph REC2["RECORD"]
+  direction TB
+  G6["Written rationale<br/>per selection"] --> G7(["Immutable selection record"])
+  G8["Optional: rationale<br/>for notable omissions"] -. configurable per association .-> G7
+end
+
+Q2 --> N1
+Q2 --> N2
+Q2 --> N3
+N1 --> G1
+N2 --> G1
+N3 --> G1
+G5 --> G6
+G5 -. if enabled .-> G8
+G7 --> W5REF(["→ W5 in-season tracking"])
+
+class G8 parked
+classDef parked fill:#f2f2f2,stroke:#c0c0c0,color:#8a8a8a,stroke-dasharray:5 3;
+        </pre></div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Selection Committee</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Pool as Candidate Pool
+    participant A as Selector A
+    participant B as Selector B
+    participant C as Selector C
+    participant Conv as Convergence
+    participant Head as Association Head
+
+    Pool->>A: Filtered candidates (role/age/district/format)
+    Pool->>B: Filtered candidates
+    Pool->>C: Filtered candidates
+    A->>Conv: Grade (blind to peers)
+    B->>Conv: Grade (blind to peers)
+    C->>Conv: Grade (blind to peers)
+    Conv->>Conv: Build agreement view (unanimous/split/contested)
+    alt Consensus reached
+        Conv->>Conv: Resolve
+    else No consensus
+        Conv->>Conv: Committee session, side-by-side comparison
+        Conv->>Conv: Resolve
+    end
+    Conv->>Conv: Lock squad (20-30 players)
+    Conv->>Head: Written rationale per selection
+    opt If enabled by association
+        Conv->>Head: Rationale for notable omissions
+    end
+    Head-->>Conv: Immutable selection record confirmed
+        </pre></div>
+      </div>
+
+      <div class="grid2">
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Use Case</span><h3>Selection Committee</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+flowchart LR
+    actorSel(("Selection Panel"))
+    actorAssoc(("Association"))
+    subgraph SB4["W4 Selection Committee"]
+        UC1(["Grade blind to peers"])
+        UC2(["View agreement/consensus"])
+        UC3(["Run committee session"])
+        UC4(["Lock squad"])
+        UC5(["Record rationale"])
+    end
+    actorSel --> UC1
+    actorSel --> UC3
+    actorSel --> UC4
+    actorAssoc --> UC2
+    actorAssoc --> UC5
+          </pre></div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Class</span><h3>Selection Entities</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+classDiagram
+    class Grade {
+      +String id
+      +String selectorId
+      +String playerId
+      +Json scores
+      +Boolean isBlind
+    }
+    class Selection {
+      +String id
+      +String trialCycleId
+      +String squadId
+      +String rationale
+      +Boolean isImmutable
+    }
+    Grade "many" --> "1" Player : evaluates
+    Grade "many" --> "1" Selection : informs
+    Selection "1" --> "*" Player : selects
+          </pre></div>
+        </div>
+      </div>
+      <div class="note-box"><b>Design flag:</b> the "notable omissions" rationale (G8) is off by default — correctly, for sales safety. But if no association ever turns it on, the platform never produces the one audit trail that would meaningfully differentiate it from a nicer dashboard. That trade-off is deferred here, not resolved — worth naming explicitly rather than letting it default silently forever.</div>
+    </section>
+
+    <!-- ================= W5 ================= -->
+    <section class="section" id="sec-w5">
+      <div class="sec-kicker">Workflow 5</div>
+      <div class="sec-title">In-Season Weekly Tracking</div>
+      <p class="sec-desc">Applies to the selected squad only — 20 to 30 players. The design constraint is that this must create no new labour for anyone; the scorer's existing output is the input.</p>
+      <div class="badge-row"><span class="badge">Actors: Association Scorer · Coach</span><span class="badge">Output: Season trend line, feeds next cycle's dossier</span></div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Control Flow</span><h3>Weekly Tracking (source)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+flowchart TB
+
+subgraph WK["WEEKLY CYCLE — selected squad"]
+  direction TB
+  W1["Matches played this week"] --> W2["Association scorer records<br/>exactly as they already do"]
+  W2 --> W3["Auto-ingest to player record"]
+  W3 --> W6["Weekly player card updates"]
+end
+
+subgraph CO["COACH — existing routine"]
+  direction TB
+  W4["Log session + attendance"] --> W5["Optional: fitness entry"]
+end
+
+subgraph SIG["SIGNALS"]
+  direction TB
+  W7{"Trend flag<br/>triggered?"}
+  W7 -->|Form drop · workload · gap| W8["Alert to coach<br/>+ selector"]
+  W7 -->|No| W9["Weekly digest only"]
+  W8 --> W10(["Season trend line"])
+  W9 --> W10
+end
+
+W5 -. enriches .-> W6
+W6 --> W7
+W10 --> W11(["Feeds next cycle's dossier<br/>→ W3"])
+        </pre></div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Weekly Tracking</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Scorer as Association Scorer
+    participant AX as AthlasX
+    participant Coach as Coach
+    participant Sig as Signal Engine
+    participant Sel as Selector
+
+    Scorer->>Scorer: Record match, existing routine
+    Scorer->>AX: Auto-ingest to player record
+    Coach--)AX: (optional) Log session, attendance, fitness
+    AX->>AX: Update weekly player card
+    AX->>Sig: Check trend flag
+    alt Form drop / workload / gap detected
+        Sig->>Coach: Alert
+        Sig->>Sel: Alert
+    else No flag
+        Sig->>Coach: Weekly digest only
+    end
+    Sig->>AX: Update season trend line
+    AX-->>AX: Feeds next cycle's dossier (W3)
+        </pre></div>
+      </div>
+
+      <div class="grid2">
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Use Case</span><h3>Weekly Tracking</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+flowchart LR
+    actorScorer(("Association Scorer"))
+    actorCoach(("Coach"))
+    subgraph SB5["W5 Weekly Tracking"]
+        UC1(["Record match — existing routine"])
+        UC2(["Log session/attendance"])
+        UC3(["View weekly player card"])
+        UC4(["Receive trend alert"])
+    end
+    actorScorer --> UC1
+    actorCoach --> UC2
+    actorCoach --> UC3
+    actorCoach --> UC4
+          </pre></div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Class</span><h3>Weekly Tracking Entities</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+classDiagram
+    class PlayerWeek {
+      +String id
+      +String playerId
+      +Date weekOf
+      +Json aggregatedPerformance
+      +Boolean trendFlag
+    }
+    class Player {
+      +String id
+    }
+    Player "1" --> "*" PlayerWeek : accumulates
+          </pre></div>
+        </div>
+      </div>
+      <div class="note-box"><b>Load-bearing assumption (source):</b> if weekly tracking ever requires new data entry from anyone, it will not survive contact with a real season. Verify the scorer's existing workflow per association before promising this.</div>
+    </section>
+
+    <!-- ================= W6 ================= -->
+    <section class="section" id="sec-w6">
+      <div class="sec-kicker">Workflow 6</div>
+      <div class="sec-title">Player Development Loop</div>
+      <p class="sec-desc">The player-side product. Free, and the reason players claim profiles — which is what makes the dataset real rather than administrative.</p>
+      <div class="badge-row"><span class="badge">Actor: Player</span><span class="badge">Output: Trial & camp notifications</span></div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Control Flow</span><h3>Player Development Loop (source)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+flowchart TB
+
+subgraph PL["PLAYER"]
+  direction TB
+  L1(["Profile claimed → W2"]) --> L2["View own record<br/>every match on file"]
+  L2 --> L3["Percentile vs cohort<br/>age · district · role"]
+  L3 --> L4["Identified gaps<br/>vs next level benchmark"]
+  L4 --> L5["Upload footage<br/>batting · bowling · keeping"]
+  L5 -. optional .-> L6["Self-assessment<br/>fitness · behavioural"]
+end
+
+subgraph VIS["VISIBILITY CONTROL"]
+  direction TB
+  M1{"Who can see<br/>this profile?"}
+  M1 -->|Default| M2["Association only"]
+  M1 -->|Opt in| M3["Selection panels<br/>across associations"]
+  M1 -->|Opt in ·<br/>adult only| M4["Franchise & league scouts"]
+end
+
+subgraph NOTIF["OPPORTUNITY"]
+  direction TB
+  M5["Trial & camp<br/>notifications"] --> M6["Registration deep link<br/>→ W3"]
+end
+
+L6 --> M1
+L4 --> M1
+M2 --> M5
+M3 --> M5
+M4 --> M5
+
+class M4 parked
+classDef parked fill:#f2f2f2,stroke:#c0c0c0,color:#8a8a8a,stroke-dasharray:5 3;
+        </pre></div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Player Development Loop</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Player as Player
+    participant AX as AthlasX
+    participant Vis as Visibility Control
+
+    Player->>AX: View own record (every match on file)
+    AX-->>Player: Percentile vs cohort (age/district/role)
+    AX-->>Player: Identified gaps vs next-level benchmark
+    Player->>AX: Upload footage
+    Player--)AX: (optional) Self-assessment
+    Player->>Vis: Set visibility
+    alt Default
+        Vis->>Vis: Association only
+    else Opt in
+        Vis->>Vis: Selection panels across associations
+    else Opt in, adult only (parked, phase 1)
+        Vis->>Vis: Franchise & league scouts
+    end
+    Vis-->>Player: Trial & camp notifications
+    Player->>AX: Registration deep link (-> W3)
+        </pre></div>
+      </div>
+
+      <div class="grid2">
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Use Case</span><h3>Player Development</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+flowchart LR
+    actorPlayer(("Player"))
+    subgraph SB6["W6 Player Development Loop"]
+        UC1(["View record & percentile"])
+        UC2(["Upload footage"])
+        UC3(["Set profile visibility"])
+        UC4(["Receive trial notifications"])
+    end
+    actorPlayer --> UC1
+    actorPlayer --> UC2
+    actorPlayer --> UC3
+    actorPlayer --> UC4
+          </pre></div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Class</span><h3>Player Development Entities</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+classDiagram
+    class Player {
+      +String id
+      +String visibilityLevel
+    }
+    class Performance {
+      +String id
+      +String playerId
+    }
+    Player "1" --> "*" Performance : owns
+          </pre></div>
+        </div>
+      </div>
+      <div class="note-box"><b>Default worth keeping:</b> profile visibility defaults to association-only; franchise/scout-tier exposure is opt-in and adult-only, and explicitly parked for phase 1. Given the age profile of this population, this is the right default — resist pressure to widen it early for a "more impressive demo."</div>
+    </section>
+
+    <!-- ================= W7 ================= -->
+    <section class="section" id="sec-w7">
+      <div class="sec-kicker">Workflow 7</div>
+      <div class="sec-title">Coach</div>
+      <p class="sec-desc">District or state squad coaches. Deliberately thin in phase 1 — the coach is a contributor to the record, not the primary customer, and advises selection rather than deciding it.</p>
+      <div class="badge-row"><span class="badge">Actor: Coach</span><span class="badge">Output: Feeds weekly cycle (W5) and advisory input to W4</span></div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Control Flow</span><h3>Coach Workflow (source)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+flowchart TB
+
+subgraph CH["COACH"]
+  direction TB
+  H1(["Assigned to squad<br/>by association"]) --> H2["Squad view ·<br/>20–30 players"]
+  H2 --> H3["Plan session"]
+  H3 --> H4["Mark attendance"]
+  H4 --> H5["Log session notes<br/>tied to specific players"]
+  H5 --> H6["Post-match review"]
+  H2 -. read only .-> H7["Player cards ·<br/>form & workload trend"]
+  H7 -. advisory input .-> H8(["→ W4 selection committee"])
+end
+
+H6 --> H9(["Feeds weekly cycle → W5"])
+        </pre></div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Coach Workflow</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Assoc as Association
+    participant Coach as Coach
+    participant AX as AthlasX
+    participant Panel as Selection Panel
+
+    Assoc->>Coach: Assign to squad
+    Coach->>AX: View squad (20-30 players)
+    Coach->>Coach: Plan session
+    Coach->>AX: Mark attendance
+    Coach->>AX: Log session notes (tied to players)
+    Coach->>AX: Post-match review
+    AX-->>Coach: Read-only player cards (form & workload trend)
+    Coach--)Panel: Advisory input (-> W4)
+    AX-->>AX: Feeds weekly cycle (W5)
+        </pre></div>
+      </div>
+
+      <div class="grid2">
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Use Case</span><h3>Coach</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+flowchart LR
+    actorCoach(("Coach"))
+    subgraph SB7["W7 Coach"]
+        UC1(["View squad"])
+        UC2(["Mark attendance"])
+        UC3(["Log session notes"])
+        UC4(["Give advisory selection input"])
+    end
+    actorCoach --> UC1
+    actorCoach --> UC2
+    actorCoach --> UC3
+    actorCoach --> UC4
+          </pre></div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Class</span><h3>Coach Entities</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+classDiagram
+    class Coach {
+      +String id
+      +String squadId
+      +String associationId
+    }
+    class SessionLog {
+      +String id
+      +String coachId
+      +String playerId
+      +Date date
+      +String notes
+      +Boolean attendance
+    }
+    Coach "1" --> "*" SessionLog : records
+          </pre></div>
+        </div>
+      </div>
+      <div class="note-box"><b>Permission model:</b> read access to the pool, write access only to their own squad's notes, advisory-only input into W4. Do not over-invest here in phase 1 — this tier is where the market (QloSport, academy tools generally) is already most crowded.</div>
+    </section>
+
+    <!-- ================= W8 ================= -->
+    <section class="section" id="sec-w8">
+      <div class="sec-kicker">Workflow 8</div>
+      <div class="sec-title">Academy Affiliation Capture</div>
+      <p class="sec-desc">Runs silently off W1. No academy signs up, no academy is sold to, and the academy dataset accumulates anyway — the byproduct that later becomes an inbound sales asset.</p>
+      <div class="badge-row"><span class="badge">Actor: AthlasX Ops</span><span class="badge">Output: Ranked academy view — evidenced production, not claimed</span></div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Control Flow</span><h3>Academy Capture (source)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+flowchart TB
+
+subgraph SRC["FROM INGEST — W1"]
+  direction TB
+  Y1["Performance row carries<br/>academy / club string"] --> Y2["Normalise ·<br/>fuzzy match to registry"]
+  Y2 --> Y3{"Confident<br/>match?"}
+end
+
+subgraph REG["ACADEMY REGISTRY"]
+  direction TB
+  Y4["Attach player →<br/>academy, with date range"]
+  Y5["Unmatched queue"] --> Y6["Periodic manual<br/>reconciliation"]
+  Y6 --> Y4
+  Y7["Create new<br/>academy stub"] --> Y4
+end
+
+subgraph OUT2["EMERGENT VALUE"]
+  direction TB
+  Y8["Academy production record<br/>players advanced to district+"] --> Y9(["Ranked academy view"])
+  Y9 -. later phase .-> Y10["Inbound academy signup ·<br/>they approach us"]
+end
+
+Y3 -->|Yes| Y4
+Y3 -->|No · known variant| Y5
+Y3 -->|No · unseen| Y7
+Y4 --> Y8
+
+class Y10 parked
+classDef parked fill:#f2f2f2,stroke:#c0c0c0,color:#8a8a8a,stroke-dasharray:5 3;
+        </pre></div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Sequence</span><h3>Academy Affiliation Capture</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+sequenceDiagram
+    participant Row as Ingest Row (W1)
+    participant Match as Match Engine
+    participant Staff as Association Staff / Ops
+
+    Row->>Match: Academy/club string
+    Match->>Match: Normalise, fuzzy match to registry
+    alt Confident match
+        Match->>Match: Attach player to academy (date range)
+    else Known variant
+        Match->>Staff: Route to unmatched queue
+        Staff-->>Match: Periodic manual reconciliation
+    else Unseen academy
+        Match->>Match: Create new academy stub
+    end
+    Match-->>Match: Build academy production record
+    Match-->>Staff: Ranked academy view
+    Staff--)Match: (later phase) Inbound academy signup
+        </pre></div>
+      </div>
+
+      <div class="grid2">
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Use Case</span><h3>Academy Capture</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+flowchart LR
+    actorOps(("AthlasX Ops"))
+    subgraph SB8["W8 Academy Capture"]
+        UC1(["Fuzzy-match academy string"])
+        UC2(["Reconcile unmatched academies"])
+        UC3(["View ranked academy view"])
+    end
+    actorOps --> UC2
+    actorOps --> UC3
+          </pre></div>
+        </div>
+        <div class="diagram-card">
+          <div class="diagram-head"><span class="diagram-tag">Class</span><h3>Academy Entities</h3></div>
+          <div class="diagram-body dense"><pre class="mermaid">
+classDiagram
+    class Academy {
+      +String id
+      +String canonicalName
+      +String[] variantNames
+      +String district
+      +String verificationStatus
+    }
+    class Player {
+      +String id
+    }
+    Academy "1" --> "*" Player : produces
+          </pre></div>
+        </div>
+      </div>
+      <div class="note-box"><b>Budget for mess:</b> academy names arrive as free text — abbreviations, Hindi/English variants, branch suffixes. Do not assume clean joins; the reconciliation queue is a real ongoing operational cost, not a one-time cleanup.</div>
+    </section>
+
+    <!-- ================= W9 (source reference) ================= -->
+    <section class="section" id="sec-w9">
+      <div class="sec-kicker">Workflow 9 · As Specified</div>
+      <div class="sec-title">Master Flow — Source Diagram</div>
+      <p class="sec-desc">The team's own composition diagram, reproduced here unmodified for reference alongside the expanded master sequence, use case, and class views on the Overview page.</p>
+      <div class="diagram-card">
+        <div class="diagram-head"><span class="diagram-tag">Control Flow</span><h3>How the Workflows Compose (source)</h3></div>
+        <div class="diagram-body"><pre class="mermaid">
+flowchart TB
+
+Z1(["Association signs<br/>data-sharing agreement"]) --> Z2["W1 · Ingest<br/>historical tournament records"]
+Z2 --> Z3["W2 · Identity resolution<br/>shadow profiles created"]
+Z3 --> Z4["W8 · Academy affiliation<br/>captured as byproduct"]
+Z3 --> Z5["W3 · Trial cycle opens<br/>registrants matched to records"]
+Z5 --> Z6(["PRE-CAMP DOSSIER<br/>the wedge"])
+Z6 --> Z7["W4 · Selection committee<br/>grade → converge → squad"]
+Z7 --> Z8["W5 · In-season weekly tracking<br/>selected squad only"]
+Z8 --> Z9["W7 · Coach logs sessions"]
+Z8 --> Z10(["Longitudinal player record"])
+Z10 -. enriches next cycle .-> Z5
+Z3 --> Z11["W6 · Player claims profile"]
+Z11 --> Z10
+Z4 -. accumulates silently .-> Z12["Academy tier ·<br/>inbound, later phase"]
+
+class Z12 parked
+classDef parked fill:#f2f2f2,stroke:#c0c0c0,color:#8a8a8a,stroke-dasharray:5 3;
+        </pre></div>
+      </div>
+      <div class="note-box"><b>The compounding loop:</b> Z5 → Z6 → Z7 → Z8 → Z10 → Z5. Each cycle makes the next cycle's dossiers better, which makes the association more dependent, which makes the data richer. Everything else in the platform is scaffolding around that loop — and that loop does not exist until Phase 0 proves the ingest cost on one real association.</div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'base',
+  themeVariables: {
+    primaryColor: '#eaf3ef',
+    primaryTextColor: '#1c2622',
+    primaryBorderColor: '#16624a',
+    lineColor: '#75857d',
+    secondaryColor: '#f2f7f4',
+    tertiaryColor: '#ffffff',
+    fontFamily: '-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif',
+    fontSize: '14px'
+  },
+  flowchart: { curve: 'basis', htmlLabels: true },
+  sequence: { actorMargin: 60, messageMargin: 30 }
+});
+
+const navItems = document.querySelectorAll('.nav-item');
+const sections = document.querySelectorAll('.section');
+
+navItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const target = item.dataset.target;
+    navItems.forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+    sections.forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-' + target).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+});
+</script>
+</body>
+</html>

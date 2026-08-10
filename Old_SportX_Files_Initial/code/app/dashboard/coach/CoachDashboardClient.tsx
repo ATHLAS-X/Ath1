@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { DsIcon, DsPill, DsAvatar, DsButton, DsToast, useToast } from "@/app/_ds";
 import type { CoachDashboardData, CoachAssignedPlayer, CoachSubmission } from "@/lib/dashboard-data";
 
@@ -76,6 +77,7 @@ function initialsOf(name: string): string {
 const NAV_ITEMS = [
   { key:"dashboard",  label:"Dashboard",   icon:"dashboard" },
   { key:"players",    label:"My Players",  icon:"players"   },
+  { key:"sessions",   label:"Sessions",    icon:"calendar"  },
   { key:"fitness",    label:"Fitness Log", icon:"fitness"   },
   { key:"behaviour",  label:"Behavioural", icon:"brain"     },
   { key:"milestones", label:"Milestones",  icon:"milestone" },
@@ -185,7 +187,8 @@ export default function CoachDashboardClient({ data }: CoachDashboardProps = {})
     if (key === "fitness") setFilter("fitness");
     else if (key === "behaviour") setFilter("eval");
     else if (key === "players" || key === "milestones") setFilter("all");
-    if (key !== "dashboard") tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (key === "sessions") router.push("/dashboard/coach/sessions");
+    else if (key !== "dashboard") tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   /* assigned_players/recent_submissions come from lib/dashboard-data.ts's
@@ -342,18 +345,23 @@ export default function CoachDashboardClient({ data }: CoachDashboardProps = {})
             <DsPill tone="neutral" size="sm">Workflow P3 · Capture</DsPill>
             <DsPill tone="neutral" size="sm">P4 · Endorse Scorecards</DsPill>
           </div>
-          <button style={{
-            width:38, height:38, borderRadius:"var(--ax-radius-md)",
-            background:"var(--ax-field)", border:"1px solid var(--ax-border)",
-            color:"var(--ax-text-dim)", cursor:"pointer",
-            display:"grid", placeItems:"center", position:"relative", flexShrink:0,
-          }} onClick={() => showToast("No new notifications.")}>
-            <DsIcon name="bell" size={17} />
-            <span style={{
-              position:"absolute", top:7, right:7, width:7, height:7,
-              borderRadius:"50%", background:"var(--ax-accent)", boxShadow:"var(--ax-glow-dot)",
-            }} />
-          </button>
+          <div style={{ display:"flex", alignItems:"center", gap:"0.65rem" }}>
+            <Link href="/dashboard/coach/sessions" style={{ textDecoration:"none" }}>
+              <DsButton variant="outline" size="sm" leadingIcon={<DsIcon name="calendar" size={14} />}>Sessions & Attendance</DsButton>
+            </Link>
+            <button style={{
+              width:38, height:38, borderRadius:"var(--ax-radius-md)",
+              background:"var(--ax-field)", border:"1px solid var(--ax-border)",
+              color:"var(--ax-text-dim)", cursor:"pointer",
+              display:"grid", placeItems:"center", position:"relative", flexShrink:0,
+            }} onClick={() => showToast("No new notifications.") }>
+              <DsIcon name="bell" size={17} />
+              <span style={{
+                position:"absolute", top:7, right:7, width:7, height:7,
+                borderRadius:"50%", background:"var(--ax-accent)", boxShadow:"var(--ax-glow-dot)",
+              }} />
+            </button>
+          </div>
         </header>
 
         {/* Scroll area */}

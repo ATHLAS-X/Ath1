@@ -521,6 +521,7 @@ CREATE INDEX IF NOT EXISTS admin_notifications_recipient_idx ON admin_notificati
 CREATE TABLE IF NOT EXISTS academy_coaches (
   id                     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   academy_id             UUID REFERENCES academies(id) ON DELETE CASCADE,
+  user_id                UUID REFERENCES users(id) ON DELETE SET NULL,
   coach_name             VARCHAR(120) NOT NULL,
   specialization         VARCHAR(60),
   years_experience       INTEGER,
@@ -534,6 +535,7 @@ CREATE TABLE IF NOT EXISTS academy_coaches (
   created_at             TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS academy_coaches_academy_idx ON academy_coaches(academy_id);
+CREATE INDEX IF NOT EXISTS academy_coaches_user_id_idx ON academy_coaches(user_id);
 
 -- ── player fitness assessments ───────────────────────────────
 CREATE TABLE IF NOT EXISTS player_fitness_assessments (

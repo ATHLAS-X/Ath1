@@ -16,6 +16,16 @@ interface PlayerRow {
   created_at: string;
 }
 
+interface SessionSummary {
+  today_sessions: number;
+  upcoming_sessions: number;
+  marked_count: number;
+  unmarked_count: number;
+  present_count: number;
+  absent_count: number;
+  late_count: number;
+}
+
 export default async function AcademyDashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/auth/login?from=/academy/dashboard");
@@ -46,6 +56,30 @@ export default async function AcademyDashboardPage() {
     verified: statsRows[0]?.verified_players ?? 0,
     live:     statsRows[0]?.live_players ?? 0,
     scoutViews: 0, /* V2 — no scout_views table yet. */
+  };
+
+  const sessionRows = (await sql`
+    SELECT
+      COUNT(*) FILTER (WHERE s.session_date = CURRENT_DATE)::int AS today_sessions,
+      COUNT(*) FILTER (WHERE s.session_date > CURRENT_DATE)::int AS upcoming_sessions,
+      COUNT(sa.id) FILTER (WHERE sa.status <> 'UNMARKED')::int AS marked_count,
+      COUNT(sa.id) FILTER (WHERE sa.status = 'UNMARKED')::int AS unmarked_count,
+      COUNT(sa.id) FILTER (WHERE sa.status = 'PRESENT')::int AS present_count,
+      COUNT(sa.id) FILTER (WHERE sa.status = 'ABSENT')::int AS absent_count,
+      COUNT(sa.id) FILTER (WHERE sa.status = 'LATE')::int AS late_count
+    FROM training_sessions s
+    LEFT JOIN session_attendance sa ON sa.session_id = s.id
+    WHERE s.academy_id = ${academy.id}
+      AND s.session_date >= CURRENT_DATE - INTERVAL '30 days'
+  `) as unknown as any[];
+  const sessionSummary: SessionSummary = {
+    today_sessions: sessionRows[0]?.today_sessions ?? 0,
+    upcoming_sessions: sessionRows[0]?.upcoming_sessions ?? 0,
+    marked_count: sessionRows[0]?.marked_count ?? 0,
+    unmarked_count: sessionRows[0]?.unmarked_count ?? 0,
+    present_count: sessionRows[0]?.present_count ?? 0,
+    absent_count: sessionRows[0]?.absent_count ?? 0,
+    late_count: sessionRows[0]?.late_count ?? 0,
   };
 
   /* Section 3 — last 10 players added. */
@@ -86,6 +120,7 @@ export default async function AcademyDashboardPage() {
       adminName={(session.user as any).name ?? "Admin"}
       adminEmail={(session.user as any).email ?? ""}
       stats={stats}
+      sessionSummary={sessionSummary}
       recentPlayers={recentPlayers}
     />
   );
