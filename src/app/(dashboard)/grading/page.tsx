@@ -9,7 +9,8 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { PlayingRole, TournamentLevel } from '@/types'
-import { calculateAthlasXScore, getProvenanceLabel, type VerifiedPerformanceRow } from '@/lib/athlasx-score'
+import { calculateAthlasXScore, getProvenanceLabel } from '@/lib/athlasx-score'
+import { dbRoleMap, seedPerformances } from '@/lib/mock-performance-seed'
 
 /* ─── Quick View card ─────────────────────────────────────────────────────────
    Batting and Bowling only — fielding/keeping excluded (scorecard incomplete)
@@ -42,49 +43,6 @@ interface DbPlayer {
 interface Selector {
   id: string
   email: string
-}
-
-const dbRoleMap: Record<string, PlayingRole> = {
-  Batsman: 'Batsman',
-  Bowler: 'Bowler',
-  All_rounder: 'All-rounder',
-  Wicket_keeper_Batsman: 'Wicket-keeper Batsman',
-}
-
-// Deterministic pseudo-random performances keyed by player id — stands in
-// for real ingested Performance rows, which aren't seeded yet. Same player
-// always produces the same numbers across reloads.
-function mulberry32(seed: number) {
-  return () => {
-    seed |= 0; seed = (seed + 0x6D2B79F5) | 0
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
-}
-function hashSeed(id: string): number {
-  let h = 0
-  for (let i = 0; i < id.length; i++) h = (Math.imul(31, h) + id.charCodeAt(i)) | 0
-  return h
-}
-function seedPerformances(playerId: string, role: PlayingRole): VerifiedPerformanceRow[] {
-  const rand = mulberry32(hashSeed(playerId))
-  const count = 12 + Math.floor(rand() * 12)
-  const bats = role !== 'Bowler'
-  const bowls = role === 'Bowler' || role === 'All-rounder'
-  return Array.from({ length: count }, () => ({
-    level: 'district' as const,
-    ...(bats ? {
-      batting_runs: Math.round(15 + rand() * 45),
-      batting_balls: Math.round(20 + rand() * 25),
-      batting_dismissed: rand() > 0.25,
-    } : {}),
-    ...(bowls ? {
-      bowling_overs: 4,
-      bowling_wickets: rand() > 0.6 ? Math.round(1 + rand() * 2) : rand() > 0.3 ? 1 : 0,
-      bowling_runs_conceded: Math.round(18 + rand() * 20),
-    } : {}),
-  }))
 }
 
 function buildQvPool(players: DbPlayer[]): PlayerQV[] {

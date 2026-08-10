@@ -107,6 +107,73 @@ async function main() {
     })
   }
 
+  // Weekly tracking (W5) — 4 weeks per shadow player, one trending down
+  // (triggers a form_drop TrendAlert), one trending up.
+  const weekStarts = [21, 14, 7, 0].map(daysAgo => {
+    const d = new Date()
+    d.setDate(d.getDate() - daysAgo - d.getDay() + 1) // Monday of that week
+    return d
+  })
+
+  const decliningScores = [73, 71, 68, 65]
+  const risingScores = [68, 74, 77, 82]
+
+  for (let i = 0; i < weekStarts.length; i++) {
+    await db.playerWeek.create({
+      data: {
+        player_id: shadowPlayers[1].id, // Dev Patel — declining
+        week_start: weekStarts[i],
+        matches_played: 1,
+        wickets_this_week: 3 - i,
+        rolling_4week_average: decliningScores[i],
+        score_delta: i === 0 ? 0 : decliningScores[i] - decliningScores[i - 1],
+        flag_type: i === weekStarts.length - 1 ? 'form_drop' : 'none',
+      },
+    })
+    await db.playerWeek.create({
+      data: {
+        player_id: shadowPlayers[0].id, // Arjun Sharma — on form
+        week_start: weekStarts[i],
+        matches_played: 1,
+        runs_this_week: 34 + i * 18,
+        rolling_4week_average: risingScores[i],
+        score_delta: i === 0 ? 0 : risingScores[i] - risingScores[i - 1],
+        flag_type: i === weekStarts.length - 1 ? 'on_form' : 'none',
+      },
+    })
+  }
+
+  await db.trendAlert.create({
+    data: {
+      player_id: shadowPlayers[1].id,
+      triggered_at: new Date(),
+      flag_type: 'form_drop',
+      consecutive_declining_weeks: 3,
+      skill_dimension: 'Bowling economy',
+      notified_coach: true,
+      notified_selector: true,
+    },
+  })
+  await db.trendAlert.create({
+    data: {
+      player_id: shadowPlayers[0].id,
+      triggered_at: new Date(),
+      flag_type: 'on_form',
+      notified_coach: false,
+      notified_selector: true,
+    },
+  })
+
+  // Ingest jobs (W1)
+  await db.ingestJob.createMany({
+    data: [
+      { source: 'CricHeroes', method: 'api_sync', tournament: 'UPCA U-19 District League 2025–26', match_count: 34, player_rows: 412, status: 'pending_review', confidence: 0.97, conflicts: 3 },
+      { source: 'Scorecard PDF', method: 'structured_parser', tournament: 'Kanpur District T20 Cup 2025', match_count: 12, player_rows: 148, status: 'pending_review', confidence: 0.84, conflicts: 9 },
+      { source: 'CricHeroes', method: 'api_sync', tournament: 'UPCA U-16 District League 2025–26', match_count: 28, player_rows: 310, status: 'approved', confidence: 0.98, conflicts: 0 },
+      { source: 'Excel Upload', method: 'excel_mapper', tournament: 'Lucknow Club T20 Series 2025', match_count: 8, player_rows: 96, status: 'rejected', confidence: 0.61, conflicts: 21 },
+    ],
+  })
+
   console.log('Seeded:')
   console.log(`  association: ${association.id}`)
   console.log(`  chair user:  ${chair.id}`)

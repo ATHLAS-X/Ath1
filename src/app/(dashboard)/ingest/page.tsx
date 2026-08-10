@@ -1,16 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Database, Upload, RefreshCw, CheckCircle2, AlertCircle,
-  Clock, X, FileText, Link2, ChevronRight, Zap,
-  AlertTriangle, Search, Eye,
+  Database, Upload, RefreshCw, CheckCircle2,
+  Clock, X, FileText, Link2, Zap,
+  AlertTriangle, Eye, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { IngestMethod, ApprovalStatus } from '@/types'
+import type { IngestMethod } from '@/types'
 
-/* ─── Mock ingest jobs ───────────────────────────────────────────────────────── */
 interface IngestJob {
   id: string
   source: string
@@ -20,29 +19,8 @@ interface IngestJob {
   player_rows: number
   status: 'pending_review' | 'approved' | 'rejected' | 'processing'
   confidence: number
-  ingested_at: string
   conflicts: number
-  approval_status: ApprovalStatus
 }
-
-const jobs: IngestJob[] = [
-  {
-    id: 'j1', source: 'CricHeroes',   method: 'api_sync',         tournament: 'UPCA U-19 District League 2025–26',
-    match_count: 34, player_rows: 412, status: 'pending_review', confidence: 0.97, ingested_at: '2026-08-05T09:10:00Z', conflicts: 3, approval_status: 'pending',
-  },
-  {
-    id: 'j2', source: 'Scorecard PDF', method: 'structured_parser', tournament: 'Kanpur District T20 Cup 2025',
-    match_count: 12, player_rows: 148, status: 'pending_review', confidence: 0.84, ingested_at: '2026-08-04T14:30:00Z', conflicts: 9, approval_status: 'pending',
-  },
-  {
-    id: 'j3', source: 'CricHeroes',   method: 'api_sync',         tournament: 'UPCA U-16 District League 2025–26',
-    match_count: 28, player_rows: 310, status: 'approved',        confidence: 0.98, ingested_at: '2026-08-03T11:20:00Z', conflicts: 0, approval_status: 'approved',
-  },
-  {
-    id: 'j4', source: 'Excel Upload',  method: 'excel_mapper',     tournament: 'Lucknow Club T20 Series 2025',
-    match_count: 8, player_rows: 96,  status: 'rejected',         confidence: 0.61, ingested_at: '2026-08-01T08:00:00Z', conflicts: 21, approval_status: 'rejected',
-  },
-]
 
 const methodLabel: Record<IngestMethod, string> = {
   api_sync:           'API Sync',
@@ -74,8 +52,23 @@ function ConfidenceBar({ value }: { value: number }) {
 }
 
 /* ─── Job detail panel ───────────────────────────────────────────────────────── */
-function JobPanel({ job, onClose }: { job: IngestJob; onClose: () => void }) {
+function JobPanel({ job, onClose, onDecided }: { job: IngestJob; onClose: () => void; onDecided: (id: string, status: 'approved' | 'rejected') => void }) {
   const [action, setAction] = useState<'idle' | 'approved' | 'rejected'>('idle')
+  const [deciding, setDeciding] = useState(false)
+
+  async function decide(decision: 'approved' | 'rejected') {
+    setDeciding(true)
+    const res = await fetch(`/api/ingest/${job.id}/decide`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision }),
+    })
+    setDeciding(false)
+    if (res.ok) {
+      setAction(decision)
+      onDecided(job.id, decision)
+    }
+  }
 
   return (
     <motion.div
@@ -165,16 +158,18 @@ function JobPanel({ job, onClose }: { job: IngestJob; onClose: () => void }) {
           {job.status === 'pending_review' && action === 'idle' && (
             <div className="flex items-center gap-3 pt-2">
               <button
-                onClick={() => setAction('rejected')}
-                className="flex-1 py-2.5 rounded-xl border border-red-500/25 bg-red-500/10 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-colors"
+                onClick={() => decide('rejected')}
+                disabled={deciding}
+                className="flex-1 py-2.5 rounded-xl border border-red-500/25 bg-red-500/10 text-red-400 text-sm font-bold hover:bg-red-500/20 transition-colors disabled:opacity-50"
               >
-                Reject
+                {deciding ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Reject'}
               </button>
               <button
-                onClick={() => setAction('approved')}
-                className="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-bold transition-colors"
+                onClick={() => decide('approved')}
+                disabled={deciding}
+                className="flex-1 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-bold transition-colors disabled:opacity-50"
               >
-                Approve
+                {deciding ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Approve'}
               </button>
             </div>
           )}
@@ -221,8 +216,21 @@ function UploadZone() {
 
 /* ─── Page ─────────────────────────────────────────────────────────────────── */
 export default function IngestPage() {
+  const [jobs, setJobs] = useState<IngestJob[]>([])
+  const [loading, setLoading] = useState(true)
   const [activeJob, setActiveJob] = useState<IngestJob | null>(null)
   const [cricheroesSyncing, setCricheroesSyncing] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/ingest').then(r => r.json()).then(data => {
+      setJobs(data.jobs ?? [])
+      setLoading(false)
+    })
+  }, [])
+
+  function handleDecided(id: string, status: 'approved' | 'rejected') {
+    setJobs(prev => prev.map(j => j.id === id ? { ...j, status } : j))
+  }
 
   const pending = jobs.filter(j => j.status === 'pending_review').length
   const approved = jobs.filter(j => j.status === 'approved').length
@@ -329,6 +337,9 @@ export default function IngestPage() {
           </div>
         </div>
 
+        {loading ? (
+          <div className="glass-card p-10 flex items-center justify-center text-zinc-600"><Loader2 className="w-5 h-5 animate-spin" /></div>
+        ) : (
         <div className="space-y-2">
           {jobs.map((job, i) => {
             const cfg = statusConfig[job.status]
@@ -392,11 +403,12 @@ export default function IngestPage() {
             )
           })}
         </div>
+        )}
       </motion.div>
 
       {/* Detail panel */}
       <AnimatePresence>
-        {activeJob && <JobPanel job={activeJob} onClose={() => setActiveJob(null)} />}
+        {activeJob && <JobPanel job={activeJob} onClose={() => setActiveJob(null)} onDecided={handleDecided} />}
       </AnimatePresence>
     </div>
   )

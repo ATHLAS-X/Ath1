@@ -582,6 +582,8 @@ model PlayerWeek {
   flag_type              FlagType      @default(none)
   coach_note             String?       // 200 char max, enforced at the API boundary
   coach_note_at          DateTime?     @db.Timestamptz(6)
+  fitness_rating         Int?          // 1-5, coach-supervised only — never self-reported
+  behaviour_rating       Int?          // 1-5, coach-supervised only
 
   @@unique([player_id, week_start])
   @@index([flag_type])
@@ -617,6 +619,34 @@ model CoachProfile {
   created_at      DateTime  @default(now()) @db.Timestamptz(6)
 
   @@map("coach_profiles")
+  @@schema("athlasx")
+}
+
+// ─── Ingest jobs (W1) ─────────────────────────────────────────────────────
+enum IngestJobStatus {
+  pending_review
+  approved
+  rejected
+  processing
+
+  @@schema("athlasx")
+}
+
+model IngestJob {
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  source        String
+  method        IngestMethod
+  tournament    String
+  match_count   Int
+  player_rows   Int
+  status        IngestJobStatus  @default(pending_review)
+  confidence    Float
+  conflicts     Int              @default(0)
+  reviewed_by   String?          @db.Uuid
+  reviewed_at   DateTime?        @db.Timestamptz(6)
+  created_at    DateTime         @default(now()) @db.Timestamptz(6)
+
+  @@map("ingest_jobs")
   @@schema("athlasx")
 }
 

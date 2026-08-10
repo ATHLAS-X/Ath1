@@ -24,14 +24,32 @@ export async function GET(_req: NextRequest, { params }: { params: { sessionId: 
     byPlayer.set(g.player_id, list)
   }
 
+  const players = await db.playerProfile.findMany({
+    where: { id: { in: Array.from(byPlayer.keys()) } },
+    select: { id: true, full_name: true, district: true },
+  })
+  const playerById = new Map(players.map(p => [p.id, p]))
+
   const views = Array.from(byPlayer.entries()).map(([player_id, list]) => {
     const average = list.reduce((a, b) => a + b, 0) / list.length
     const distribution: Record<string, number> = {}
     for (const g of list) distribution[g] = (distribution[g] ?? 0) + 1
     const spread = Math.max(...list) - Math.min(...list)
     const consensus = spread <= 1 ? 'unanimous' : spread <= 3 ? 'split' : 'contested'
-    return { player_id, grades: list, average, distribution, consensus }
+    const player = playerById.get(player_id)
+    return {
+      player_id,
+      name: player?.full_name ?? 'Unknown',
+      district: player?.district ?? '',
+      grades: list,
+      average,
+      distribution,
+      consensus,
+    }
   })
 
-  return NextResponse.json({ views })
+  return NextResponse.json({ views, alreadySelected: (await db.selection.findMany({
+    where: { selection_session_id: params.sessionId },
+    select: { player_id: true },
+  })).map(s => s.player_id) })
 }
