@@ -1,0 +1,52 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+
+// Submits (or updates) one selector's grade for one player. This is the
+// actual blind-grading enforcement point: a selector can only ever write
+// their OWN row (selector_id from the request, scoped by the unique
+// [session, selector, player] constraint) and this route never returns
+// any other selector's grade — see mine/route.ts and convergence/route.ts
+// for the read side of that boundary.
+export async function POST(req: NextRequest, { params }: { params: { sessionId: string } }) {
+  const { selectorId, playerId, grade, notes } = await req.json()
+
+  if (!selectorId || !playerId || !grade) {
+    return NextResponse.json({ error: 'selectorId, playerId, and grade are required' }, { status: 400 })
+  }
+  if (grade < 1 || grade > 10) {
+    return NextResponse.json({ error: 'grade must be between 1 and 10' }, { status: 400 })
+  }
+
+  const session = await db.selectionSession.findUnique({ where: { id: params.sessionId } })
+  if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+  if (session.convergence_unlocked_at) {
+    return NextResponse.json({ error: 'Grading is closed — convergence has already been unlocked for this session' }, { status: 409 })
+  }
+
+  const saved = await db.grade.upsert({
+    where: {
+      selection_session_id_selector_id_player_id: {
+        selection_session_id: params.sessionId,
+        selector_id: selectorId,
+        player_id: playerId,
+      },
+    },
+    create: {
+      selection_session_id: params.sessionId,
+      selector_id: selectorId,
+      player_id: playerId,
+      overall_grade: grade,
+      notes,
+      status: 'submitted',
+      submitted_at: new Date(),
+    },
+    update: {
+      overall_grade: grade,
+      notes,
+      status: 'submitted',
+      submitted_at: new Date(),
+    },
+  })
+
+  return NextResponse.json({ id: saved.id, submitted_at: saved.submitted_at })
+}

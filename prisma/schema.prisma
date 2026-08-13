@@ -1,0 +1,664 @@
+// AthlasX — Prisma schema (post-pivot)
+//
+// Models src/types/index.ts directly — every field name here should match
+// the corresponding TS interface field so the Prisma Client's generated
+// types need no manual re-mapping at the API-route boundary.
+//
+// IMPORTANT: this Neon database already hosts ~30 tables from the archived
+// SportX codebase (users, player_profiles, academies, etc. — different
+// shape, same names). Every model below lives in its own Postgres schema
+// ("athlasx") via @@schema, so `prisma migrate` never touches, alters, or
+// collides with the old tables in "public". Do not remove @@schema from a
+// model or drop the multiSchema preview feature below.
+//
+// Conventions:
+//   • Model names: PascalCase. Table names: snake_case via @@map.
+//   • Field names: snake_case (matches src/types/index.ts).
+//   • UUIDs everywhere via gen_random_uuid().
+//   • ConvergenceView is NOT a table — it's computed from Grade rows at
+//     query time (src/types/index.ts documents it as a read model).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_DIRECT_URL")
+  schemas   = ["athlasx"]
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  player
+  selection_panel
+  coach
+  association
+  athlasx_ops
+
+  @@schema("athlasx")
+}
+
+enum BattingStyle {
+  Right_handed @map("Right-handed")
+  Left_handed  @map("Left-handed")
+
+  @@schema("athlasx")
+}
+
+enum BowlingStyleEnum {
+  Right_arm_Fast       @map("Right-arm Fast")
+  Right_arm_Medium     @map("Right-arm Medium")
+  Right_arm_Off_spin   @map("Right-arm Off-spin")
+  Right_arm_Leg_spin   @map("Right-arm Leg-spin")
+  Left_arm_Fast        @map("Left-arm Fast")
+  Left_arm_Medium      @map("Left-arm Medium")
+  Left_arm_Orthodox    @map("Left-arm Orthodox")
+  Left_arm_Unorthodox  @map("Left-arm Unorthodox")
+  None
+
+  @@schema("athlasx")
+}
+
+enum PlayingRoleEnum {
+  Batsman
+  Bowler
+  All_rounder             @map("All-rounder")
+  Wicket_keeper_Batsman   @map("Wicket-keeper Batsman")
+
+  @@schema("athlasx")
+}
+
+enum Format {
+  T20
+  ODI
+  Test
+  T10
+
+  @@schema("athlasx")
+}
+
+enum TournamentLevel {
+  local
+  district
+  state
+  national
+
+  @@schema("athlasx")
+}
+
+enum AssociationType {
+  state
+  district
+
+  @@schema("athlasx")
+}
+
+enum IngestMethod {
+  api_sync
+  structured_parser
+  ocr
+  excel_mapper
+  manual
+
+  @@schema("athlasx")
+}
+
+enum ApprovalStatus {
+  pending
+  approved
+  rejected
+
+  @@schema("athlasx")
+}
+
+enum ClaimStatus {
+  unclaimed
+  pending_verification
+  claimed
+
+  @@schema("athlasx")
+}
+
+enum ConsentStatus {
+  not_required
+  pending
+  granted
+  withdrawn
+
+  @@schema("athlasx")
+}
+
+enum GradeStatus {
+  not_started
+  in_progress
+  submitted
+
+  @@schema("athlasx")
+}
+
+enum SelectionStatus {
+  open
+  grading
+  converging
+  locked
+
+  @@schema("athlasx")
+}
+
+enum FlagType {
+  form_drop
+  skill_below_threshold
+  on_form
+  none
+
+  @@schema("athlasx")
+}
+
+enum TrialCycleStatus {
+  upcoming
+  registration_open
+  registration_closed
+  in_progress
+  completed
+
+  @@schema("athlasx")
+}
+
+enum FeeStatus {
+  pending
+  paid
+  waived
+
+  @@schema("athlasx")
+}
+
+enum ProfileSource {
+  ingest
+  self_registered
+
+  @@schema("athlasx")
+}
+
+// ─── User account (optional — most players never have one) ─────────────────
+model User {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email            String    @unique
+  role             UserRole
+  linked_player_id String?   @db.Uuid
+  linked_staff_id  String?   @db.Uuid
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+
+  player_profile    PlayerProfile?
+  coach_profile     CoachProfile?
+  selector_profile  SelectorProfile?
+  grades_given      Grade[]
+
+  @@map("users")
+  @@schema("athlasx")
+}
+
+// ─── Association ──────────────────────────────────────────────────────────
+model Association {
+  id                         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                       String
+  type                       AssociationType
+  parent_id                  String?          @db.Uuid
+  parent                     Association?     @relation("AssociationHierarchy", fields: [parent_id], references: [id])
+  children                   Association[]    @relation("AssociationHierarchy")
+  state                      String
+  cricheroes_association_id  String?
+  data_sharing_signed        Boolean          @default(false)
+  created_at                 DateTime         @default(now()) @db.Timestamptz(6)
+
+  players       PlayerProfile[]
+  tournaments   Tournament[]
+  trial_cycles  TrialCycle[]
+  selection_sessions SelectionSession[]
+
+  @@index([type])
+  @@map("associations")
+  @@schema("athlasx")
+}
+
+// ─── Player — exists independently of any User account ─────────────────────
+model PlayerProfile {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id           String?        @unique @db.Uuid
+  user              User?          @relation(fields: [user_id], references: [id])
+  full_name         String
+  dob               DateTime       @db.Date
+  district          String
+  state             String
+  claim_status      ClaimStatus    @default(unclaimed)
+  consent_status    ConsentStatus  @default(not_required)
+  guardian_phone    String?
+  playing_role      PlayingRoleEnum?
+  batting_style     BattingStyle?
+  bowling_style     BowlingStyleEnum?
+  preferred_formats Format[]
+  academy           String?
+  avatar_url        String?
+  footage_urls      String[]
+  bio               String?
+  athlasx_score     Float?
+  profile_source    ProfileSource
+  association_id    String?        @db.Uuid
+  association       Association?   @relation(fields: [association_id], references: [id])
+  created_at        DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime       @updatedAt @db.Timestamptz(6)
+
+  performances   Performance[]
+  registrations  Registration[]
+  dossiers       Dossier[]
+  grades         Grade[]
+  weeks          PlayerWeek[]
+  trend_alerts   TrendAlert[]
+  claim          PlayerClaim?
+
+  @@index([claim_status])
+  @@index([association_id])
+  @@map("player_profiles")
+  @@schema("athlasx")
+}
+
+// ─── W2 — Claim flow, phone OTP, guardian consent (was types-only) ─────────
+enum ClaimVerificationMethod {
+  phone_otp
+  guardian_otp
+
+  @@schema("athlasx")
+}
+
+model PlayerClaim {
+  id                    String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  player_id             String                    @unique @db.Uuid
+  player                PlayerProfile             @relation(fields: [player_id], references: [id], onDelete: Cascade)
+  claiming_user_id      String?                   @db.Uuid
+  method                ClaimVerificationMethod
+  phone                 String
+  is_minor              Boolean                   @default(false)
+  guardian_name         String?
+  guardian_phone        String?
+  guardian_relation     String?
+  consent_status        ConsentStatus             @default(pending)
+  consent_granted_at    DateTime?                 @db.Timestamptz(6)
+  consent_withdrawn_at  DateTime?                 @db.Timestamptz(6)
+  verified_at           DateTime?                 @db.Timestamptz(6)
+  created_at            DateTime                  @default(now()) @db.Timestamptz(6)
+
+  otps  PhoneOtp[]
+
+  @@map("player_claims")
+  @@schema("athlasx")
+}
+
+model PhoneOtp {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  claim_id     String       @db.Uuid
+  claim        PlayerClaim  @relation(fields: [claim_id], references: [id], onDelete: Cascade)
+  phone        String
+  code_hash    String
+  purpose      ClaimVerificationMethod
+  attempts     Int          @default(0)
+  expires_at   DateTime     @db.Timestamptz(6)
+  consumed_at  DateTime?    @db.Timestamptz(6)
+  created_at   DateTime     @default(now()) @db.Timestamptz(6)
+
+  @@index([claim_id])
+  @@index([expires_at])
+  @@map("phone_otps")
+  @@schema("athlasx")
+}
+
+// ─── Academy registry (W8) ───────────────────────────────────────────────
+model Academy {
+  id                          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                        String
+  name_variants               String[]
+  district                    String
+  state                       String
+  verified                    Boolean  @default(false)
+  players_at_district_plus    Int      @default(0)
+  created_at                  DateTime @default(now()) @db.Timestamptz(6)
+
+  match_candidates AcademyMatchCandidate[]
+
+  @@map("academies")
+  @@schema("athlasx")
+}
+
+// Raw academy strings seen during ingest, queued for reconciliation against
+// the Academy registry (fuzzy-matched, never auto-merged).
+enum AcademyMatchStatus {
+  unmatched
+  suggested
+  confirmed
+  rejected
+
+  @@schema("athlasx")
+}
+
+model AcademyMatchCandidate {
+  id                     String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  raw_string             String
+  source                 String
+  suggested_academy_id   String?             @db.Uuid
+  suggested_academy      Academy?            @relation(fields: [suggested_academy_id], references: [id])
+  similarity_score       Float?
+  status                 AcademyMatchStatus  @default(unmatched)
+  reviewed_by            String?             @db.Uuid
+  reviewed_at            DateTime?           @db.Timestamptz(6)
+  created_at             DateTime            @default(now()) @db.Timestamptz(6)
+
+  @@index([status])
+  @@map("academy_match_candidates")
+  @@schema("athlasx")
+}
+
+// ─── Tournament / Match / Performance — provenance on every row ────────────
+model Tournament {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id  String           @db.Uuid
+  association     Association      @relation(fields: [association_id], references: [id])
+  name            String
+  season          String
+  format          Format
+  age_category    String
+  level           TournamentLevel
+  start_date      DateTime         @db.Date
+  end_date        DateTime?        @db.Date
+
+  matches Match[]
+
+  @@map("tournaments")
+  @@schema("athlasx")
+}
+
+model Match {
+  id                            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tournament_id                 String          @db.Uuid
+  tournament                    Tournament      @relation(fields: [tournament_id], references: [id])
+  date                          DateTime        @db.Date
+  home_team                     String
+  away_team                     String
+  venue                         String
+  source                        String
+  confidence                    Float
+  ingest_method                 IngestMethod
+  association_approval_status   ApprovalStatus  @default(pending)
+
+  performances Performance[]
+
+  @@map("matches")
+  @@schema("athlasx")
+}
+
+model Performance {
+  id                            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  match_id                      String          @db.Uuid
+  match                         Match           @relation(fields: [match_id], references: [id])
+  player_id                     String          @db.Uuid
+  player                        PlayerProfile   @relation(fields: [player_id], references: [id])
+  batting_runs                  Int?
+  batting_balls                 Int?
+  batting_fours                 Int?
+  batting_sixes                 Int?
+  batting_dismissed             Boolean?
+  bowling_overs                 Float?
+  bowling_wickets                Int?
+  bowling_runs_conceded          Int?
+  bowling_maidens                Int?
+  catches                       Int?
+  stumpings                     Int?
+  run_outs                      Int?
+  source                        String
+  ingest_method                 IngestMethod
+  confidence_score               Float
+  association_approval_status   ApprovalStatus  @default(pending)
+
+  @@index([player_id])
+  @@map("performances")
+  @@schema("athlasx")
+}
+
+// ─── Trial cycle ────────────────────────────────────────────────────────
+model TrialCycle {
+  id                   String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id       String            @db.Uuid
+  association          Association       @relation(fields: [association_id], references: [id])
+  age_category         String
+  dob_window_start     DateTime          @db.Date
+  dob_window_end       DateTime          @db.Date
+  fee_amount           Int
+  registration_opens   DateTime          @db.Timestamptz(6)
+  registration_closes  DateTime          @db.Timestamptz(6)
+  status               TrialCycleStatus  @default(upcoming)
+  created_at           DateTime          @default(now()) @db.Timestamptz(6)
+
+  venues              TrialVenue[]
+  registrations       Registration[]
+  selection_sessions  SelectionSession[]
+
+  @@map("trial_cycles")
+  @@schema("athlasx")
+}
+
+model TrialVenue {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trial_cycle_id String      @db.Uuid
+  trial_cycle    TrialCycle  @relation(fields: [trial_cycle_id], references: [id], onDelete: Cascade)
+  name           String
+  district       String
+  date           DateTime    @db.Date
+  mandal         String?
+
+  registrations Registration[]
+
+  @@map("trial_venues")
+  @@schema("athlasx")
+}
+
+// ─── Registration (player → trial cycle) ───────────────────────────────
+model Registration {
+  id                  String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trial_cycle_id      String        @db.Uuid
+  trial_cycle         TrialCycle    @relation(fields: [trial_cycle_id], references: [id])
+  player_id           String        @db.Uuid
+  player              PlayerProfile @relation(fields: [player_id], references: [id])
+  venue_id            String        @db.Uuid
+  venue               TrialVenue    @relation(fields: [venue_id], references: [id])
+  fee_status          FeeStatus     @default(pending)
+  documents_uploaded  Boolean       @default(false)
+  footage_attached    Boolean       @default(false)
+  checked_in          Boolean       @default(false)
+  created_at          DateTime      @default(now()) @db.Timestamptz(6)
+
+  dossier Dossier?
+
+  @@index([trial_cycle_id])
+  @@map("registrations")
+  @@schema("athlasx")
+}
+
+// ─── Dossier ────────────────────────────────────────────────────────────
+model Dossier {
+  id                    String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registration_id       String        @unique @db.Uuid
+  registration          Registration  @relation(fields: [registration_id], references: [id])
+  player_id             String        @db.Uuid
+  player                PlayerProfile @relation(fields: [player_id], references: [id])
+  trial_cycle_id        String        @db.Uuid
+  generated_at          DateTime      @db.Timestamptz(6)
+  has_match_history     Boolean
+  percentile_vs_cohort  Float?
+  contents_snapshot     Json          // DossierContents — batting/bowling 0-10, match_count, data_sources, cohort_size, recent_form
+
+  @@map("dossiers")
+  @@schema("athlasx")
+}
+
+// ─── Selection committee (W4) ─────────────────────────────────────────────
+model SelectionSession {
+  id                       String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trial_cycle_id           String           @db.Uuid
+  trial_cycle              TrialCycle       @relation(fields: [trial_cycle_id], references: [id])
+  association_id           String           @db.Uuid
+  association              Association      @relation(fields: [association_id], references: [id])
+  status                   SelectionStatus  @default(open)
+  chair_id                 String           @db.Uuid
+  squad_size_target        Int
+  convergence_unlocked_at  DateTime?        @db.Timestamptz(6)
+  squad_locked_at          DateTime?        @db.Timestamptz(6)
+  created_at               DateTime         @default(now()) @db.Timestamptz(6)
+
+  grades              Grade[]
+  selections          Selection[]
+  omission_rationales OmissionRationale[]
+
+  @@map("selection_sessions")
+  @@schema("athlasx")
+}
+
+// Blind until convergence_unlocked_at is set — enforced server-side in the
+// API routes under src/app/api/grading/, not client state.
+model Grade {
+  id                     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  selection_session_id   String            @db.Uuid
+  selection_session      SelectionSession  @relation(fields: [selection_session_id], references: [id], onDelete: Cascade)
+  selector_id            String            @db.Uuid
+  selector               User              @relation(fields: [selector_id], references: [id])
+  player_id              String            @db.Uuid
+  player                 PlayerProfile     @relation(fields: [player_id], references: [id])
+  overall_grade           Int
+  notes                  String?
+  status                  GradeStatus      @default(submitted)
+  submitted_at             DateTime?        @db.Timestamptz(6)
+
+  @@unique([selection_session_id, selector_id, player_id])
+  @@index([selection_session_id])
+  @@map("grades")
+  @@schema("athlasx")
+}
+
+model Selection {
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  selection_session_id  String            @db.Uuid
+  selection_session     SelectionSession  @relation(fields: [selection_session_id], references: [id])
+  player_id             String            @db.Uuid
+  rationale             String
+  decided_at            DateTime          @db.Timestamptz(6)
+  decided_by            String[]
+
+  @@map("selections")
+  @@schema("athlasx")
+}
+
+model OmissionRationale {
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  selection_session_id  String            @db.Uuid
+  selection_session     SelectionSession  @relation(fields: [selection_session_id], references: [id])
+  player_id             String            @db.Uuid
+  rationale             String
+  decided_at            DateTime          @db.Timestamptz(6)
+
+  @@map("omission_rationales")
+  @@schema("athlasx")
+}
+
+// ─── In-season weekly tracking (W5) ────────────────────────────────────
+model PlayerWeek {
+  id                     String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  player_id              String        @db.Uuid
+  player                 PlayerProfile @relation(fields: [player_id], references: [id])
+  week_start             DateTime      @db.Date
+  matches_played         Int
+  runs_this_week         Int?
+  wickets_this_week      Int?
+  rolling_4week_average  Float?
+  score_delta            Float?
+  flag_type              FlagType      @default(none)
+  coach_note             String?       // 200 char max, enforced at the API boundary
+  coach_note_at          DateTime?     @db.Timestamptz(6)
+  fitness_rating         Int?          // 1-5, coach-supervised only — never self-reported
+  behaviour_rating       Int?          // 1-5, coach-supervised only
+
+  @@unique([player_id, week_start])
+  @@index([flag_type])
+  @@map("player_weeks")
+  @@schema("athlasx")
+}
+
+model TrendAlert {
+  id                            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  player_id                     String        @db.Uuid
+  player                        PlayerProfile @relation(fields: [player_id], references: [id])
+  triggered_at                  DateTime      @db.Timestamptz(6)
+  flag_type                     FlagType
+  consecutive_declining_weeks   Int?
+  skill_dimension                String?
+  notified_coach                 Boolean       @default(false)
+  notified_selector               Boolean       @default(false)
+
+  @@index([player_id])
+  @@map("trend_alerts")
+  @@schema("athlasx")
+}
+
+// ─── Coach / Selector staff profiles ─────────────────────────────────────
+model CoachProfile {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String    @unique @db.Uuid
+  user            User      @relation(fields: [user_id], references: [id])
+  full_name       String
+  association_id  String    @db.Uuid
+  squad_ids       String[]
+  avatar_url      String?
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@map("coach_profiles")
+  @@schema("athlasx")
+}
+
+// ─── Ingest jobs (W1) ─────────────────────────────────────────────────────
+enum IngestJobStatus {
+  pending_review
+  approved
+  rejected
+  processing
+
+  @@schema("athlasx")
+}
+
+model IngestJob {
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  source        String
+  method        IngestMethod
+  tournament    String
+  match_count   Int
+  player_rows   Int
+  status        IngestJobStatus  @default(pending_review)
+  confidence    Float
+  conflicts     Int              @default(0)
+  reviewed_by   String?          @db.Uuid
+  reviewed_at   DateTime?        @db.Timestamptz(6)
+  created_at    DateTime         @default(now()) @db.Timestamptz(6)
+
+  @@map("ingest_jobs")
+  @@schema("athlasx")
+}
+
+model SelectorProfile {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String    @unique @db.Uuid
+  user            User      @relation(fields: [user_id], references: [id])
+  full_name       String
+  association_id  String    @db.Uuid
+  avatar_url      String?
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@map("selector_profiles")
+  @@schema("athlasx")
+}

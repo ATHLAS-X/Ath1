@@ -7,7 +7,7 @@ import {
   LayoutDashboard, User, Users, ClipboardList,
   Shield, BarChart3, Bell, Settings, Zap,
   ChevronRight, LogOut, Activity, BookOpen,
-  Database, GitMerge,
+  Database, GitMerge, Building2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +22,7 @@ const sections = [
       { label: 'Overview',       href: '/dashboard',      icon: LayoutDashboard },
       { label: 'Trial Cycles',   href: '/trial-cycles',   icon: ClipboardList,  badge: '1 open' },
       { label: 'Ingest & Data',  href: '/ingest',         icon: Database, badge: '2' },
+      { label: 'Academy Matching', href: '/academy-matching', icon: Building2 },
     ],
   },
   {

@@ -117,7 +117,10 @@ export default function OnboardingPage() {
             Athlas<span className="text-gradient-green">X</span>
           </span>
         </Link>
-        <div className="text-xs text-zinc-500">Step {step} of {TOTAL_STEPS}</div>
+        <div className="flex items-center gap-3">
+          <Link href="/claim" className="text-xs text-zinc-500 hover:text-green-400 transition-colors">Already have match data? Claim your profile</Link>
+          <div className="text-xs text-zinc-500">Step {step} of {TOTAL_STEPS}</div>
+        </div>
       </div>
 
       {/* Progress bar */}
