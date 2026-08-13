@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>AthlasX — Audit &amp; Test Report v2</title>
+<style>
+  :root{
+    --bg:#f7faf8; --surface:#ffffff; --surface-2:#f2f7f4;
+    --text:#1c2622; --text-2:#4a5a53; --muted:#75857d;
+    --accent:#16624a; --accent-2:#14342a; --accent-soft:#eaf3ef;
+    --border:#e2ebe7; --border-2:#cfdcd6;
+    --warn-bg:#faf3f2; --warn-br:#a85a52; --warn-tx:#7a3b3b;
+    --code-bg:#14342a; --code-tx:#dfeee8;
+    --shadow:0 1px 2px rgba(20,52,42,.05),0 8px 24px rgba(20,52,42,.06);
+  }
+  html[data-theme="dark"]{
+    --bg:#0e1412; --surface:#161e1b; --surface-2:#1b2521;
+    --text:#e4ede9; --text-2:#b3c3bc; --muted:#8b9d95;
+    --accent:#5cb493; --accent-2:#8fd4b8; --accent-soft:#1b2f28;
+    --border:#26332e; --border-2:#33443d;
+    --warn-bg:#2a1d1c; --warn-br:#a85a52; --warn-tx:#e0a49c;
+    --code-bg:#0a1512; --code-tx:#cfe6dd;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif;
+    font-size:16.5px; line-height:1.68;
+    overflow-x:hidden;
+  }
+
+  /* ---------- header ---------- */
+  header.doc{
+    background:var(--surface); border-bottom:2px solid var(--accent);
+    padding:calc(20px + env(safe-area-inset-top)) 20px 18px;
+    position:relative;
+  }
+  .hd-inner{max-width:1180px;margin:0 auto}
+  .eyebrow{
+    font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);font-weight:700;margin:0 0 8px;
+  }
+  header.doc h1{
+    margin:0 0 6px;font-size:clamp(21px,5.2vw,31px);line-height:1.2;
+    letter-spacing:-.02em;color:var(--accent-2);font-weight:750;
+  }
+  .subtitle{margin:0 0 10px;color:var(--text-2);font-size:clamp(13.5px,3.2vw,15.5px);font-weight:500}
+  .meta{margin:0;color:var(--muted);font-size:12.5px}
+  .theme-btn{
+    position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);
+    width:38px;height:38px;border-radius:10px;font-size:16px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;line-height:1;
+  }
+  .theme-btn:active{transform:scale(.94)}
+
+  /* ---------- layout ---------- */
+  .layout{max-width:1180px;margin:0 auto;padding:0 16px 80px;display:block}
+  main{min-width:0}
+  .content{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:clamp(18px,4vw,38px); margin-top:18px; box-shadow:var(--shadow);
+    overflow-wrap:break-word;
+  }
+
+  /* ---------- mobile TOC ---------- */
+  nav.toc{
+    margin-top:18px;background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;overflow:hidden;
+  }
+  nav.toc>summary{
+    cursor:pointer;padding:14px 18px;font-weight:700;color:var(--accent);
+    font-size:14px;list-style:none;display:flex;justify-content:space-between;align-items:center;
+  }
+  nav.toc>summary::-webkit-details-marker{display:none}
+  nav.toc>summary::after{content:"▾";transition:transform .2s;font-size:12px}
+  nav.toc[open]>summary::after{transform:rotate(180deg)}
+  nav.toc ol{margin:0;padding:0 18px 16px 34px;font-size:14.5px}
+  nav.toc li{margin:7px 0}
+  nav.toc a{color:var(--text-2);text-decoration:none}
+  nav.toc a:hover{color:var(--accent);text-decoration:underline}
+
+  /* ---------- typography ---------- */
+  .content h1,.content h2,.content h3,.content h4{
+    line-height:1.25;letter-spacing:-.015em;color:var(--accent-2);
+    scroll-margin-top:20px;
+  }
+  html[data-theme="dark"] .content h1,
+  html[data-theme="dark"] .content h2,
+  html[data-theme="dark"] .content h3,
+  html[data-theme="dark"] .content h4{color:var(--accent-2)}
+  .content h1{display:none}
+  .content h2{
+    font-size:clamp(19px,4.4vw,25px);margin:46px 0 16px;padding-bottom:10px;
+    border-bottom:2px solid var(--accent-soft);font-weight:750;
+  }
+  .content h2:first-of-type{margin-top:8px}
+  .content h3{font-size:clamp(16.5px,3.8vw,19.5px);margin:34px 0 12px;font-weight:700}
+  .content h4{font-size:15.5px;margin:24px 0 8px;font-weight:700;color:var(--text-2)}
+  .content p{margin:0 0 15px}
+  .content a{color:var(--accent);text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px}
+  .content ul,.content ol{margin:0 0 16px;padding-left:23px}
+  .content li{margin:7px 0}
+  .content li>ul,.content li>ol{margin:7px 0 0}
+  .content strong{font-weight:700;color:var(--text)}
+  .content hr{border:0;border-top:1px solid var(--border);margin:38px 0}
+  .content blockquote{
+    margin:20px 0;padding:14px 18px;background:var(--accent-soft);
+    border-left:4px solid var(--accent);border-radius:0 8px 8px 0;
+    color:var(--text-2);
+  }
+  .content blockquote p:last-child{margin-bottom:0}
+  .content code{
+    background:var(--surface-2);border:1px solid var(--border);
+    padding:1px 6px;border-radius:5px;font-size:.87em;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    overflow-wrap:break-word;
+  }
+  .content pre{
+    background:var(--code-bg);color:var(--code-tx);padding:16px;border-radius:9px;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;font-size:13px;line-height:1.5;
+    margin:0 0 18px;
+  }
+  .content pre code{background:none;border:0;padding:0;color:inherit;font-size:inherit;white-space:pre}
+
+  /* ---------- tables ---------- */
+  .table-wrap{
+    overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 0 18px;
+    border:1px solid var(--border);border-radius:10px;position:relative;
+  }
+  .table-wrap table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+  .table-wrap th,.table-wrap td{
+    padding:11px 14px;text-align:left;vertical-align:top;
+    border-bottom:1px solid var(--border);
+  }
+  .table-wrap thead th{
+    background:var(--accent);color:#fff;font-weight:650;font-size:13px;
+    letter-spacing:.01em;white-space:nowrap;
+  }
+  html[data-theme="dark"] .table-wrap thead th{background:var(--accent-soft);color:var(--accent-2)}
+  .table-wrap tbody tr:last-child td{border-bottom:0}
+  .table-wrap tbody tr:nth-child(even){background:var(--surface-2)}
+  .table-wrap td code{white-space:nowrap}
+
+  /* ---------- diagrams ---------- */
+  .diagram{
+    margin:0 0 22px;border:1px solid var(--border);border-radius:12px;
+    background:var(--surface-2);overflow:hidden;
+  }
+  .diagram-bar{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:9px 12px;border-bottom:1px solid var(--border);background:var(--surface);
+  }
+  .diagram-label{
+    font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;
+  }
+  .scroll-hint{font-size:11.5px;color:var(--accent);font-weight:600;display:none}
+  .diagram.overflowing .scroll-hint{display:inline}
+  .expand-btn{
+    background:var(--accent);color:#fff;border:0;border-radius:8px;
+    padding:7px 13px;font-size:12.5px;font-weight:650;cursor:pointer;
+    white-space:nowrap;font-family:inherit;
+  }
+  .expand-btn:active{transform:scale(.95)}
+  .mermaid-wrap{
+    overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;
+    padding:18px 14px;
+  }
+  .mermaid-wrap>pre.mermaid{
+    margin:0;background:none;color:inherit;padding:0;overflow:visible;
+    display:flex;justify-content:center;min-width:min-content;
+  }
+  .mermaid-wrap svg{max-width:none!important;height:auto;display:block}
+
+  /* ---------- legend ---------- */
+  .legend-box{
+    display:flex;flex-wrap:wrap;gap:8px 18px;margin:0 0 20px;padding:14px 16px;
+    background:var(--surface-2);border:1px solid var(--border);border-radius:10px;
+    font-size:13px;color:var(--text-2);
+  }
+
+  /* ---------- lightbox ---------- */
+  .lb{
+    position:fixed;inset:0;z-index:999;background:var(--bg);
+    display:none;flex-direction:column;
+  }
+  .lb.open{display:flex}
+  .lb-bar{
+    display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;
+    border-bottom:1px solid var(--border);background:var(--surface);flex:0 0 auto;
+  }
+  .lb-title{
+    flex:1;font-size:12.5px;font-weight:700;color:var(--text-2);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .lb-bar button{
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    min-width:40px;height:40px;border-radius:9px;font-size:16px;cursor:pointer;
+    font-family:inherit;font-weight:600;padding:0 10px;
+  }
+  .lb-bar button:active{background:var(--accent-soft)}
+  .lb-bar button.close{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .lb-stage{
+    flex:1;overflow:hidden;position:relative;touch-action:none;
+    background:var(--surface);cursor:grab;
+  }
+  .lb-stage.grabbing{cursor:grabbing}
+  .lb-canvas{position:absolute;top:0;left:0;transform-origin:0 0;padding:20px}
+  .lb-canvas svg{max-width:none!important;height:auto;display:block}
+  .lb-tip{
+    padding:8px 12px calc(8px + env(safe-area-inset-bottom));
+    font-size:11.5px;color:var(--muted);text-align:center;
+    border-top:1px solid var(--border);background:var(--surface);flex:0 0 auto;
+  }
+
+  /* ---------- loader / error ---------- */
+  #boot{padding:40px 20px;text-align:center;color:var(--muted);font-size:14px}
+  .boot-err{
+    margin:18px 0;padding:14px 16px;background:var(--warn-bg);
+    border:1px solid var(--warn-br);color:var(--warn-tx);border-radius:9px;font-size:13.5px;
+  }
+
+  /* ---------- desktop ---------- */
+  @media (min-width:1024px){
+    .layout{display:grid;grid-template-columns:250px minmax(0,1fr);gap:30px;padding-top:6px}
+    nav.toc{
+      position:sticky;top:18px;align-self:start;max-height:calc(100vh - 40px);
+      overflow-y:auto;margin-top:18px;
+    }
+    nav.toc>summary{pointer-events:none}
+    nav.toc>summary::after{display:none}
+  }
+  @media (max-width:520px){
+    .content{border-radius:0;border-left:0;border-right:0;padding:18px 15px}
+    .layout{padding-left:0;padding-right:0}
+    nav.toc{border-radius:0;border-left:0;border-right:0}
+    body{font-size:16px}
+  }
+  @media print{
+    nav.toc,.expand-btn,.theme-btn,.diagram-bar,.lb{display:none!important}
+    .content{border:0;box-shadow:none;padding:0}
+    .mermaid-wrap{overflow:visible}
+  }
+</style>
+</head>
+<body>
+
+<header class="doc">
+  <div class="hd-inner">
+    <p class="eyebrow">Internal — Confidential</p>
+    <h1>AthlasX — Implementation Audit &amp; Test Report</h1>
+    <p class="subtitle">Round 2 — post-remediation audit, plus a complete test suite</p>
+    <p class="meta">Version 2.0 · August 2026 · audited at main @ 30ca63c</p>
+  </div>
+  <button class="theme-btn" id="themeBtn" title="Toggle light / dark" aria-label="Toggle light or dark theme">◐</button>
+</header>
+
+<div class="layout">
+  <details class="toc" id="toc" open>
+    <summary>Contents</summary>
+    <ol id="tocList"></ol>
+  </details>
+
+  <main>
+    <div class="content" id="content">
+      <div id="boot">Rendering document…</div>
+    </div>
+  </main>
+</div>
+
+<!-- fullscreen diagram viewer -->
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Diagram viewer">
+  <div class="lb-bar">
+    <span class="lb-title" id="lbTitle">Diagram</span>
+    <button id="lbOut" aria-label="Zoom out">−</button>
+    <button id="lbFit" aria-label="Fit to screen">Fit</button>
+    <button id="lbIn" aria-label="Zoom in">+</button>
+    <button class="close" id="lbClose" aria-label="Close">✕</button>
+  </div>
+  <div class="lb-stage" id="lbStage"><div class="lb-canvas" id="lbCanvas"></div></div>
+  <div class="lb-tip">Pinch or use + / − to zoom · drag to pan</div>
+</div>
+
+<script type="text/plain" id="source"># AthlasX — Implementation Audit & Test Report
+
+**Round 2 — post-remediation audit, plus a complete test suite**
+
+Version 2.0 · August 2026 · Internal — Confidential
+
+> Re-audit of the pivot implementation after Hritvik's four remediation
+> commits, followed by construction of the project's first automated test
+> suite: unit, integration, security and end-to-end.
+>
+> Audited at `main` @ `30ca63c`, merging `d5af69b`, `be1b4d8`, `69bb40a`, `d03c9aa`.
+
+---
+
+## Contents
+
+1. [Headline](#1-headline)
+2. [Build and runtime status](#2-build-and-runtime-status)
+3. [Round-1 findings — what was fixed](#3-round-1-findings--what-was-fixed)
+4. [Open and new findings](#4-open-and-new-findings)
+5. [Environment status](#5-environment-status)
+6. [The test suite](#6-the-test-suite)
+7. [Results](#7-results)
+8. [Coverage and what is not covered](#8-coverage-and-what-is-not-covered)
+9. [Remediation plan](#9-remediation-plan)
+10. [How to run everything](#10-how-to-run-everything)
+
+---
+
+## 1. Headline
+
+**The application now builds, type-checks clean, and runs against a real
+database.** That is a genuine turnaround from round 1, where it did not
+compile at all. Thirteen of the fifteen round-1 findings are properly fixed,
+and several were fixed well rather than papered over — the score engine's TQI
+handling now carries a comment reasoning explicitly about the
+numerator/denominator cancellation that was reported.
+
+**One class of problem dominates what remains: there is no authentication
+anywhere.** All 24 API routes serve any caller, identity is taken from the
+request body, and the claim endpoint returns the OTP it just issued. This is
+verified by executing the routes, not inferred from reading them.
+
+The project had **zero tests**. It now has **118**, of which 101 pass and 17
+fail deliberately as an executable specification of the open findings.
+
+| | Round 1 | Round 2 |
+|---|---|---|
+| `next build` | fails — no root layout | **passes** |
+| `tsc --noEmit` | 32 errors | **0 errors** |
+| Data layer | none | Prisma, 23 models, live Neon |
+| Score engine | dead code | wired into 5 call sites |
+| Automated tests | 0 | **118** |
+| Authentication | none | **still none** |
+
+---
+
+## 2. Build and runtime status
+
+```
+$ npx prisma generate && npx next build
+✓ Compiled successfully
+✓ Generating static pages (15/15)
+   22 API routes, 15 pages
+exit 0
+
+$ npx tsc --noEmit
+0 errors
+```
+
+Runtime was verified against a production server, not just a build:
+
+```
+GET /dashboard          → 200
+GET /api/associations   → 200  {"associations":[{"name":"UPCA", ...}]}
+```
+
+**One caveat that will bite CI.** The build only succeeds after
+`prisma generate`. Before it, all 34 type errors were the ungenerated client
+(`Property 'full_name' does not exist on type '{}'`). There was no
+`postinstall` hook, so a fresh clone or a CI runner would have reproduced the
+round-1 failure exactly. **A `postinstall: prisma generate` script has been
+added as part of this work.**
+
+---
+
+## 3. Round-1 findings — what was fixed
+
+| Finding | Status | Evidence |
+|---|---|---|
+| B1 no root layout | **Fixed** | `src/app/layout.tsx` added; build passes |
+| B2 path alias pointed at repo root | **Fixed** | `"@/*": ["./src/*"]` |
+| B3 `recharts` undeclared | **Fixed** | added to dependencies |
+| B4 four modules never committed | **Fixed** | `lib/utils`, 3 UI primitives, `AnimatedCounter` pushed |
+| B5 three sidebar links 404 | **Fixed** | `/notifications`, `/profile`, `/settings` added |
+| 5.1 unassessed players capped at 75/100 | **Fixed well** | renormalises against `activeMax` — only components actually present |
+| 5.2 batting average ignored not-outs | **Fixed** | now runs per dismissal, with a `matches` fallback |
+| 5.3 zero economy scored as no-data | **Fixed** | guard is now `matches === 0 \|\| overs === 0` |
+| 5.4 TQI cancelled out of strike rate | **Fixed well** | applied once as a `qualityFactor` on finished rate stats |
+| 6.1 score engine was dead code | **Fixed** | imported by the grading page and 4 API routes |
+| 6.2 duplicate type systems | **Fixed** | engine re-exports the canonical types |
+| 6.3 no data layer | **Fixed** | Prisma + 23 models + 24 routes against Neon |
+| 6.5 tsconfig pulled in the archive | **Fixed** | `exclude: ["Old_SportX_Files_Initial"]` |
+| W2 claim flow | **Built** | search → start → verify → withdraw, with OTP hygiene |
+| W8 academy matching | **Partial** | table, queue and confirm/reject exist; see §4 |
+
+The schema design deserves specific credit. Both §7 structural requirements
+from the Pivot Document are met: `PlayerProfile.user_id` is nullable for
+shadow profiles, and `Performance` carries `source`, `ingest_method`,
+`confidence_score` and `association_approval_status`. The database is
+provisioned into its own `athlasx` Postgres schema, leaving the 41 legacy
+`public` tables untouched exactly as the schema comment promises.
+
+---
+
+## 4. Open and new findings
+
+### 4.1 No authentication on any route — **Critical**
+
+All 24 API routes are open. Verified by executing them against a running
+server with no credentials:
+
+```
+/api/dashboard        200      /api/trial-cycles     200
+/api/candidate-pool   200      /api/ingest           200
+/api/my-record        200      /api/academy-matching 200
+```
+
+`/api/candidate-pool` returned the names, ages, districts and scores of
+**17-year-olds** to an anonymous caller.
+
+### 4.2 Identity is taken from the request body — **Critical**
+
+`selectorId`, `chairId` and `playerId` all arrive in the POST body. The
+consequence is that the newly-added server-side blind grading is enforced
+against *accident*, not an *adversary*:
+
+- `POST /api/grading/{id}/grade {"selectorId": "<chair uuid>"}` records a grade as the chair.
+- `POST /api/grading/{id}/unlock {"chairId": "<chair uuid>"}` unlocks convergence for anyone who knows the UUID, exposing every selector's grade.
+
+The enforcement logic itself is correct and well written — 15 integration
+tests confirm the boundary holds. It is the identity underneath it that is
+unverified.
+
+### 4.3 `claim/start` returns the OTP — **Critical**
+
+The response body includes `devOtp`, honestly commented as a stopgap until an
+SMS gateway is wired. Combined with 4.1 this is a complete profile-takeover
+primitive against any player, including minors. The security suite captures
+real leaked codes (`143175`, `651226`) in its failure output.
+
+### 4.4 Consent withdrawal does not stop processing — **High, legal**
+
+`claim/withdraw` flips `consent_status` and its comment defers enforcement to
+"callers that read consent_status". **None of the five read paths do** —
+`candidate-pool`, `tracking`, `coach/squad`, `dashboard`, `my-record`. Under
+DPDP, withdrawal must stop processing, not merely record an intention.
+
+### 4.5 Coach-rating provenance still absent — **Open from round 1**
+
+`Pivot_Changes_ATHLASX.docx` states that ratings are "accepted only when
+source = 'coach' or 'supervisor'" and that "self-reported values are rejected
+at the engine level". There is still no `source` field on
+`AthlasXScoreInput` and no validation. This remains the highest-risk
+inaccuracy in the completion document, because verified-data-only is the
+trust guarantee sold to associations.
+
+### 4.6 Bowling formula still disagrees with its own comment — **Open from round 1**
+
+```ts
+const ecoScore = clamp(((10 - economy) / 4) * 10, 0, 10)   // 6.5 eco → 10, 10.5 eco → 0
+```
+
+The expression yields 8.75 at an economy of 6.5, not 10. The completion
+document states a third, different formula again. One of the three must be
+made authoritative.
+
+### 4.7 Academy matcher cannot rank a variant against a rival — **New**
+
+Proven by test. Normalised Levenshtein has no notion of which token carries
+identity:
+
+```
+similarity('Sharma Cricket Academy', 'Sharma Cricket Acad.')   = 0.8636   ← true variant
+similarity('Sharma Cricket Academy', 'Verma Cricket Academy')  = 0.8636   ← different academy
+```
+
+Identical scores. The reconciliation queue cannot order them. This is
+mitigated today because `prisma/seed.ts` only *suggests* at ≥ 0.55 and a
+human confirms — which is the conservative design the Pivot Document asked
+for. It becomes a data-integrity bug the moment an auto-confirm threshold is
+introduced. A token-weighted or Jaro-Winkler comparison would separate them.
+
+### 4.8 W8 matching does not run at runtime — **New**
+
+`bestSimilarity` is called only from `prisma/seed.ts`. No ingest path
+computes academy candidates, so the reconciliation queue is populated only by
+seeding.
+
+### 4.9 Seven `package.json` scripts pointed at deleted files — **Fixed in this work**
+
+`db:init`, `make-admin`, `e2e`, `audit:py`, `sweep:injection`,
+`check:api-contracts`, `smoke:e2e` all referenced `scripts/*` files archived
+in the restructure. They have been removed and replaced with the test scripts
+in §10.
+
+### 4.10 Lower severity
+
+- OTP hashes are unsalted SHA-256. A six-digit code is brute-forceable in milliseconds if the table leaks; HMAC with a server secret would fix it. Attempt limiting (5) and a 10-minute TTL are correctly implemented and tested.
+- `/api/tracking` returned a 500 on a cold start, then 200 on retry — Neon autosuspend, not a code defect, but worth a connection warm-up in production.
+
+---
+
+## 5. Environment status
+
+**Nothing is missing to run the application.** The database is live and fully
+provisioned: 23 `athlasx` tables matching all 23 Prisma models, 41 legacy
+`public` tables untouched, with seed data present.
+
+Three environment issues, none blocking runtime:
+
+| Issue | Impact | Fix |
+|---|---|---|
+| `DATABASE_URL` lives only in `.env.local` | Prisma **CLI** cannot see it, so `migrate`, `db push`, `db seed`, `studio` all fail validation — the app itself connects fine | add a root `.env`, or prefix with `dotenv -e .env.local --` |
+| `.env.local.example` is stale | Documents the *archived* app (Aadhaar HMAC, NextAuth, Supabase) and omits `DATABASE_DIRECT_URL`, which the current schema requires | rewrite against the current schema |
+| `SMS_GATEWAY_API_KEY` set but unused | Why `devOtp` is returned instead of sent (§4.3) | wire the gateway, drop `devOtp` |
+
+The test harness works around the first issue with its own `.env.local`
+loader (`tests/helpers/load-env.ts`).
+
+---
+
+## 6. The test suite
+
+The project had no test files, no framework and no `test` script. What now
+exists:
+
+**Stack.** Vitest for unit/integration/security, Playwright (Chromium) for
+E2E. Both chosen for TypeScript-native execution against a Next.js App Router
+codebase.
+
+**Database isolation.** Integration tests never touch live data. Because
+every Prisma model is pinned to the `athlasx` schema via `@@schema`, a
+connection-string change cannot redirect writes. `scripts/setup-test-db.mjs`
+therefore derives a parallel schema pinned to **`athlasx_test`**, generates a
+separate Prisma Client for it, and pushes the tables. Suites hoist
+`vi.mock('@/lib/db')` so routes under test resolve to the test client.
+
+Isolation was verified before any test wrote a row:
+
+```
+athlasx       23 tables   3 rows in player_profiles   (live, untouched)
+athlasx_test  23 tables   0 rows                      (test, empty)
+public        41 tables                               (legacy, untouched)
+```
+
+`assertIsTestSchema()` runs in `beforeAll` and refuses to proceed if the
+harness is not pointed at `athlasx_test`.
+
+**Suite layout.**
+
+| Directory | Purpose | Expectation |
+|---|---|---|
+| `tests/unit/` | Pure functions — score engine, OTP, name matching | must stay green |
+| `tests/integration/` | Real route handlers against real Postgres | must stay green |
+| `tests/security/` | Findings 4.1–4.4 as assertions | **red until fixed** |
+| `tests/known-defects/` | Findings 4.5–4.7 as assertions | **red until fixed** |
+| `tests/e2e/` | Playwright, all nine workflow pages | 15 green, 2 red |
+
+The red suites are the deliberate part. Rather than describing the security
+findings in prose alone, each is written as a test asserting the behaviour the
+Pivot Document requires. They fail today; when a finding is remediated, its
+test turns green. That is the signal the finding is closed.
+
+---
+
+## 7. Results
+
+```
+UNIT + INTEGRATION      86 passed          (5 files)
+SECURITY                10 failed          (intentional)
+KNOWN DEFECTS            5 failed          (intentional)
+E2E                     15 passed, 2 failed (intentional)
+────────────────────────────────────────────────────
+TOTAL                  118 tests — 101 pass, 17 intentional failures
+```
+
+**What the green tests prove.** The blind-grading boundary genuinely holds at
+the route level: convergence returns 403 before unlock, `/mine` returns only
+the caller's own grades and leaks neither the peer's selector id nor their
+grade value, unlock is chair-only and single-use, and grading closes once
+convergence opens. The claim flow correctly gates minors behind a guardian
+phone, sends the OTP to the guardian rather than the child, hashes it, limits
+attempts to five, expires it, and consumes it against replay. The score
+engine's not-out handling, TQI weighting, renormalisation and role weighting
+all behave as specified.
+
+**What the red tests prove.** Every finding in §4.1–4.7, executably. Sample
+failure output:
+
+```
+✗ candidate-pool returned player PII with no credentials: expected 200 to be 401
+✗ a grade was recorded on behalf of the chair by an unauthenticated caller
+✗ convergence was unlocked by an unauthenticated caller supplying the chair id
+✗ claim/start returned the OTP; anyone can claim any profile: expected '143175' to be undefined
+✗ a player who withdrew consent is still returned by candidate-pool
+✗ true variant scored 0.8636, a DIFFERENT academy scored 0.8636
+```
+
+One test initially passed for the wrong reason — the consent check on
+`/api/tracking` passed only because the seeded player had no `TrendAlert` and
+so never appeared at all. It was strengthened with a precondition assertion
+and now fails correctly. Worth noting because it is exactly how a test suite
+gives false comfort.
+
+---
+
+## 8. Coverage and what is not covered
+
+```
+Statements   43.54%  (216/496)
+Branches     39.41%  (147/373)
+Functions    35.84%  (38/106)
+Lines        43.09%  (178/413)
+
+src/lib      83.44%  ← score engine, OTP, name matching
+```
+
+The business logic is well covered. The gap is API routes: `dashboard`,
+`ingest`, `my-record`, `tracking`, `trial-cycles`, `coach`,
+`academy-matching` and `selection` have integration tests only indirectly
+(via the security suite) and are at or near 0% line coverage.
+
+**Deliberately not covered, and why:**
+
+- **Write paths on live data.** E2E runs against the real `athlasx` schema because the app has no auth to log into and pages read live data. Those tests are read-only by design; no E2E test submits a form that writes.
+- **React component rendering.** No component-level tests. E2E covers rendering at the page level, which is the higher-value check for a UI that is mostly presentational.
+- **The ingest pipeline.** There is nothing to test — no parsers, OCR or sync exist yet (§4.8).
+
+---
+
+## 9. Remediation plan
+
+Ordered by severity, then dependency.
+
+### Priority 1 — Security, before any pilot
+
+1. **Add authentication.** Every route needs a session, and identity must come from that session rather than the request body. This single change closes §4.1 and §4.2 together and makes blind grading real rather than nominal.
+2. **Remove `devOtp` from the `claim/start` response** and wire the SMS gateway. Until then, no real player data should be loaded.
+3. **Enforce consent on read paths.** Add `consent_status: { not: 'withdrawn' }` to the five queries in §4.4. Legal exposure, not just correctness.
+
+**Exit criterion:** `npm run test:security` goes green — all 10 tests.
+
+### Priority 2 — Correctness
+
+4. Add `source` provenance to coach ratings and reject unattributed values (§4.5).
+5. Reconcile the bowling formula across code, comment and completion document (§4.6).
+6. Replace the academy matcher with a token-weighted comparison (§4.7), and call it from the ingest path rather than only from the seed (§4.8).
+
+**Exit criterion:** `npm run test:known-defects` goes green — all 5 tests.
+
+### Priority 3 — Hygiene
+
+7. Create a root `.env` so the Prisma CLI works; rewrite `.env.local.example` against the current schema.
+8. Replace unsalted SHA-256 OTP hashing with HMAC.
+9. Correct `Pivot_Changes_ATHLASX.docx`: remove the coach-source claim, fix the bowling formula, and drop the "Not Yet Done" entries for files that do not exist in the repository.
+10. Raise API-route coverage above 70%.
+
+---
+
+## 10. How to run everything
+
+```bash
+npm install                    # postinstall now runs prisma generate
+
+npm run test:setup-db          # provision the athlasx_test schema (once)
+
+npm test                       # everything — expect 17 intentional failures
+npm run test:unit              # 52 tests, must be green
+npm run test:integration       # 34 tests, must be green
+npm run test:security          # 10 tests, red until Priority 1 is done
+npm run test:coverage          # coverage summary
+
+npm run build && npm run test:e2e   # 17 Playwright tests
+
+npm run test:teardown-db       # drop the athlasx_test schema
+```
+
+**A note on the red suites.** `npm test` exits non-zero by design, because
+17 tests assert behaviour the code does not yet have. Do not make them pass by
+weakening the assertions. Wire them into CI as two gates instead — a green
+gate on `test:unit` and `test:integration`, and a tracking signal on
+`test:security` and `test:known-defects` that flips to green as each finding
+is closed.
+
+**Audited at** `main` @ `30ca63c`. Test suite added in the working tree,
+uncommitted.
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var contentEl = document.getElementById('content');
+  var bootEl    = document.getElementById('boot');
+
+  function fail(msg){
+    var d = document.createElement('div');
+    d.className = 'boot-err';
+    d.textContent = msg;
+    contentEl.insertBefore(d, contentEl.firstChild);
+  }
+
+  if (typeof marked === 'undefined') {
+    bootEl.remove();
+    fail('Could not load the Markdown renderer. This file needs an internet connection the first time it opens. Please reconnect and reload.');
+    return;
+  }
+
+  /* ---------------- theme ---------------- */
+  var stored = null;
+  try { stored = localStorage.getItem('athlasx-theme'); } catch(e){}
+  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var theme = stored || (prefersDark ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', theme);
+
+  function mermaidVars(t){
+    return t === 'dark'
+      ? { primaryColor:'#1b2f28', primaryBorderColor:'#5cb493', primaryTextColor:'#e4ede9',
+          lineColor:'#6d8f83', secondaryColor:'#1b2521', tertiaryColor:'#161e1b',
+          clusterBkg:'#131b18', clusterBorder:'#33443d', titleColor:'#8fd4b8',
+          edgeLabelBackground:'#161e1b', nodeTextColor:'#e4ede9',
+          fontFamily:'-apple-system, Segoe UI, Helvetica Neue, Arial, sans-serif', fontSize:'14px' }
+      : { primaryColor:'#eaf3ef', primaryBorderColor:'#16624a', primaryTextColor:'#14342a',
+          lineColor:'#7fa295', secondaryColor:'#f4f8f6', tertiaryColor:'#f7faf8',
+          clusterBkg:'#f7faf8', clusterBorder:'#cfdcd6', titleColor:'#14342a',
+          edgeLabelBackground:'#ffffff', nodeTextColor:'#14342a',
+          fontFamily:'-apple-system, Segoe UI, Helvetica Neue, Arial, sans-serif', fontSize:'14px' };
+  }
+
+  /* ---------------- markdown ---------------- */
+  var raw = document.getElementById('source').textContent;
+
+  marked.setOptions({ gfm:true, breaks:false, headerIds:false, mangle:false });
+  contentEl.innerHTML = marked.parse(raw);
+  var b = document.getElementById('boot'); if (b) b.remove();
+
+  /* heading anchors — GitHub-compatible slugs so in-page links work */
+  function slug(s){
+    return s.toLowerCase().trim()
+      .replace(/[^\w\s\-]/g,'')
+      .replace(/\s+/g,'-');
+  }
+  var seen = {};
+  Array.prototype.forEach.call(contentEl.querySelectorAll('h1,h2,h3,h4'), function(h){
+    var base = slug(h.textContent), id = base, i = 1;
+    while (seen[id]) { id = base + '-' + (i++); }
+    seen[id] = true; h.id = id;
+  });
+
+  /* build sidebar TOC from the numbered H2s */
+  var tocList = document.getElementById('tocList');
+  Array.prototype.forEach.call(contentEl.querySelectorAll('h2'), function(h){
+    if (!/^\s*\d+\./.test(h.textContent)) return;
+    var li = document.createElement('li');
+    var a  = document.createElement('a');
+    a.href = '#' + h.id;
+    a.textContent = h.textContent.replace(/^\s*\d+\.\s*/, '');
+    li.appendChild(a); tocList.appendChild(li);
+  });
+  /* collapse the TOC after tapping a link on small screens */
+  var tocEl = document.getElementById('toc');
+  tocList.addEventListener('click', function(){
+    if (window.matchMedia('(max-width:1023px)').matches) tocEl.open = false;
+  });
+
+  /* drop the in-document Contents list — the sidebar replaces it */
+  (function(){
+    var h = contentEl.querySelector('h2');
+    if (h && /^contents$/i.test(h.textContent.trim())) {
+      var n = h.nextElementSibling;
+      while (n && n.tagName !== 'H2') { var nx = n.nextElementSibling; n.remove(); n = nx; }
+      h.remove();
+    }
+  })();
+
+  /* tables → horizontally scrollable on phones */
+  Array.prototype.forEach.call(contentEl.querySelectorAll('table'), function(t){
+    var w = document.createElement('div'); w.className = 'table-wrap';
+    t.parentNode.insertBefore(w, t); w.appendChild(t);
+  });
+
+  /* legend paragraph styling */
+  Array.prototype.forEach.call(contentEl.querySelectorAll('ul'), function(ul){
+    var p = ul.previousElementSibling;
+    if (p && p.tagName === 'P' && /^Legend used throughout/i.test(p.textContent)) {
+      ul.classList.add('legend-list');
+    }
+  });
+
+  /* ---------------- diagrams ---------------- */
+  var diagrams = [];
+  Array.prototype.forEach.call(contentEl.querySelectorAll('pre > code'), function(code){
+    var isMermaid = /language-mermaid/.test(code.className);
+    if (!isMermaid) return;
+    var src = code.textContent;                 // already unescaped by the DOM
+    var pre = code.parentNode;
+
+    /* nearest preceding heading gives the diagram its label */
+    var label = 'Workflow', n = pre.previousElementSibling;
+    while (n) { if (/^H[234]$/.test(n.tagName)) { label = n.textContent; break; } n = n.previousElementSibling; }
+
+    var wrap = document.createElement('div');
+    wrap.className = 'diagram';
+    wrap.innerHTML =
+      '<div class="diagram-bar">' +
+        '<span class="diagram-label">' + label.replace(/[<>&]/g,'') + '</span>' +
+        '<span style="display:flex;align-items:center;gap:10px">' +
+          '<span class="scroll-hint">scroll →</span>' +
+          '<button class="expand-btn" type="button">⤢ Expand</button>' +
+        '</span>' +
+      '</div>' +
+      '<div class="mermaid-wrap"><pre class="mermaid"></pre></div>';
+
+    pre.parentNode.insertBefore(wrap, pre);
+    pre.remove();
+
+    var target = wrap.querySelector('pre.mermaid');
+    target.textContent = src;
+    diagrams.push({ wrap:wrap, pre:target, src:src, label:label });
+  });
+
+  function markOverflow(){
+    diagrams.forEach(function(d){
+      var w = d.wrap.querySelector('.mermaid-wrap');
+      d.wrap.classList.toggle('overflowing', w.scrollWidth > w.clientWidth + 4);
+    });
+  }
+
+  function renderDiagrams(){
+    if (typeof mermaid === 'undefined') {
+      fail('Could not load the diagram renderer. The text above is complete; reload with an internet connection to see the workflow diagrams.');
+      return Promise.resolve();
+    }
+    mermaid.initialize({
+      startOnLoad:false, theme:'base', securityLevel:'loose',
+      themeVariables: mermaidVars(document.documentElement.getAttribute('data-theme')),
+      flowchart:{ htmlLabels:true, curve:'basis', nodeSpacing:38, rankSpacing:52, useMaxWidth:false }
+    });
+    diagrams.forEach(function(d, i){
+      d.pre.removeAttribute('data-processed');
+      d.pre.innerHTML = '';
+      d.pre.textContent = d.src;
+      d.pre.id = 'mmd-' + i;
+    });
+    return mermaid.run({ nodes: diagrams.map(function(d){ return d.pre; }) })
+      .then(markOverflow)
+      .catch(function(e){
+        console.error(e);
+        fail('One or more diagrams failed to render: ' + (e && e.message ? e.message : e));
+      });
+  }
+
+  renderDiagrams();
+  window.addEventListener('resize', markOverflow);
+
+  /* theme toggle re-renders the diagrams in the new palette */
+  document.getElementById('themeBtn').addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('athlasx-theme', next); } catch(e){}
+    renderDiagrams();
+  });
+
+  /* ---------------- fullscreen viewer ---------------- */
+  var lb = document.getElementById('lb'),
+      lbStage = document.getElementById('lbStage'),
+      lbCanvas = document.getElementById('lbCanvas'),
+      lbTitle = document.getElementById('lbTitle');
+  var scale = 1, tx = 0, ty = 0, baseScale = 1;
+
+  function apply(){ lbCanvas.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')'; }
+
+  function fit(){
+    var svg = lbCanvas.querySelector('svg');
+    if (!svg) return;
+    var w = svg.getBoundingClientRect().width / (scale || 1);
+    var h = svg.getBoundingClientRect().height / (scale || 1);
+    if (!w || !h) return;
+    var pad = 24;
+    baseScale = Math.min((lbStage.clientWidth - pad) / w, (lbStage.clientHeight - pad) / h);
+    if (!isFinite(baseScale) || baseScale <= 0) baseScale = 1;
+    scale = baseScale;
+    tx = (lbStage.clientWidth  - w * scale) / 2;
+    ty = (lbStage.clientHeight - h * scale) / 2;
+    apply();
+  }
+
+  function openLb(d){
+    var svg = d.pre.querySelector('svg');
+    if (!svg) return;
+    lbCanvas.innerHTML = '';
+    var clone = svg.cloneNode(true);
+    clone.removeAttribute('style');
+    lbCanvas.appendChild(clone);
+    lbTitle.textContent = d.label;
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    scale = 1; tx = 0; ty = 0; apply();
+    requestAnimationFrame(fit);
+  }
+  function closeLb(){
+    lb.classList.remove('open');
+    document.body.style.overflow = '';
+    lbCanvas.innerHTML = '';
+  }
+
+  contentEl.addEventListener('click', function(e){
+    var btn = e.target.closest && e.target.closest('.expand-btn');
+    if (!btn) return;
+    var wrap = btn.closest('.diagram');
+    for (var i=0;i<diagrams.length;i++){ if (diagrams[i].wrap === wrap) { openLb(diagrams[i]); break; } }
+  });
+
+  function zoomBy(f){
+    var cx = lbStage.clientWidth/2, cy = lbStage.clientHeight/2;
+    var ns = Math.min(Math.max(scale*f, baseScale*0.4), baseScale*8);
+    tx = cx - (cx - tx) * (ns/scale);
+    ty = cy - (cy - ty) * (ns/scale);
+    scale = ns; apply();
+  }
+  document.getElementById('lbIn').addEventListener('click', function(){ zoomBy(1.3); });
+  document.getElementById('lbOut').addEventListener('click', function(){ zoomBy(1/1.3); });
+  document.getElementById('lbFit').addEventListener('click', fit);
+  document.getElementById('lbClose').addEventListener('click', closeLb);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && lb.classList.contains('open')) closeLb(); });
+
+  /* drag to pan + pinch to zoom */
+  var pts = {}, lastDist = 0, lastMid = null;
+  lbStage.addEventListener('pointerdown', function(e){
+    lbStage.setPointerCapture(e.pointerId);
+    pts[e.pointerId] = { x:e.clientX, y:e.clientY };
+    lbStage.classList.add('grabbing');
+  });
+  lbStage.addEventListener('pointermove', function(e){
+    if (!pts[e.pointerId]) return;
+    var ids = Object.keys(pts);
+    if (ids.length === 1) {
+      tx += e.clientX - pts[e.pointerId].x;
+      ty += e.clientY - pts[e.pointerId].y;
+      pts[e.pointerId] = { x:e.clientX, y:e.clientY };
+      apply();
+    } else if (ids.length === 2) {
+      pts[e.pointerId] = { x:e.clientX, y:e.clientY };
+      var a = pts[ids[0]], b2 = pts[ids[1]];
+      var dist = Math.hypot(a.x-b2.x, a.y-b2.y);
+      var mid = { x:(a.x+b2.x)/2, y:(a.y+b2.y)/2 };
+      var r = lbStage.getBoundingClientRect();
+      var mx = mid.x - r.left, my = mid.y - r.top;
+      if (lastDist) {
+        var ns = Math.min(Math.max(scale * (dist/lastDist), baseScale*0.4), baseScale*8);
+        tx = mx - (mx - tx) * (ns/scale);
+        ty = my - (my - ty) * (ns/scale);
+        scale = ns;
+      }
+      if (lastMid) { tx += mx - lastMid.x; ty += my - lastMid.y; }
+      lastDist = dist; lastMid = { x:mx, y:my };
+      apply();
+    }
+  });
+  function endPt(e){
+    delete pts[e.pointerId];
+    if (Object.keys(pts).length < 2) { lastDist = 0; lastMid = null; }
+    if (!Object.keys(pts).length) lbStage.classList.remove('grabbing');
+  }
+  lbStage.addEventListener('pointerup', endPt);
+  lbStage.addEventListener('pointercancel', endPt);
+  lbStage.addEventListener('wheel', function(e){
+    e.preventDefault();
+    zoomBy(e.deltaY < 0 ? 1.12 : 1/1.12);
+  }, { passive:false });
+})();
+</script>
+</body>
+</html>

@@ -40,3 +40,9 @@ __pycache__/
 tsconfig.tsbuildinfo
 
 .env*
+
+# Test artifacts
+prisma/schema.test.prisma
+test-results/
+playwright-report/
+coverage/
