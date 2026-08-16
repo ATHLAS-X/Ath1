@@ -8,7 +8,8 @@
  */
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { hashOtp } from '@/lib/otp'
+import * as otp from '@/lib/otp'
+import { __resetRateLimitsForTests } from '@/lib/rate-limit'
 import {
   testDb,
   resetDb,
@@ -40,6 +41,12 @@ beforeAll(async () => {
 beforeEach(async () => {
   await resetDb()
   fx = await seedFixtures()
+  // claim/start is now rate-limited by phone (5/hour) — every test in this
+  // file uses the same fixture phone numbers, so without a reset the
+  // shared in-memory bucket would exhaust partway through the suite and
+  // fail later tests with 429s that have nothing to do with what they're
+  // actually testing.
+  __resetRateLimitsForTests()
 })
 afterAll(async () => {
   await resetDb()
@@ -102,8 +109,12 @@ describe('starting a claim — adult', () => {
 
   it('stores the OTP hashed, never in plaintext', async () => {
     await start(post({ playerId: fx.adult.id, phone: '9123456789' }))
-    const otp = await testDb.phoneOtp.findFirst()
-    expect(otp!.code_hash).toMatch(/^[0-9a-f]{64}$/)
+    const row = await testDb.phoneOtp.findFirst()
+    // Bcrypt-shaped hash now (was a raw SHA-256 hex digest) — the
+    // meaningful assertion is simply that it's hashed, not a literal
+    // 6-digit code sitting in the column.
+    expect(row!.code_hash).toMatch(/^\$2[aby]?\$\d{2}\$/)
+    expect(row!.code_hash).not.toMatch(/^\d{6}$/)
   })
 
   it('refuses to re-claim an already claimed profile', async () => {
@@ -167,10 +178,22 @@ describe('starting a claim — minor (DPDP guardian gate)', () => {
 })
 
 describe('verifying an OTP', () => {
+  // devOtp is no longer in the /start response (see S3 fix — returning the
+  // code there is a complete profile-takeover primitive). These tests need
+  // to know the code to exercise verify's success path, so generateOtp is
+  // pinned to a known value for the duration of each test instead of
+  // reading it back from anywhere the real caller couldn't.
+  const KNOWN_CODE = '654321'
+  let generateOtpSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    generateOtpSpy = vi.spyOn(otp, 'generateOtp').mockReturnValue(KNOWN_CODE)
+  })
+
   async function startClaim() {
     const res = await start(post({ playerId: fx.adult.id, phone: '9123456789' }))
     const body = await res.json()
-    return { claimId: body.claimId as string, code: body.devOtp as string }
+    return { claimId: body.claimId as string, code: KNOWN_CODE }
   }
 
   it('grants consent and marks the profile claimed on the correct code', async () => {
@@ -217,10 +240,14 @@ describe('verifying an OTP', () => {
   })
 
   it('does not accept a code hashed for a different claim', async () => {
+    // Bcrypt hashes are salted/non-deterministic, so a raw hash-equality
+    // comparison (the old test's approach) is no longer a meaningful
+    // assertion — two hashes of the SAME code wouldn't even match each
+    // other. The real property that matters: verifying the wrong code
+    // against this claim's real stored hash must fail.
     const { claimId } = await startClaim()
-    // Prove the stored hash is claim-specific, not a global constant.
-    const otp = await testDb.phoneOtp.findFirst({ where: { claim_id: claimId } })
-    expect(otp!.code_hash).not.toBe(hashOtp('000000'))
+    const row = await testDb.phoneOtp.findFirst({ where: { claim_id: claimId } })
+    expect(await otp.verifyOtpCode('000000', row!.code_hash)).toBe(false)
   })
 
   it('requires both claimId and code', async () => {

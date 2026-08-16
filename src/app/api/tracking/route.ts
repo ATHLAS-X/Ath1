@@ -1,18 +1,36 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireAuth } from '@/lib/require-auth'
+import { resolveAssociationScope } from '@/lib/association-scope'
+import { visibilityWhere } from '@/lib/player-visibility'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+
+  // TrendAlert has no association_id of its own — was previously joined
+  // straight to PlayerProfile with no visibility check at all, so ANY
+  // authenticated caller could see every association's flagged players.
+  // Scoped the same way every other cross-association player read now is:
+  // own association, plus any player who opted into cross_association (or
+  // franchise_scout, while that tier is enabled).
+  const scope = await resolveAssociationScope(auth.user)
+
   const alerts = await db.trendAlert.findMany({
     orderBy: { triggered_at: 'desc' },
   })
-  const playerIds = Array.from(new Set(alerts.map(a => a.player_id)))
+  const alertPlayerIds = Array.from(new Set(alerts.map(a => a.player_id)))
 
+  // A player who withdrew consent must never be surfaced here, in any
+  // field — filtering the profile lookup alone isn't enough, since
+  // `playerIds` below drives which ids appear in the response at all.
   const players = await db.playerProfile.findMany({
-    where: { id: { in: playerIds } },
+    where: { AND: [{ id: { in: alertPlayerIds } }, { consent_status: { not: 'withdrawn' } }, visibilityWhere(scope)] },
   })
   const playerById = new Map(players.map(p => [p.id, p]))
+  const playerIds = alertPlayerIds.filter(id => playerById.has(id))
 
   const weeksByPlayer = await Promise.all(
     playerIds.map(id => db.playerWeek.findMany({

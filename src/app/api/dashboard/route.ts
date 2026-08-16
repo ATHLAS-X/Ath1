@@ -1,13 +1,34 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { calculateAthlasXScore } from '@/lib/athlasx-score'
 import { dbRoleMap, seedPerformances } from '@/lib/mock-performance-seed'
+import { requireAuth } from '@/lib/require-auth'
+import { resolveAssociationScope } from '@/lib/association-scope'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const association = await db.association.findFirst()
-  const players = association ? await db.playerProfile.findMany({ where: { association_id: association.id } }) : []
+export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+
+  // association is now derived from the caller's own membership (null scope
+  // = athlasx_ops, unrestricted; otherwise the first association they're
+  // actually staff on) — never an arbitrary "first row in the table" pick.
+  const scope = await resolveAssociationScope(auth.user)
+  const association = scope === null
+    ? await db.association.findFirst()
+    : scope.length > 0 ? await db.association.findFirst({ where: { id: { in: scope } } }) : null
+  const players = association
+    ? await db.playerProfile.findMany({ where: { association_id: association.id, consent_status: { not: 'withdrawn' } } })
+    : []
+  // NOT YET SCOPED — flagging rather than silently leaving unfixed:
+  // registrations/pendingIngest/formDropAlerts/trialCycles/totalIngestJobs/
+  // session/claimedCount/alerts/activity below are still global counts
+  // across every association, not filtered to `association`/`scope`. Full
+  // per-query scoping here is a larger rewrite than this auth-hardening
+  // pass covers — the route is now un-servable to an anonymous caller
+  // (the actual finding this pass fixes), but a real association_staff
+  // user today still sees cross-association aggregate numbers.
   const registrations = await db.registration.count()
   const pendingIngest = await db.ingestJob.count({ where: { status: 'pending_review' } })
   const formDropAlerts = await db.trendAlert.count({ where: { flag_type: 'form_drop' } })
@@ -55,9 +76,14 @@ export async function GET() {
   const scoreDist = bands.map(b => ({ band: b.band, count: scores.filter(s => s >= b.min && s <= b.max).length }))
 
   // Active flags
-  const alerts = await db.trendAlert.findMany({ orderBy: { triggered_at: 'desc' }, take: 6 })
-  const alertPlayers = await db.playerProfile.findMany({ where: { id: { in: alerts.map(a => a.player_id) } } })
+  // Same principle as the players list above — a withdrawn player must not
+  // be surfaced via active flags/recent activity either.
+  const allAlerts = await db.trendAlert.findMany({ orderBy: { triggered_at: 'desc' }, take: 6 })
+  const alertPlayers = await db.playerProfile.findMany({
+    where: { id: { in: allAlerts.map(a => a.player_id) }, consent_status: { not: 'withdrawn' } },
+  })
   const alertPlayerById = new Map(alertPlayers.map(p => [p.id, p]))
+  const alerts = allAlerts.filter(a => alertPlayerById.has(a.player_id))
   const activeFlags = alerts.map(a => ({
     name: alertPlayerById.get(a.player_id)?.full_name ?? 'Unknown',
     flag: a.flag_type,

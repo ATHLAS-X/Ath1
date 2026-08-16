@@ -8,6 +8,14 @@
  *
  * They cover the invariant, not the implementation: whatever the storage
  * shape, peers' grades must not leak before unlock.
+ *
+ * Every request below now carries a real, signed session
+ * (tests/helpers/auth.ts, shared with tests/integration/consent-withdrawal
+ * .test.ts) — grade/unlock/mine derive the caller's identity from that
+ * session (never a client-supplied selectorId/chairId, see the auth-
+ * hardening pass), so a test simulating "the chair" or "selector B" now
+ * authenticates as that real user rather than naming them in the request
+ * body, which the routes no longer read for identity at all.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest'
 import { NextRequest } from 'next/server'
@@ -18,6 +26,7 @@ import {
   assertIsTestSchema,
   type Fixtures,
 } from '../helpers/test-db'
+import { getAsUser, postAsUser } from '../helpers/auth'
 
 vi.mock('@/lib/db', async () => ({
   db: (await import('../helpers/test-db')).testDb,
@@ -29,14 +38,17 @@ const { GET: myGrades } = await import('@/app/api/grading/[sessionId]/mine/route
 const { GET: convergence } = await import('@/app/api/grading/[sessionId]/convergence/route')
 const { POST: unlock } = await import('@/app/api/grading/[sessionId]/unlock/route')
 
-const post = (body: unknown) =>
-  new NextRequest('http://test.local/api', {
-    method: 'POST',
-    body: JSON.stringify(body),
-    headers: { 'content-type': 'application/json' },
-  })
+const URL = 'http://test.local/api'
 
-const get = (url: string) => new NextRequest(url)
+// role passed here is only used to populate the JWT's `role` claim, which
+// none of these four routes actually check (they gate on requireAuth, not
+// requireRole) — 'selection_panel' for every identity below simply matches
+// what seedFixtures() gives fx.chair/fx.selectorB in prisma/schema.prisma.
+const asChair = (body?: unknown) =>
+  body === undefined ? getAsUser(URL, fx.chair.id, 'selection_panel') : postAsUser(URL, fx.chair.id, 'selection_panel', body)
+const asSelectorB = (body?: unknown) =>
+  body === undefined ? getAsUser(URL, fx.selectorB.id, 'selection_panel') : postAsUser(URL, fx.selectorB.id, 'selection_panel', body)
+const anonymousGet = () => new NextRequest(URL)
 
 let fx: Fixtures
 
@@ -57,33 +69,54 @@ afterAll(async () => {
 describe('submitting a grade', () => {
   it('accepts a valid grade and records a submission time', async () => {
     const res = await submitGrade(
-      post({ selectorId: fx.chair.id, playerId: fx.adult.id, grade: 7, notes: 'solid' }),
+      await asChair({ playerId: fx.adult.id, grade: 7, notes: 'solid' }),
       { params: { sessionId: fx.session.id } },
     )
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.id).toBeTruthy()
     expect(body.submitted_at).toBeTruthy()
+
+    // The point of deriving selectorId from the session: confirm the row
+    // actually recorded as the AUTHENTICATED chair, not an arbitrary id.
+    const row = await testDb.grade.findUnique({ where: { id: body.id } })
+    expect(row?.selector_id).toBe(fx.chair.id)
   })
 
   it('rejects grades outside 1–10', async () => {
     for (const grade of [0, 11, -3, 100]) {
       const res = await submitGrade(
-        post({ selectorId: fx.chair.id, playerId: fx.adult.id, grade }),
+        await asChair({ playerId: fx.adult.id, grade }),
         { params: { sessionId: fx.session.id } },
       )
       expect(res.status, `grade ${grade} should be rejected`).toBe(400)
     }
   })
 
-  it('requires selectorId, playerId and grade', async () => {
-    const res = await submitGrade(post({ grade: 5 }), { params: { sessionId: fx.session.id } })
+  it('requires playerId and grade', async () => {
+    // selectorId is no longer a request field at all (session-derived) —
+    // the original test's "requires selectorId, playerId and grade" no
+    // longer applies to selectorId specifically; playerId/grade validation
+    // is unchanged.
+    const res = await submitGrade(await asChair({ grade: 5 }), { params: { sessionId: fx.session.id } })
     expect(res.status).toBe(400)
+  })
+
+  it('rejects an anonymous caller (no session) rather than falling back to the request body', async () => {
+    const res = await submitGrade(
+      new NextRequest(URL, {
+        method: 'POST',
+        body: JSON.stringify({ selectorId: fx.chair.id, playerId: fx.adult.id, grade: 5 }),
+        headers: { 'content-type': 'application/json' },
+      }),
+      { params: { sessionId: fx.session.id } },
+    )
+    expect(res.status, 'a caller-supplied selectorId with no real session must not be honoured').toBe(401)
   })
 
   it('404s for an unknown session', async () => {
     const res = await submitGrade(
-      post({ selectorId: fx.chair.id, playerId: fx.adult.id, grade: 5 }),
+      await asChair({ playerId: fx.adult.id, grade: 5 }),
       { params: { sessionId: '00000000-0000-0000-0000-000000000000' } },
     )
     expect(res.status).toBe(404)
@@ -91,8 +124,8 @@ describe('submitting a grade', () => {
 
   it('is idempotent per (session, selector, player) — a re-grade updates, not duplicates', async () => {
     const args = { params: { sessionId: fx.session.id } }
-    await submitGrade(post({ selectorId: fx.chair.id, playerId: fx.adult.id, grade: 4 }), args)
-    await submitGrade(post({ selectorId: fx.chair.id, playerId: fx.adult.id, grade: 9 }), args)
+    await submitGrade(await asChair({ playerId: fx.adult.id, grade: 4 }), args)
+    await submitGrade(await asChair({ playerId: fx.adult.id, grade: 9 }), args)
 
     const rows = await testDb.grade.findMany({
       where: { selection_session_id: fx.session.id, selector_id: fx.chair.id, player_id: fx.adult.id },
@@ -105,84 +138,81 @@ describe('submitting a grade', () => {
 describe('blind boundary — before the chair unlocks', () => {
   beforeEach(async () => {
     const args = { params: { sessionId: fx.session.id } }
-    await submitGrade(post({ selectorId: fx.chair.id, playerId: fx.adult.id, grade: 9 }), args)
-    await submitGrade(post({ selectorId: fx.selectorB.id, playerId: fx.adult.id, grade: 2 }), args)
+    await submitGrade(await asChair({ playerId: fx.adult.id, grade: 9 }), args)
+    await submitGrade(await asSelectorB({ playerId: fx.adult.id, grade: 2 }), args)
   })
 
   it('refuses to serve the convergence view', async () => {
-    const res = await convergence(get('http://test.local/api'), {
-      params: { sessionId: fx.session.id },
-    })
+    const res = await convergence(await asChair(), { params: { sessionId: fx.session.id } })
     expect(res.status).toBe(403)
   })
 
   it('returns only the calling selector’s own grade from /mine', async () => {
-    const res = await myGrades(
-      get(`http://test.local/api?selectorId=${fx.chair.id}`),
-      { params: { sessionId: fx.session.id } },
-    )
+    const res = await myGrades(await asChair(), { params: { sessionId: fx.session.id } })
     const { grades } = await res.json()
     expect(grades).toHaveLength(1)
     expect(grades[0].overall_grade).toBe(9) // the chair's own
   })
 
   it('does not leak the peer grade anywhere in the /mine payload', async () => {
-    const res = await myGrades(
-      get(`http://test.local/api?selectorId=${fx.chair.id}`),
-      { params: { sessionId: fx.session.id } },
-    )
+    const res = await myGrades(await asChair(), { params: { sessionId: fx.session.id } })
     const raw = JSON.stringify(await res.json())
-    // Selector B graded this player 2. That value must not appear.
+    // Selector B graded this player 2. Neither their identity nor that
+    // value must appear in the chair's own /mine response.
     expect(raw).not.toContain(fx.selectorB.id)
     expect(JSON.parse(raw).grades.some((g: { overall_grade: number }) => g.overall_grade === 2)).toBe(false)
   })
 
-  it('requires selectorId on /mine rather than defaulting to everyone', async () => {
-    const res = await myGrades(get('http://test.local/api'), {
-      params: { sessionId: fx.session.id },
-    })
-    expect(res.status).toBe(400)
+  it('/mine for selector B independently returns only their own grade, not the chair’s', async () => {
+    // The other half of the boundary: it's not just that the chair can't
+    // see selector B's grade, selector B can't see the chair's either.
+    const res = await myGrades(await asSelectorB(), { params: { sessionId: fx.session.id } })
+    const body = await res.json()
+    const { grades } = body
+    expect(grades).toHaveLength(1)
+    expect(grades[0].overall_grade).toBe(2)
+    const raw = JSON.stringify(body)
+    expect(raw).not.toContain(fx.chair.id)
+  })
+
+  it('rejects an anonymous caller on /mine rather than exposing anyone’s grades', async () => {
+    const res = await myGrades(anonymousGet(), { params: { sessionId: fx.session.id } })
+    expect(res.status).toBe(401)
   })
 })
 
 describe('unlocking convergence', () => {
   beforeEach(async () => {
     const args = { params: { sessionId: fx.session.id } }
-    await submitGrade(post({ selectorId: fx.chair.id, playerId: fx.adult.id, grade: 9 }), args)
-    await submitGrade(post({ selectorId: fx.selectorB.id, playerId: fx.adult.id, grade: 2 }), args)
+    await submitGrade(await asChair({ playerId: fx.adult.id, grade: 9 }), args)
+    await submitGrade(await asSelectorB({ playerId: fx.adult.id, grade: 2 }), args)
   })
 
   it('refuses a non-chair', async () => {
-    const res = await unlock(post({ chairId: fx.selectorB.id }), {
-      params: { sessionId: fx.session.id },
-    })
+    // selectorB is real, authenticated, and simply isn't the chair —
+    // chairId is derived from their own session, not asserted in the body.
+    const res = await unlock(await asSelectorB({}), { params: { sessionId: fx.session.id } })
     expect(res.status).toBe(403)
   })
 
   it('lets the chair unlock, then serves convergence', async () => {
-    const u = await unlock(post({ chairId: fx.chair.id }), {
-      params: { sessionId: fx.session.id },
-    })
+    const u = await unlock(await asChair({}), { params: { sessionId: fx.session.id } })
     expect(u.status).toBe(200)
 
-    const res = await convergence(get('http://test.local/api'), {
-      params: { sessionId: fx.session.id },
-    })
+    const res = await convergence(await asChair(), { params: { sessionId: fx.session.id } })
     expect(res.status).toBe(200)
   })
 
   it('is not repeatable', async () => {
-    await unlock(post({ chairId: fx.chair.id }), { params: { sessionId: fx.session.id } })
-    const again = await unlock(post({ chairId: fx.chair.id }), {
-      params: { sessionId: fx.session.id },
-    })
+    await unlock(await asChair({}), { params: { sessionId: fx.session.id } })
+    const again = await unlock(await asChair({}), { params: { sessionId: fx.session.id } })
     expect(again.status).toBe(409)
   })
 
   it('closes grading once convergence is open', async () => {
-    await unlock(post({ chairId: fx.chair.id }), { params: { sessionId: fx.session.id } })
+    await unlock(await asChair({}), { params: { sessionId: fx.session.id } })
     const late = await submitGrade(
-      post({ selectorId: fx.chair.id, playerId: fx.minor.id, grade: 6 }),
+      await asChair({ playerId: fx.minor.id, grade: 6 }),
       { params: { sessionId: fx.session.id } },
     )
     expect(late.status).toBe(409)
@@ -192,17 +222,15 @@ describe('unlocking convergence', () => {
 describe('convergence view — after unlock', () => {
   beforeEach(async () => {
     const args = { params: { sessionId: fx.session.id } }
-    await submitGrade(post({ selectorId: fx.chair.id, playerId: fx.adult.id, grade: 9 }), args)
-    await submitGrade(post({ selectorId: fx.selectorB.id, playerId: fx.adult.id, grade: 2 }), args)
-    await unlock(post({ chairId: fx.chair.id }), args)
+    await submitGrade(await asChair({ playerId: fx.adult.id, grade: 9 }), args)
+    await submitGrade(await asSelectorB({ playerId: fx.adult.id, grade: 2 }), args)
+    await unlock(await asChair({}), args)
   })
 
   it('reports the distribution, not just an average', async () => {
     // Pivot Document W4: "9/9/2 is different from 5/5/5" — an average alone
     // destroys the disagreement the view exists to surface.
-    const res = await convergence(get('http://test.local/api'), {
-      params: { sessionId: fx.session.id },
-    })
+    const res = await convergence(await asChair(), { params: { sessionId: fx.session.id } })
     const body = await res.json()
     const view = (body.views ?? body)[0] ?? Object.values(body)[0]
     const asText = JSON.stringify(body)
@@ -211,9 +239,7 @@ describe('convergence view — after unlock', () => {
   })
 
   it('labels a 9-vs-2 split as contested rather than unanimous', async () => {
-    const res = await convergence(get('http://test.local/api'), {
-      params: { sessionId: fx.session.id },
-    })
+    const res = await convergence(await asChair(), { params: { sessionId: fx.session.id } })
     const body = JSON.stringify(await res.json())
     expect(body).not.toMatch(/unanimous/)
     expect(body).toMatch(/contested|split/)

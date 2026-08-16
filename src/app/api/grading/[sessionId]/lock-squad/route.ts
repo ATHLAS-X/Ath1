@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireAuth } from '@/lib/require-auth'
 
 // Locks the final squad: creates one immutable Selection row per chosen
 // player and moves the session to 'locked'. Only the chair may call this,
-// and only after convergence has been unlocked.
+// and only after convergence has been unlocked. chairId is derived from
+// the caller's own verified session, not the request body.
 export async function POST(req: NextRequest, { params }: { params: { sessionId: string } }) {
-  const { chairId, playerIds } = await req.json()
-  if (!chairId || !Array.isArray(playerIds) || playerIds.length === 0) {
-    return NextResponse.json({ error: 'chairId and a non-empty playerIds array are required' }, { status: 400 })
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+  const chairId = auth.user.id
+
+  const { playerIds } = await req.json()
+  if (!Array.isArray(playerIds) || playerIds.length === 0) {
+    return NextResponse.json({ error: 'a non-empty playerIds array is required' }, { status: 400 })
   }
 
   const session = await db.selectionSession.findUnique({ where: { id: params.sessionId } })

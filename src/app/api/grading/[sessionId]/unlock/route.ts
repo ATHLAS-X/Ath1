@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireAuth } from '@/lib/require-auth'
 
 // Only the session's chair_id can unlock convergence — checked server-side,
 // not left to the client to decide whether to show a "Lock squad" button.
+// chairId is derived from the caller's own verified session, never trusted
+// from the request body — that's what let an unauthenticated caller
+// unlock convergence (and read every selector's grade) just by knowing the
+// chair's id.
 export async function POST(req: NextRequest, { params }: { params: { sessionId: string } }) {
-  const { chairId } = await req.json()
-  if (!chairId) return NextResponse.json({ error: 'chairId is required' }, { status: 400 })
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+  const chairId = auth.user.id
 
   const session = await db.selectionSession.findUnique({ where: { id: params.sessionId } })
   if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 })

@@ -160,13 +160,13 @@ describe('bowling', () => {
   })
 })
 
-// ── renormalisation: the "unassessed players are capped" fix ─────────────────
+// ── coach ratings are structurally isolated from the score (DEFECT 1) ────────
 
-describe('coach assessment is optional enrichment, not a cap', () => {
+describe('coach assessment carries zero scoring weight', () => {
   it('lets an unassessed elite player still reach the Elite tier', () => {
-    // Pivot Document W7: coach input is "optional enrichment, not a
-    // dependency". A player with no coach session must not be structurally
-    // barred from the top tier.
+    // A player with no coach session must not be structurally barred from
+    // the top tier — trivially true now that the score never depends on a
+    // coach rating at all, but kept as a direct assertion of the outcome.
     const r = calculateAthlasXScore(
       input({ performances: eliteBattingRows, yearsExperience: 8 }),
     )
@@ -176,8 +176,19 @@ describe('coach assessment is optional enrichment, not a cap', () => {
     expect(getScoreTier(r.total).label).toBe('Elite')
   })
 
-  it('reports assessment flags honestly', () => {
-    const assessed = calculateAthlasXScore(
+  it('never scores a coach rating, even when one is supplied (DEFECT 1 fix)', () => {
+    // Superseded assumption, corrected: this used to assert fitnessAssessed/
+    // behaviourAssessed flip to true when a rating is passed — that was
+    // exactly the un-gated path DEFECT 1 flagged (any caller could supply a
+    // self-reported rating and have it scored as coach-supervised, for up
+    // to 25/100 points). The confirmed fix structurally isolates coach
+    // ratings from the score entirely rather than adding a provenance
+    // check, so the real invariant now is: a rating changes NOTHING about
+    // the score, ever — not the assessment flags, not the total.
+    const withoutRating = calculateAthlasXScore(
+      input({ performances: eliteBattingRows, yearsExperience: 8 }),
+    )
+    const withRating = calculateAthlasXScore(
       input({
         performances: eliteBattingRows,
         yearsExperience: 8,
@@ -185,13 +196,17 @@ describe('coach assessment is optional enrichment, not a cap', () => {
         coachBehaviourRating: 5,
       }),
     )
-    expect(assessed.fitnessAssessed).toBe(true)
-    expect(assessed.behaviourAssessed).toBe(true)
+    expect(withRating.fitnessAssessed).toBe(false)
+    expect(withRating.behaviourAssessed).toBe(false)
+    expect(withRating.fitness).toBe(0)
+    expect(withRating.behaviour).toBe(0)
+    expect(withRating.total).toBe(withoutRating.total)
   })
 
   it('does not let a top coach rating alone manufacture an elite score', () => {
-    // Guard against the mirror failure: renormalising must not mean a
-    // player with no match record scores well because a coach liked them.
+    // A player with no match record must not score well just because a
+    // coach rating was supplied — trivially guaranteed now that ratings are
+    // never read at all, kept as a direct assertion of the outcome.
     const r = calculateAthlasXScore(
       input({ performances: [], coachFitnessRating: 5, coachBehaviourRating: 5 }),
     )

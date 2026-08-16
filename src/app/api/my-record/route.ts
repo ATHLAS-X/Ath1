@@ -1,19 +1,33 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { calculateAthlasXScore, getScoreTier } from '@/lib/athlasx-score'
 import { dbRoleMap, seedMatchHistory } from '@/lib/mock-performance-seed'
+import { requireAuth } from '@/lib/require-auth'
 
 export const dynamic = 'force-dynamic'
 
-// No auth system yet — "my record" stands in for the current player by
-// picking the first claimed profile, same pattern as grading's
-// acting-as-selector. Swap for a real session lookup once auth exists.
-export async function GET() {
-  const player = await db.playerProfile.findFirst({
-    where: { claim_status: 'claimed' },
-    orderBy: { created_at: 'asc' },
-  })
+// "My record" now resolves to the caller's own linked player profile
+// (User.linked_player_id) instead of arbitrarily picking the first claimed
+// profile in the table — that placeholder is what let any caller see
+// whichever player happened to be claimed first, regardless of who they
+// actually were.
+export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+
+  const me = await db.user.findUnique({ where: { id: auth.user.id }, select: { linked_player_id: true } })
+  if (!me?.linked_player_id) return NextResponse.json({ player: null })
+
+  const player = await db.playerProfile.findUnique({ where: { id: me.linked_player_id } })
   if (!player) return NextResponse.json({ player: null })
+  // FLAGGED, applied as directed, not silently decided: the audit's finding
+  // (5 read paths not honouring consent withdrawal) named my-record as one
+  // of them, applied uniformly here too — but this route is a player
+  // viewing their OWN record. Hiding someone's own data from themselves
+  // after THEY withdrew consent is an unusual UX call the audit's literal
+  // wording may not have intended to cover; worth a real product decision
+  // rather than assuming this is obviously correct.
+  if (player.consent_status === 'withdrawn') return NextResponse.json({ player: null })
 
   const role = dbRoleMap[player.playing_role ?? 'Batsman'] ?? 'Batsman'
   const matches = seedMatchHistory(player.id, role)

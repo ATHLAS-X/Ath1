@@ -1,18 +1,50 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { calculateAthlasXScore } from '@/lib/athlasx-score'
 import { dbRoleMap, seedPerformances } from '@/lib/mock-performance-seed'
+import { requireAuth } from '@/lib/require-auth'
+import { canAccessSquad } from '@/lib/squad-access'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const session = await db.selectionSession.findFirst({
-    orderBy: { created_at: 'desc' },
-    include: { association: { include: { players: true } } },
-  })
-  if (!session) return NextResponse.json({ squad: [] })
+// Real fix for the long-flagged placeholder: this used to return whichever
+// SelectionSession was created most recently — first association-wide
+// (still wrong), then association-scoped (closer, but still "most recent
+// session", not "this coach's actual squad"). Now that a real Squad model
+// exists (prisma/schema.prisma — Squad/SquadCoach/SquadPlayer, W7), this
+// resolves a real squad: an explicit ?squadId= is checked via
+// canAccessSquad (works for both an assigned coach and association staff
+// browsing a squad they oversee); with no squadId, it defaults to the
+// caller's own most-recent SquadCoach membership — which only resolves for
+// an actual assigned coach, not staff (staff should list squads via
+// GET /api/squads and pass a specific squadId).
+export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
 
-  const playerIds = session.association.players.map(p => p.id)
+  const requestedSquadId = req.nextUrl.searchParams.get('squadId')
+
+  let squadId: string | null = null
+  if (requestedSquadId) {
+    if (!(await canAccessSquad(auth.user, requestedSquadId))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+    squadId = requestedSquadId
+  } else {
+    const membership = await db.squadCoach.findFirst({ where: { user_id: auth.user.id }, orderBy: { created_at: 'desc' } })
+    squadId = membership?.squad_id ?? null
+  }
+
+  if (!squadId) return NextResponse.json({ squad: [] })
+
+  const squadPlayers = await db.squadPlayer.findMany({
+    where: { squad_id: squadId },
+    include: { player: true },
+  })
+  // A player who withdrew consent must never be surfaced.
+  const players = squadPlayers.map(sp => sp.player).filter(p => p.consent_status !== 'withdrawn')
+
+  const playerIds = players.map(p => p.id)
   const latestWeeks = await db.playerWeek.findMany({
     where: { player_id: { in: playerIds } },
     orderBy: { week_start: 'desc' },
@@ -20,17 +52,17 @@ export async function GET() {
   const latestByPlayer = new Map<string, typeof latestWeeks[number]>()
   for (const w of latestWeeks) if (!latestByPlayer.has(w.player_id)) latestByPlayer.set(w.player_id, w)
 
-  const squad = session.association.players.map(p => {
+  const squad = players.map(p => {
     const role = dbRoleMap[p.playing_role ?? 'Batsman'] ?? 'Batsman'
     const week = latestByPlayer.get(p.id)
     const performances = seedPerformances(p.id, role)
-    const result = calculateAthlasXScore({
-      playingRole: role,
-      performances,
-      yearsExperience: 3,
-      coachFitnessRating: week?.fitness_rating ?? undefined,
-      coachBehaviourRating: week?.behaviour_rating ?? undefined,
-    })
+    // coachFitnessRating/coachBehaviourRating are deprecated no-ops on
+    // calculateAthlasXScore (DEFECT 1 — coach ratings no longer affect the
+    // score at all). Passing them here is harmless but pointless; kept
+    // only to avoid an unrelated diff. week?.fitness_rating/behaviour_rating
+    // below are still shown to the coach as real display fields — a
+    // different, pre-existing W5 concept from the new W7 advisory notes.
+    const result = calculateAthlasXScore({ playingRole: role, performances, yearsExperience: 3 })
     const age = Math.floor((Date.now() - p.dob.getTime()) / (365.25 * 24 * 3600 * 1000))
     return {
       id: p.id,
@@ -45,5 +77,5 @@ export async function GET() {
     }
   })
 
-  return NextResponse.json({ squad })
+  return NextResponse.json({ squadId, squad })
 }

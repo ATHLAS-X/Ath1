@@ -1,14 +1,34 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { calculateAthlasXScore, getProvenanceLabel } from '@/lib/athlasx-score'
 import { dbRoleMap, seedPerformances } from '@/lib/mock-performance-seed'
+import { requireAuth } from '@/lib/require-auth'
+import { resolveAssociationScope } from '@/lib/association-scope'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+
+  // Was previously unscoped — pulled whichever SelectionSession was most
+  // recently created in the WHOLE database, regardless of which
+  // association the caller belongs to. A SelectionSession belongs to
+  // exactly one association (session.association), so scoping the lookup
+  // to the caller's own association is the actual visibility boundary
+  // here — visibility_tier's cross-association opt-in has no separate
+  // action to take on top of this, since every player in the result is
+  // already that one association's own roster by construction.
+  const scope = await resolveAssociationScope(auth.user)
+  if (scope !== null && scope.length === 0) return NextResponse.json({ candidates: [], totalSelectors: 0 })
+
+  // A player who withdrew consent must never be surfaced here again —
+  // filtered at the query itself, not patched after the fact, so no future
+  // caller of this route can accidentally reintroduce the leak.
   const session = await db.selectionSession.findFirst({
+    where: scope === null ? undefined : { association_id: { in: scope } },
     orderBy: { created_at: 'desc' },
-    include: { association: { include: { players: true } } },
+    include: { association: { include: { players: { where: { consent_status: { not: 'withdrawn' } } } } } },
   })
 
   if (!session) return NextResponse.json({ candidates: [], totalSelectors: 0 })

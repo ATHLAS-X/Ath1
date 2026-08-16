@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { hashOtp, isOtpExpired, MAX_ATTEMPTS } from '@/lib/otp'
+import { verifyOtpCode, isOtpExpired, MAX_ATTEMPTS } from '@/lib/otp'
+import { logOtpEvent } from '@/lib/otp-log'
 
 // Verifies the OTP and, on success, grants consent and marks the profile
 // claimed. For a minor, this OTP was sent to the guardian's phone — the
@@ -16,34 +17,64 @@ export async function POST(req: NextRequest) {
     orderBy: { created_at: 'desc' },
   })
   if (!otp) return NextResponse.json({ error: 'No active OTP for this claim' }, { status: 404 })
+  logOtpEvent({ flowType: 'claim_player', event: 'verify_attempt', phone: otp.phone, claimId })
 
   if (isOtpExpired(otp.expires_at)) {
+    logOtpEvent({ flowType: 'claim_player', event: 'expired', phone: otp.phone, claimId })
     return NextResponse.json({ error: 'OTP expired. Request a new one.' }, { status: 410 })
   }
   if (otp.attempts >= MAX_ATTEMPTS) {
+    logOtpEvent({ flowType: 'claim_player', event: 'verify_failed', phone: otp.phone, claimId, failureReason: 'max_attempts_exceeded' })
     return NextResponse.json({ error: 'Too many attempts. Request a new OTP.' }, { status: 429 })
   }
 
-  if (hashOtp(code) !== otp.code_hash) {
+  if (!(await verifyOtpCode(code, otp.code_hash))) {
     await db.phoneOtp.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } })
+    logOtpEvent({ flowType: 'claim_player', event: 'verify_failed', phone: otp.phone, claimId, failureReason: 'wrong_code' })
     return NextResponse.json({ error: 'Incorrect code' }, { status: 401 })
   }
 
-  const claim = await db.playerClaim.update({
-    where: { id: claimId },
-    data: {
-      verified_at: new Date(),
-      consent_status: 'granted',
-      consent_granted_at: new Date(),
-    },
+  // Consume-then-grant, atomically, in one transaction — this is the fix
+  // for the double-call/TOCTOU race class that caused the original
+  // guardian-consent bug on the reference branch: two concurrent verify
+  // calls for the same OTP must not both succeed. The consume step is
+  // guarded (`consumed_at: null` in the where clause of an updateMany, not
+  // a plain update) so only the FIRST caller to reach it can ever
+  // transition the row — a second, racing call sees 0 rows updated and is
+  // rejected as a replay, never granting consent twice.
+  const result = await db.$transaction(async (tx) => {
+    const consumedCount = await tx.phoneOtp.updateMany({
+      where: { id: otp.id, consumed_at: null },
+      data: { consumed_at: new Date() },
+    })
+    if (consumedCount.count === 0) {
+      return null // lost the race to another concurrent verify call
+    }
+
+    const claim = await tx.playerClaim.update({
+      where: { id: claimId },
+      data: {
+        verified_at: new Date(),
+        consent_status: 'granted',
+        consent_granted_at: new Date(),
+      },
+    })
+
+    await tx.playerProfile.update({
+      where: { id: claim.player_id },
+      data: { claim_status: 'claimed', consent_status: 'granted' },
+    })
+
+    return claim
   })
 
-  await db.phoneOtp.update({ where: { id: otp.id }, data: { consumed_at: new Date() } })
+  if (!result) {
+    logOtpEvent({ flowType: 'claim_player', event: 'verify_failed', phone: otp.phone, claimId, failureReason: 'already_consumed' })
+    return NextResponse.json({ error: 'This code was already used' }, { status: 409 })
+  }
 
-  await db.playerProfile.update({
-    where: { id: claim.player_id },
-    data: { claim_status: 'claimed', consent_status: 'granted' },
-  })
+  logOtpEvent({ flowType: 'claim_player', event: 'verify_success', phone: otp.phone, claimId })
+  logOtpEvent({ flowType: 'claim_player', event: 'consumed', phone: otp.phone, claimId })
 
-  return NextResponse.json({ verified: true, playerId: claim.player_id })
+  return NextResponse.json({ verified: true, playerId: result.player_id })
 }
