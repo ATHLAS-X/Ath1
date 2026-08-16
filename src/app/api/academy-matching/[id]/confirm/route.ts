@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireAuth } from '@/lib/require-auth'
 
 // Confirms a raw ingested academy string as the same academy the fuzzy
 // matcher suggested (or a different one the reviewer picked). Never
 // auto-merged — a human always confirms before name_variants grows.
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+
   const { academyId } = await req.json()
 
   const candidate = await db.academyMatchCandidate.findUnique({ where: { id: params.id } })

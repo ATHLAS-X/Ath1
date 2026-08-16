@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireAuth } from '@/lib/require-auth'
 
 // Coach note is advisory only, 200 char max — enforced here, not just in
 // the UI, since this is a value selectors read as-is.
 export async function POST(req: NextRequest, { params }: { params: { playerId: string } }) {
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+
   const { note } = await req.json()
   if (typeof note !== 'string' || note.length > 200) {
     return NextResponse.json({ error: 'note must be a string of 200 characters or fewer' }, { status: 400 })

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Building2, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { Building2, CheckCircle2, XCircle, AlertCircle, Loader2, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /*
@@ -24,10 +24,28 @@ interface Candidate {
   suggested_academy: { id: string; name: string; district: string } | null
 }
 
+interface ProductionRow {
+  academyId: string
+  name: string
+  district: string
+  affiliatedPlayers: number
+  advancedPlayers: number
+}
+
 export default function AcademyMatchingPage() {
+  const [tab, setTab] = useState<'queue' | 'production'>('queue')
   const [candidates, setCandidates] = useState<Candidate[]>([])
+  const [production, setProduction] = useState<ProductionRow[]>([])
+  const [productionLoading, setProductionLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/academy-matching/production')
+      .then(r => r.json())
+      .then(d => setProduction(d.rows ?? []))
+      .finally(() => setProductionLoading(false))
+  }, [])
 
   async function load() {
     setLoading(true)
@@ -64,7 +82,58 @@ export default function AcademyMatchingPage() {
         <p className="text-xs text-zinc-600 mt-0.5">Raw academy strings from ingest, queued for reconciliation against the registry</p>
       </motion.div>
 
-      {loading ? (
+      <div className="flex items-center gap-1 border-b border-white/[0.06]">
+        <button
+          onClick={() => setTab('queue')}
+          className={cn('px-3 py-2 text-xs font-bold border-b-2 -mb-px transition-colors',
+            tab === 'queue' ? 'text-white border-green-400' : 'text-zinc-600 border-transparent hover:text-zinc-400')}
+        >
+          Reconciliation Queue
+        </button>
+        <button
+          onClick={() => setTab('production')}
+          className={cn('px-3 py-2 text-xs font-bold border-b-2 -mb-px transition-colors',
+            tab === 'production' ? 'text-white border-green-400' : 'text-zinc-600 border-transparent hover:text-zinc-400')}
+        >
+          Production Ranking
+        </button>
+      </div>
+
+      {tab === 'production' ? (
+        productionLoading ? (
+          <div className="glass-card p-8 flex items-center justify-center text-zinc-600">
+            <Loader2 className="w-5 h-5 animate-spin" />
+          </div>
+        ) : production.length === 0 ? (
+          <div className="glass-card p-8 flex flex-col items-center justify-center text-center">
+            <TrendingUp className="w-8 h-8 text-zinc-700 mb-3" />
+            <p className="text-sm font-bold text-zinc-500">No academies in the registry yet</p>
+          </div>
+        ) : (
+          <div className="glass-card overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[11px] text-zinc-600 border-b border-white/[0.06]">
+                  <th className="text-left font-medium px-4 py-2.5">Academy</th>
+                  <th className="text-left font-medium px-4 py-2.5">District</th>
+                  <th className="text-right font-medium px-4 py-2.5">Affiliated players</th>
+                  <th className="text-right font-medium px-4 py-2.5">Advanced to district+</th>
+                </tr>
+              </thead>
+              <tbody>
+                {production.map(r => (
+                  <tr key={r.academyId} className="border-b border-white/[0.04] last:border-0">
+                    <td className="px-4 py-2.5 font-bold text-white">{r.name}</td>
+                    <td className="px-4 py-2.5 text-zinc-500">{r.district}</td>
+                    <td className="px-4 py-2.5 text-right text-zinc-400">{r.affiliatedPlayers}</td>
+                    <td className="px-4 py-2.5 text-right font-bold text-green-400">{r.advancedPlayers}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      ) : loading ? (
         <div className="glass-card p-8 flex items-center justify-center text-zinc-600">
           <Loader2 className="w-5 h-5 animate-spin" />
         </div>

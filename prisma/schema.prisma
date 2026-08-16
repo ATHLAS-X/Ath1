@@ -89,6 +89,21 @@ enum TournamentLevel {
   @@schema("athlasx")
 }
 
+// Who beyond the player's own association can see this profile.
+// association_only (default) — visible only to the player's own
+// association's staff (and unrestricted athlasx_ops).
+// cross_association — opt-in, visible to staff of ANY association.
+// franchise_scout — opt-in, additionally gated adult-only and behind
+// FRANCHISE_SCOUT_ENABLED (see src/lib/feature-flags.ts) — off by default,
+// no scout-facing role exists yet on this branch.
+enum VisibilityTier {
+  association_only
+  cross_association
+  franchise_scout
+
+  @@schema("athlasx")
+}
+
 enum AssociationType {
   state
   district
@@ -195,6 +210,10 @@ model User {
   coach_profile     CoachProfile?
   selector_profile  SelectorProfile?
   grades_given      Grade[]
+  association_staff AssociationStaff[]
+  identity_exceptions_resolved IdentityException[]
+  squad_coach_memberships  SquadCoach[]
+  advisory_notes_given     CoachAdvisoryNote[]
 
   @@map("users")
   @@schema("athlasx")
@@ -217,9 +236,79 @@ model Association {
   tournaments   Tournament[]
   trial_cycles  TrialCycle[]
   selection_sessions SelectionSession[]
+  staff         AssociationStaff[]
+  identity_exceptions IdentityException[]
+  ingest_jobs   IngestJob[]
+  squads        Squad[]
 
   @@index([type])
   @@map("associations")
+  @@schema("athlasx")
+}
+
+// ─── AssociationStaff — scoped roster, design ported from
+// feat/w1-w8-and-association-auth's lib/schema.sql association_staff table
+// (association_id, user_id, is_lead) onto this schema, not cherry-picked as
+// raw SQL. Existing by-membership only — see src/lib/association-scope.ts,
+// which derives a caller's allowed association IDs from this table and
+// never trusts a client-supplied associationId. Gates on the UserRole enum's
+// existing `association` value (already present, previously unenforced by
+// any route) rather than adding a redundant duplicate role value. ─────────
+model AssociationStaff {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id String      @db.Uuid
+  association    Association @relation(fields: [association_id], references: [id], onDelete: Cascade)
+  user_id        String      @db.Uuid
+  user           User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  is_lead        Boolean     @default(false)
+  created_at     DateTime    @default(now()) @db.Timestamptz(6)
+
+  @@unique([association_id, user_id])
+  @@map("association_staff")
+  @@schema("athlasx")
+}
+
+enum IdentityExceptionReason {
+  AMBIGUOUS_MATCH
+  MULTIPLE_CANDIDATES
+
+  @@schema("athlasx")
+}
+
+enum IdentityExceptionStatus {
+  OPEN
+  CONFIRMED
+  SPLIT
+  MERGED
+  REJECTED
+
+  @@schema("athlasx")
+}
+
+// ─── IdentityException — the W2 exception queue, ported from
+// feat/w1-w8-and-association-auth's lib/identity-resolution.ts /
+// identity_resolution_exceptions table design, re-implemented against this
+// schema (PlayerProfile serves as both "Player" and "Profile" here, unlike
+// the reference branch's separate players/player_profiles split — no need
+// to reintroduce that split just to port this table). ────────────────────
+model IdentityException {
+  id                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id      String                  @db.Uuid
+  association         Association             @relation(fields: [association_id], references: [id], onDelete: Cascade)
+  raw_name            String
+  raw_dob             DateTime?               @db.Date
+  raw_district         String?
+  reason              IdentityExceptionReason
+  candidate_player_ids String[]               @default([])
+  status              IdentityExceptionStatus @default(OPEN)
+  resolved_by_user_id String?                 @db.Uuid
+  resolved_by         User?                   @relation(fields: [resolved_by_user_id], references: [id])
+  resolved_at         DateTime?
+  created_at          DateTime                @default(now()) @db.Timestamptz(6)
+
+  @@index([association_id])
+  @@index([status])
+  @@map("identity_exceptions")
   @@schema("athlasx")
 }
 
@@ -247,6 +336,7 @@ model PlayerProfile {
   profile_source    ProfileSource
   association_id    String?        @db.Uuid
   association       Association?   @relation(fields: [association_id], references: [id])
+  visibility_tier   VisibilityTier @default(association_only)
   created_at        DateTime       @default(now()) @db.Timestamptz(6)
   updated_at        DateTime       @updatedAt @db.Timestamptz(6)
 
@@ -257,6 +347,9 @@ model PlayerProfile {
   weeks          PlayerWeek[]
   trend_alerts   TrendAlert[]
   claim          PlayerClaim?
+  squad_memberships   SquadPlayer[]
+  advisory_notes      CoachAdvisoryNote[]
+  session_attendance  SessionAttendance[]
 
   @@index([claim_status])
   @@index([association_id])
@@ -441,6 +534,7 @@ model TrialCycle {
   venues              TrialVenue[]
   registrations       Registration[]
   selection_sessions  SelectionSession[]
+  squads              Squad[]
 
   @@map("trial_cycles")
   @@schema("athlasx")
@@ -614,11 +708,139 @@ model CoachProfile {
   user            User      @relation(fields: [user_id], references: [id])
   full_name       String
   association_id  String    @db.Uuid
+  // Pre-existing, unused placeholder (confirmed via repo-wide grep — no
+  // route or component reads or writes this) — superseded by the real
+  // SquadCoach join table below. Left in place, not removed; out of scope.
   squad_ids       String[]
   avatar_url      String?
   created_at      DateTime  @default(now()) @db.Timestamptz(6)
 
   @@map("coach_profiles")
+  @@schema("athlasx")
+}
+
+// ─── W7 — Squad model + coach access (DEFECT 1 follow-on) ─────────────────
+// Previously src/app/api/coach/squad/route.ts had no real Squad concept at
+// all — it returned whichever SelectionSession was created most recently,
+// flagged repeatedly this session as a known placeholder. This is the real
+// model, re-implemented against Prisma from feat/w1-w8-and-association-auth's
+// squads/squad_coaches/squad_players design (referenced, not cherry-picked
+// as raw SQL) — a squad is its own entity, only softly linked to the trial
+// cycle/selection process that produced its roster, exactly like the
+// reference design.
+enum SquadStatus {
+  draft
+  locked
+
+  @@schema("athlasx")
+}
+
+model Squad {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id  String        @db.Uuid
+  association     Association   @relation(fields: [association_id], references: [id])
+  // Soft link only — a squad outlives the selection session that built it,
+  // and not every squad need trace back to one (e.g. one assembled by hand).
+  trial_cycle_id  String?       @db.Uuid
+  trial_cycle     TrialCycle?   @relation(fields: [trial_cycle_id], references: [id])
+  name            String
+  season          String
+  status          SquadStatus   @default(draft)
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+
+  coaches   SquadCoach[]
+  players   SquadPlayer[]
+  sessions  TrainingSession[]
+  advisory_notes  CoachAdvisoryNote[]
+
+  @@index([association_id])
+  @@map("squads")
+  @@schema("athlasx")
+}
+
+// Coach-to-squad roster — exact mirror of AssociationStaff's shape
+// (association_id/user_id/is_lead), same "membership row is the only
+// source of access" discipline, just scoped one level down to a squad
+// instead of a whole association.
+model SquadCoach {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squad_id    String    @db.Uuid
+  squad       Squad     @relation(fields: [squad_id], references: [id], onDelete: Cascade)
+  user_id     String    @db.Uuid
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  is_lead     Boolean   @default(false)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([squad_id, user_id])
+  @@map("squad_coaches")
+  @@schema("athlasx")
+}
+
+model SquadPlayer {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squad_id    String        @db.Uuid
+  squad       Squad         @relation(fields: [squad_id], references: [id], onDelete: Cascade)
+  player_id   String        @db.Uuid
+  player      PlayerProfile @relation(fields: [player_id], references: [id])
+  added_at    DateTime      @default(now()) @db.Timestamptz(6)
+
+  @@unique([squad_id, player_id])
+  @@index([player_id])
+  @@map("squad_players")
+  @@schema("athlasx")
+}
+
+// Advisory-only coach rating — DEFECT 1's fix. Deliberately has NO
+// relationship of any kind to Grade/Selection/SelectionSession: a coach's
+// user_id has no path into the scoring tables, so even a hypothetical
+// buggy write attempt has nowhere to land. calculateAthlasXScore
+// (src/lib/athlasx-score.ts) never reads this table — it is pure selector
+// context, not a scoring input.
+model CoachAdvisoryNote {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squad_id           String    @db.Uuid
+  squad              Squad     @relation(fields: [squad_id], references: [id], onDelete: Cascade)
+  player_id          String    @db.Uuid
+  player             PlayerProfile @relation(fields: [player_id], references: [id])
+  coach_user_id      String    @db.Uuid
+  coach              User      @relation(fields: [coach_user_id], references: [id])
+  fitness_rating     Int?      // 1-5, advisory only
+  behaviour_rating   Int?      // 1-5, advisory only
+  note               String?
+  created_at         DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([squad_id, player_id])
+  @@map("coach_advisory_notes")
+  @@schema("athlasx")
+}
+
+model TrainingSession {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squad_id      String   @db.Uuid
+  squad         Squad    @relation(fields: [squad_id], references: [id], onDelete: Cascade)
+  session_date  DateTime @db.Date
+  notes         String?
+  created_by    String   @db.Uuid
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  attendance  SessionAttendance[]
+
+  @@index([squad_id])
+  @@map("training_sessions")
+  @@schema("athlasx")
+}
+
+model SessionAttendance {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  training_session_id String          @db.Uuid
+  training_session    TrainingSession @relation(fields: [training_session_id], references: [id], onDelete: Cascade)
+  player_id           String          @db.Uuid
+  player              PlayerProfile   @relation(fields: [player_id], references: [id])
+  present             Boolean
+  recorded_at         DateTime        @default(now()) @db.Timestamptz(6)
+
+  @@unique([training_session_id, player_id])
+  @@map("session_attendance")
   @@schema("athlasx")
 }
 
@@ -633,18 +855,25 @@ enum IngestJobStatus {
 }
 
 model IngestJob {
-  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  source        String
-  method        IngestMethod
-  tournament    String
-  match_count   Int
-  player_rows   Int
-  status        IngestJobStatus  @default(pending_review)
-  confidence    Float
-  conflicts     Int              @default(0)
-  reviewed_by   String?          @db.Uuid
-  reviewed_at   DateTime?        @db.Timestamptz(6)
-  created_at    DateTime         @default(now()) @db.Timestamptz(6)
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id String?          @db.Uuid
+  association    Association?     @relation(fields: [association_id], references: [id])
+  source         String
+  method         IngestMethod
+  tournament     String
+  match_count    Int
+  player_rows    Int
+  status         IngestJobStatus  @default(pending_review)
+  confidence     Float
+  conflicts      Int              @default(0)
+  // Normalized adapter output pending approval — a NormalizedIngestPayload
+  // (src/lib/ingest/types.ts). Nullable so the 4 pre-existing seed rows
+  // (prisma/seed.ts, no payload) don't need a backfill; the real approve
+  // write path requires it and fails loudly if absent (see decide/route.ts).
+  raw_payload    Json?
+  reviewed_by    String?          @db.Uuid
+  reviewed_at    DateTime?        @db.Timestamptz(6)
+  created_at     DateTime         @default(now()) @db.Timestamptz(6)
 
   @@map("ingest_jobs")
   @@schema("athlasx")

@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireAuth } from '@/lib/require-auth'
 
 // Submits (or updates) one selector's grade for one player. This is the
 // actual blind-grading enforcement point: a selector can only ever write
-// their OWN row (selector_id from the request, scoped by the unique
+// their OWN row (selector_id derived from the caller's own verified
+// session — NEVER from the request body, which is what let anyone submit
+// a grade "as" any other selector — scoped by the unique
 // [session, selector, player] constraint) and this route never returns
 // any other selector's grade — see mine/route.ts and convergence/route.ts
 // for the read side of that boundary.
 export async function POST(req: NextRequest, { params }: { params: { sessionId: string } }) {
-  const { selectorId, playerId, grade, notes } = await req.json()
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+  const selectorId = auth.user.id
 
-  if (!selectorId || !playerId || !grade) {
-    return NextResponse.json({ error: 'selectorId, playerId, and grade are required' }, { status: 400 })
+  const { playerId, grade, notes } = await req.json()
+
+  if (!playerId || !grade) {
+    return NextResponse.json({ error: 'playerId and grade are required' }, { status: 400 })
   }
   if (grade < 1 || grade > 10) {
     return NextResponse.json({ error: 'grade must be between 1 and 10' }, { status: 400 })

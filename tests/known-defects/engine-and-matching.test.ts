@@ -23,26 +23,52 @@ import { calculateAthlasXScore, type AthlasXScoreInput } from '@/lib/athlasx-sco
 //    source = 'coach' or 'supervisor'. Self-reported values are rejected at
 //    the engine level."
 //
-// No `source` field exists on AthlasXScoreInput and no validation is
-// performed. This matters because verified-data-only is the trust guarantee
-// sold to associations (Pivot Document §4.1).
+// FIXED — confirmed remediation: rather than adding a coachRatingSource
+// provenance field and keeping the scoring weight, coach ratings were
+// structurally isolated out of the score entirely (src/lib/athlasx-score.ts
+// v1.2). AthlasXScoreInput.coachFitnessRating/coachBehaviourRating are now
+// deprecated no-ops — calculateAthlasXScore never reads them, so there is no
+// "self-reported vs. supervised" distinction left to make: NO rating, of any
+// provenance, affects the score. The real advisory-only signal now lives in
+// CoachAdvisoryNote (prisma/schema.prisma), which has zero relationship to
+// scoring.
+//
+// The original assertion here checked a hardcoded object literal's own keys
+// (`hasOwnProperty(input, 'coachRatingSource')`) — that could only ever pass
+// by editing the literal itself, and its premise (add a provenance field)
+// doesn't match the remediation actually chosen (remove the inputs
+// entirely). Replaced with a direct proof of the real invariant: supplying
+// the ratings changes nothing about the output, at all.
 // ─────────────────────────────────────────────────────────────────────────────
 describe('DEFECT: coach ratings carry no provenance and are never rejected', () => {
-  it('should expose a source field so self-reported ratings can be distinguished', () => {
-    const input = {
+  it('produces an identical score whether or not coach ratings are supplied', () => {
+    const performances: AthlasXScoreInput['performances'] = [
+      { level: 'state', batting_runs: 45, batting_balls: 32, batting_dismissed: true },
+      { level: 'state', batting_runs: 60, batting_balls: 40, batting_dismissed: false },
+      { level: 'district', batting_runs: 20, batting_balls: 25, batting_dismissed: true },
+    ]
+
+    const withoutRating = calculateAthlasXScore({
       playingRole: 'Batsman',
-      performances: [],
-      yearsExperience: 0,
+      performances,
+      yearsExperience: 4,
+    })
+    const withRating = calculateAthlasXScore({
+      playingRole: 'Batsman',
+      performances,
+      yearsExperience: 4,
       coachFitnessRating: 5,
       coachBehaviourRating: 5,
-    } as AthlasXScoreInput & Record<string, unknown>
+    })
 
-    // The documented contract requires provenance on the rating.
+    // Not just the total — the whole breakdown, so a rating sneaking points
+    // into any individual component (not just the final rollup) would still
+    // be caught.
     expect(
-      Object.prototype.hasOwnProperty.call(input, 'coachRatingSource'),
-      'AthlasXScoreInput has no coachRatingSource — any caller can supply a ' +
-        'self-reported rating and the engine will score it as supervised',
-    ).toBe(true)
+      withRating,
+      'supplying coachFitnessRating/coachBehaviourRating changed the score — ' +
+        'they must be provably inert, not just absent from a hardcoded input literal',
+    ).toEqual(withoutRating)
   })
 
   it('should not award fitness/behaviour points for an unattributed rating', () => {

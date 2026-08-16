@@ -1,9 +1,27 @@
 /**
- * AthlasX Score Engine — v1.1
+ * AthlasX Score Engine — v1.2
  *
  * Produces a 0–100 composite score from verified match data only.
- * Self-reported inputs (fitness, mindset) are NOT accepted — those come
- * from supervised assessments and coach behavioral evaluations only.
+ *
+ * v1.2 — coach fitness/behaviour ratings are structurally isolated out of
+ * the score entirely (tests/known-defects DEFECT 1: there was no
+ * `coachRatingSource` provenance check, so any caller could pass a
+ * self-reported rating and it would be scored as if a coach supervised it,
+ * for up to 25 of 100 points). Rather than adding a provenance field and
+ * keeping the scoring weight, the decision (confirmed explicitly, not
+ * assumed) was to remove coach ratings from the score's inputs altogether
+ * — the score is now 100% verified-match-data-only (performance +
+ * experience + volume), matching this file's own original doc-comment
+ * promise ("Produces a 0–100 composite score from verified match data
+ * only") which the fitness/behaviour components had actually been
+ * contradicting. Coach ratings still exist as a real, separately-stored,
+ * advisory-only signal — see src/lib/coach-advisory.ts and the
+ * CoachAdvisoryNote model — visible to selectors as context, carrying zero
+ * weight in this score.
+ *
+ * `coachFitnessRating`/`coachBehaviourRating` remain on AthlasXScoreInput
+ * (deprecated, ignored) purely so existing callers don't need to change —
+ * calculateAthlasXScore never reads them.
  *
  * Tournament Quality Index (TQI) weighting:
  *   State 1.0x · District 0.75x · Academy/Local 0.5x
@@ -41,12 +59,13 @@ export interface VerifiedPerformanceRow {
 export interface AthlasXScoreInput {
   playingRole:  PlayingRole
   performances: VerifiedPerformanceRow[]  // from association-verified match data only
-  // Coach evaluation — supervised, not self-reported. Absent = not yet
-  // assessed. Absence does not lower the achievable ceiling — see
-  // calculateAthlasXScore, which renormalises against only the components
-  // that are actually present.
-  coachFitnessRating?:    number  // 1–5, set by coach or AthlasX ops
-  coachBehaviourRating?:  number  // 1–5, set by coach based on behavioural observation
+  /** @deprecated No longer read by calculateAthlasXScore (DEFECT 1 fix,
+   *  see file header) — coach ratings are structurally isolated from the
+   *  score. Kept on the type only so existing call sites still compile;
+   *  the real advisory rating lives in CoachAdvisoryNote. */
+  coachFitnessRating?:    number
+  /** @deprecated Same as coachFitnessRating — never read. */
+  coachBehaviourRating?:  number
   yearsExperience:        number
 }
 
@@ -195,27 +214,23 @@ function calcVolume(performances: VerifiedPerformanceRow[]): number {
 }
 
 // ── Main export ────────────────────────────────────────────────────────────────
-// Coach fitness/behaviour ratings are optional enrichment, not a dependency
-// (Pivot Document W7). When absent, the total is renormalised against the
-// max points of only the components that ARE present, so an unassessed
-// player's ceiling is still 100 — their score isn't structurally capped
-// below "Elite" just because no coach session has happened yet.
-const MAX_POINTS = { performance: 40, experience: 15, fitness: 15, behaviour: 10, volume: 10 }
+// Fitness/behaviour are always "not assessed" here and never contribute
+// points — DEFECT 1 fix, see file header. activeMax is therefore always the
+// fixed sum of performance+experience+volume; there is no renormalisation
+// branch left to isolate a coach rating from, by construction.
+const MAX_POINTS = { performance: 40, experience: 15, volume: 10 }
 
 export function calculateAthlasXScore(input: AthlasXScoreInput): AthlasXScoreBreakdown {
   const perf       = calcPerformance(input)
   const experience = calcExperience(input)
-  const fitnessAssessed   = input.coachFitnessRating !== undefined
-  const behaviourAssessed = input.coachBehaviourRating !== undefined
-  const fitness     = calcFitness(input.coachFitnessRating)
-  const behaviour   = calcBehaviour(input.coachBehaviourRating)
+  const fitnessAssessed   = false
+  const behaviourAssessed = false
+  const fitness     = calcFitness(undefined)
+  const behaviour   = calcBehaviour(undefined)
   const volume      = calcVolume(input.performances)
 
-  const rawSum = perf.score + experience + fitness + behaviour + volume
-  const activeMax =
-    MAX_POINTS.performance + MAX_POINTS.experience + MAX_POINTS.volume +
-    (fitnessAssessed ? MAX_POINTS.fitness : 0) +
-    (behaviourAssessed ? MAX_POINTS.behaviour : 0)
+  const rawSum = perf.score + experience + volume
+  const activeMax = MAX_POINTS.performance + MAX_POINTS.experience + MAX_POINTS.volume
 
   const total = Math.round((rawSum / activeMax) * 100)
 

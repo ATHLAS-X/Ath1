@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireAuth } from '@/lib/require-auth'
 
 function mondayOfCurrentWeek(): Date {
   const d = new Date()
@@ -14,6 +15,9 @@ function mondayOfCurrentWeek(): Date {
 // coach viewing this form, never derived from player self-report. Upserts
 // the current week's PlayerWeek row rather than overwriting history.
 export async function POST(req: NextRequest, { params }: { params: { playerId: string } }) {
+  const auth = await requireAuth(req)
+  if (auth instanceof NextResponse) return auth
+
   const { fitness, behaviour, note } = await req.json()
 
   if (fitness !== undefined && (fitness < 1 || fitness > 5)) {

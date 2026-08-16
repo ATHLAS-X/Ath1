@@ -66,10 +66,18 @@ export async function resetDb() {
   await withRetry(() =>
     testDb.$executeRawUnsafe(`
       TRUNCATE TABLE
+        athlasx_test.identity_exceptions,
+        athlasx_test.association_staff,
         athlasx_test.omission_rationales,
         athlasx_test.selections,
         athlasx_test.grades,
         athlasx_test.selection_sessions,
+        athlasx_test.session_attendance,
+        athlasx_test.training_sessions,
+        athlasx_test.coach_advisory_notes,
+        athlasx_test.squad_players,
+        athlasx_test.squad_coaches,
+        athlasx_test.squads,
         athlasx_test.dossiers,
         athlasx_test.registrations,
         athlasx_test.trial_venues,
@@ -142,6 +150,18 @@ export async function seedFixtures() {
   })
   const selectorB = await testDb.user.create({
     data: { email: 'selector-b@test.local', role: 'selection_panel' },
+  })
+
+  // `chair` doubles as the generic "association-scoped staff caller" in
+  // several existing integration tests (candidate-pool, tracking,
+  // coach/squad — all called with role: 'association'), on top of being
+  // the grading session's own chair. Association-scoped routes derive
+  // access from real AssociationStaff membership (src/lib/
+  // association-scope.ts), not from the role string on the session token,
+  // so without a real membership row those calls would 403/see nothing —
+  // this row is what makes `chair` a legitimate stand-in for both roles.
+  await testDb.associationStaff.create({
+    data: { association_id: association.id, user_id: chair.id },
   })
 
   const trialCycle = await testDb.trialCycle.create({
