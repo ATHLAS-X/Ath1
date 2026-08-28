@@ -25,6 +25,7 @@ import {
   assertIsTestSchema,
   type Fixtures,
 } from '../helpers/test-db'
+import { getAsUser } from '../helpers/auth'
 
 vi.mock('@/lib/db', async () => ({
   db: (await import('../helpers/test-db')).testDb,
@@ -172,7 +173,7 @@ describe('S4: withdrawing consent must stop the player being surfaced', () => {
       data: { consent_status: 'withdrawn' },
     })
 
-    const res = await candidatePool(get())
+    const res = await candidatePool(await getAsUser('http://test.local/api', fx.chair.id, 'association'))
     const raw = JSON.stringify(await res.json())
 
     expect(
@@ -192,7 +193,8 @@ describe('S4: withdrawing consent must stop the player being surfaced', () => {
         consecutive_declining_weeks: 0,
       },
     })
-    const before = JSON.stringify(await (await tracking(get())).json())
+    const staffGet = () => getAsUser('http://test.local/api', fx.chair.id, 'association')
+    const before = JSON.stringify(await (await tracking(await staffGet())).json())
     expect(before.includes(fx.adult.id), 'precondition: player is visible in tracking').toBe(true)
 
     await testDb.playerProfile.update({
@@ -200,7 +202,7 @@ describe('S4: withdrawing consent must stop the player being surfaced', () => {
       data: { consent_status: 'withdrawn' },
     })
 
-    const res = await tracking(get())
+    const res = await tracking(await staffGet())
     const raw = JSON.stringify(await res.json())
 
     expect(
@@ -222,7 +224,7 @@ describe('S4: withdrawing consent must stop the player being surfaced', () => {
     })
     await claimWithdraw(post({ claimId: claim.id }))
 
-    const res = await candidatePool(get())
+    const res = await candidatePool(await getAsUser('http://test.local/api', fx.chair.id, 'association'))
     const raw = JSON.stringify(await res.json())
     expect(
       raw.includes(fx.adult.id),

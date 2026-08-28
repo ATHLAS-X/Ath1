@@ -45,7 +45,6 @@ function GradeDistribution({ grades }: { grades: number[] }) {
 export default function ConvergencePage() {
   const [loading, setLoading] = useState(true)
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [chairId, setChairId] = useState<string | null>(null)
   const [unlocked, setUnlocked] = useState(false)
   const [rows, setRows] = useState<ConvergenceRow[]>([])
   const [alreadySelected, setAlreadySelected] = useState<string[]>([])
@@ -60,7 +59,6 @@ export default function ConvergencePage() {
       .then(async data => {
         if (!data.session) { setLoading(false); return }
         setSessionId(data.session.id)
-        setChairId(data.session.chair_id)
         setUnlocked(!!data.session.convergence_unlocked_at)
 
         if (data.session.convergence_unlocked_at) {
@@ -79,12 +77,12 @@ export default function ConvergencePage() {
   }, [])
 
   async function lockSquad() {
-    if (!sessionId || !chairId || selected.size === 0) return
+    if (!sessionId || selected.size === 0) return
     setLocking(true)
     const res = await fetch(`/api/grading/${sessionId}/lock-squad`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chairId, playerIds: Array.from(selected) }),
+      body: JSON.stringify({ playerIds: Array.from(selected) }),
     })
     if (res.ok) {
       setAlreadySelected(prev => [...prev, ...Array.from(selected)])

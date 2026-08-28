@@ -37,13 +37,12 @@ const { POST: submitGrade } = await import('@/app/api/grading/[sessionId]/grade/
 const { GET: myGrades } = await import('@/app/api/grading/[sessionId]/mine/route')
 const { GET: convergence } = await import('@/app/api/grading/[sessionId]/convergence/route')
 const { POST: unlock } = await import('@/app/api/grading/[sessionId]/unlock/route')
+const { POST: lockSquad } = await import('@/app/api/grading/[sessionId]/lock-squad/route')
+const { GET: gradingSession } = await import('@/app/api/grading/session/route')
 
 const URL = 'http://test.local/api'
 
-// role passed here is only used to populate the JWT's `role` claim, which
-// none of these four routes actually check (they gate on requireAuth, not
-// requireRole) — 'selection_panel' for every identity below simply matches
-// what seedFixtures() gives fx.chair/fx.selectorB in prisma/schema.prisma.
+// Role on the JWT is now enforced: grading write/read is selection_panel only.
 const asChair = (body?: unknown) =>
   body === undefined ? getAsUser(URL, fx.chair.id, 'selection_panel') : postAsUser(URL, fx.chair.id, 'selection_panel', body)
 const asSelectorB = (body?: unknown) =>
@@ -243,5 +242,86 @@ describe('convergence view — after unlock', () => {
     const body = JSON.stringify(await res.json())
     expect(body).not.toMatch(/unanimous/)
     expect(body).toMatch(/contested|split/)
+  })
+})
+
+describe('session identity — graders act as themselves', () => {
+  it('tells the chair they are the chair, and a peer they are not', async () => {
+    const chairBody = await (await gradingSession(await asChair())).json()
+    expect(chairBody.is_chair).toBe(true)
+
+    const peerBody = await (await gradingSession(await asSelectorB())).json()
+    expect(peerBody.session?.id).toBe(fx.session.id)
+    expect(peerBody.is_chair).toBe(false)
+  })
+
+  it('does not return an acting-as selector pool', async () => {
+    const body = await (await gradingSession(await asChair())).json()
+    expect(body.selectors).toBeUndefined()
+  })
+})
+
+describe('caller-supplied identity cannot change who is grading or unlocking', () => {
+  it('records a grade as the authenticated selector even when the body names the chair', async () => {
+    const res = await submitGrade(
+      await asSelectorB({ selectorId: fx.chair.id, playerId: fx.adult.id, grade: 3 }),
+      { params: { sessionId: fx.session.id } },
+    )
+    expect(res.status).toBe(200)
+    const { id } = await res.json()
+    const row = await testDb.grade.findUnique({ where: { id } })
+    expect(row?.selector_id).toBe(fx.selectorB.id)
+    expect(row?.selector_id).not.toBe(fx.chair.id)
+  })
+
+  it('/mine ignores a query selectorId and returns only the caller’s own grades', async () => {
+    const args = { params: { sessionId: fx.session.id } }
+    await submitGrade(await asChair({ playerId: fx.adult.id, grade: 9 }), args)
+    await submitGrade(await asSelectorB({ playerId: fx.adult.id, grade: 2 }), args)
+
+    const res = await myGrades(
+      await getAsUser(`${URL}?selectorId=${fx.chair.id}`, fx.selectorB.id, 'selection_panel'),
+      args,
+    )
+    const { grades } = await res.json()
+    expect(grades).toHaveLength(1)
+    expect(grades[0].overall_grade).toBe(2)
+  })
+
+  it('refuses unlock when a non-chair supplies the chair id in the body', async () => {
+    const res = await unlock(
+      await asSelectorB({ chairId: fx.chair.id }),
+      { params: { sessionId: fx.session.id } },
+    )
+    expect(res.status).toBe(403)
+    const session = await testDb.selectionSession.findUnique({ where: { id: fx.session.id } })
+    expect(session?.convergence_unlocked_at).toBeNull()
+  })
+
+  it('refuses lock-squad when a non-chair supplies the chair id in the body', async () => {
+    const args = { params: { sessionId: fx.session.id } }
+    await unlock(await asChair({}), args)
+
+    const res = await lockSquad(
+      await asSelectorB({ chairId: fx.chair.id, playerIds: [fx.adult.id] }),
+      args,
+    )
+    expect(res.status).toBe(403)
+    const locked = await testDb.selectionSession.findUnique({ where: { id: fx.session.id } })
+    expect(locked?.squad_locked_at).toBeNull()
+  })
+
+  it('lets the chair lock the squad without naming themselves in the body', async () => {
+    const args = { params: { sessionId: fx.session.id } }
+    await unlock(await asChair({}), args)
+
+    const res = await lockSquad(
+      await asChair({ playerIds: [fx.adult.id] }),
+      args,
+    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.locked).toBe(true)
+    expect(body.count).toBe(1)
   })
 })

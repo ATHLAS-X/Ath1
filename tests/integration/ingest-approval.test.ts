@@ -203,5 +203,7 @@ describe('approving a real ingest job', () => {
     expect(exceptions.length, 'a real IdentityException row must exist').toBe(1)
     expect(exceptions[0].status).toBe('OPEN')
     expect(exceptions[0].candidate_player_ids.length, 'both name-matching candidates should be listed').toBe(2)
+    expect(exceptions[0].match_id, 'the skipped row must keep the match it belonged to').toBe(body.matchId)
+    expect(exceptions[0].performance_snapshot).toMatchObject({ batting_runs: 10 })
   })
 })

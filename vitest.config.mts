@@ -7,6 +7,7 @@ export default defineConfig({
     globals: true,
     // Integration tests share one Postgres schema, so they must not race.
     fileParallelism: false,
+    maxWorkers: 1,
     setupFiles: ['tests/helpers/load-env.ts'],
     include: ['tests/**/*.test.ts'],
     testTimeout: 30_000,

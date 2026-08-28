@@ -10,6 +10,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vites
 import { NextRequest } from 'next/server'
 import * as otp from '@/lib/otp'
 import { __resetRateLimitsForTests } from '@/lib/rate-limit'
+import { getSessionUser } from '@/lib/require-auth'
 import {
   testDb,
   resetDb,
@@ -25,6 +26,8 @@ vi.mock('@/lib/db', async () => ({
 const { POST: search } = await import('@/app/api/claim/search/route')
 const { POST: start } = await import('@/app/api/claim/start/route')
 const { POST: verify } = await import('@/app/api/claim/verify/route')
+const { GET: myRecord } = await import('@/app/api/my-record/route')
+const { POST: register } = await import('@/app/api/trial-cycles/[id]/register/route')
 
 const post = (body: unknown) =>
   new NextRequest('http://test.local/api', {
@@ -253,5 +256,93 @@ describe('verifying an OTP', () => {
   it('requires both claimId and code', async () => {
     const res = await verify(post({ claimId: 'x' }))
     expect(res.status).toBe(400)
+  })
+
+  it('creates one player User linked to the claimed profile', async () => {
+    const { claimId, code } = await startClaim()
+    const res = await verify(post({ claimId, code }))
+    expect(res.status).toBe(200)
+
+    const users = await testDb.user.findMany({ where: { role: 'player' } })
+    expect(users).toHaveLength(1)
+    expect(users[0].phone).toBe('9123456789')
+    expect(users[0].linked_player_id).toBe(fx.adult.id)
+
+    const profile = await testDb.playerProfile.findUnique({ where: { id: fx.adult.id } })
+    expect(profile!.user_id).toBe(users[0].id)
+
+    const claim = await testDb.playerClaim.findUnique({ where: { id: claimId } })
+    expect(claim!.claiming_user_id).toBe(users[0].id)
+  })
+
+  it('sets a session cookie that authenticates the claimed player', async () => {
+    const { claimId, code } = await startClaim()
+    const res = await verify(post({ claimId, code }))
+    expect(res.status).toBe(200)
+
+    const setCookie = res.headers.get('set-cookie') ?? ''
+    expect(setCookie, 'verify must set a session cookie').toMatch(/next-auth\.session-token=/)
+
+    const cookie = setCookie.split(';')[0]
+    const sessionUser = await getSessionUser(
+      new NextRequest('http://test.local/api', { headers: { cookie } }),
+    )
+    const player = await testDb.user.findFirst({ where: { role: 'player' } })
+    expect(sessionUser).toEqual({
+      id: player!.id,
+      email: player!.email,
+      role: 'player',
+    })
+  })
+
+  it('does not create a second User when a consumed OTP is replayed', async () => {
+    const { claimId, code } = await startClaim()
+    const first = await verify(post({ claimId, code }))
+    expect(first.status).toBe(200)
+
+    const replay = await verify(post({ claimId, code }))
+    expect(replay.status).not.toBe(200)
+
+    const users = await testDb.user.findMany({ where: { role: 'player' } })
+    expect(users).toHaveLength(1)
+  })
+
+  it('lets the claimed player read their own record with that cookie', async () => {
+    const { claimId, code } = await startClaim()
+    const res = await verify(post({ claimId, code }))
+    const cookie = (res.headers.get('set-cookie') ?? '').split(';')[0]
+
+    const mine = await myRecord(new NextRequest('http://test.local/api/my-record', { headers: { cookie } }))
+    expect(mine.status).toBe(200)
+    const body = await mine.json()
+    expect(body.player?.id).toBe(fx.adult.id)
+  })
+
+  it('lets the claimed player register for a trial cycle', async () => {
+    const { claimId, code } = await startClaim()
+    const res = await verify(post({ claimId, code }))
+    const cookie = (res.headers.get('set-cookie') ?? '').split(';')[0]
+
+    const venue = await testDb.trialVenue.create({
+      data: {
+        trial_cycle_id: fx.trialCycle.id,
+        name: 'Green Park',
+        district: 'Kanpur',
+        date: new Date('2026-09-01'),
+      },
+    })
+
+    const registerRes = await register(
+      new NextRequest(`http://test.local/api/trial-cycles/${fx.trialCycle.id}/register`, {
+        method: 'POST',
+        body: JSON.stringify({ venueId: venue.id }),
+        headers: { 'content-type': 'application/json', cookie },
+      }),
+      { params: Promise.resolve({ id: fx.trialCycle.id }) },
+    )
+    expect(registerRes.status).toBe(200)
+    const body = await registerRes.json()
+    expect(body.error).toBeUndefined()
+    expect(body.registration?.player_id).toBe(fx.adult.id)
   })
 })

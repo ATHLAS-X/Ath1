@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { requireAuth } from '@/lib/require-auth'
+import { requireRole } from '@/lib/require-auth'
 import { resolveAssociationScope } from '@/lib/association-scope'
 
 // Aggregates every selector's grade per player into a ConvergenceView
@@ -8,7 +8,7 @@ import { resolveAssociationScope } from '@/lib/association-scope'
 // unlocked convergence — the server-side half of the blind-grading
 // guarantee (grade.ts enforces the write side).
 export async function GET(req: NextRequest, { params }: { params: { sessionId: string } }) {
-  const auth = await requireAuth(req)
+  const auth = await requireRole(req, ['selection_panel'])
   if (auth instanceof NextResponse) return auth
 
   const session = await db.selectionSession.findUnique({ where: { id: params.sessionId } })

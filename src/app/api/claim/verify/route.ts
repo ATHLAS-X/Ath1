@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { verifyOtpCode, isOtpExpired, MAX_ATTEMPTS } from '@/lib/otp'
 import { logOtpEvent } from '@/lib/otp-log'
 
-// Verifies the OTP and, on success, grants consent and marks the profile
-// claimed. For a minor, this OTP was sent to the guardian's phone — the
-// guardian entering it IS the consent action (DPDP guardian-consent gate).
+// Verifies the OTP and, on success, grants consent, marks the profile
+// claimed, creates the player User, and signs them in via a session cookie.
 export async function POST(req: NextRequest) {
   const { claimId, code } = await req.json()
   if (!claimId || !code) {
@@ -51,21 +51,34 @@ export async function POST(req: NextRequest) {
       return null // lost the race to another concurrent verify call
     }
 
+    const pending = await tx.playerClaim.findUnique({ where: { id: claimId } })
+    if (!pending) return null
+
+    const user = await tx.user.create({
+      data: {
+        email: claimedPlayerEmail(pending.phone),
+        phone: pending.phone,
+        role: 'player',
+        linked_player_id: pending.player_id,
+      },
+    })
+
     const claim = await tx.playerClaim.update({
       where: { id: claimId },
       data: {
         verified_at: new Date(),
         consent_status: 'granted',
         consent_granted_at: new Date(),
+        claiming_user_id: user.id,
       },
     })
 
     await tx.playerProfile.update({
       where: { id: claim.player_id },
-      data: { claim_status: 'claimed', consent_status: 'granted' },
+      data: { claim_status: 'claimed', consent_status: 'granted', user_id: user.id },
     })
 
-    return claim
+    return { claim, user }
   })
 
   if (!result) {
@@ -76,5 +89,15 @@ export async function POST(req: NextRequest) {
   logOtpEvent({ flowType: 'claim_player', event: 'verify_success', phone: otp.phone, claimId })
   logOtpEvent({ flowType: 'claim_player', event: 'consumed', phone: otp.phone, claimId })
 
-  return NextResponse.json({ verified: true, playerId: result.player_id })
+  const res = NextResponse.json({ verified: true, playerId: result.claim.player_id })
+  const token = await encodeSessionToken({
+    id: result.user.id,
+    email: result.user.email,
+    role: result.user.role,
+  })
+  return applySessionCookie(res, token)
+}
+
+function claimedPlayerEmail(phone: string): string {
+  return `${phone.replace(/\D/g, '')}@claimed.athlasx.local`
 }

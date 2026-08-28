@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Database, Upload, RefreshCw, CheckCircle2,
@@ -9,6 +9,9 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { IngestMethod } from '@/types'
+import type { IngestSourceKey } from '@/lib/ingest/types'
+import { mapCsvToIngestPayload, INGEST_CSV_HEADERS } from '@/lib/ingest/csv-to-payload'
+import { CRICHEROES_SYNC_FIXTURE } from '@/lib/ingest/fixtures/cricheroes-sync'
 
 interface IngestJob {
   id: string
@@ -189,26 +192,54 @@ function JobPanel({ job, onClose, onDecided }: { job: IngestJob; onClose: () => 
 }
 
 /* ─── Upload zone ─────────────────────────────────────────────────────────────── */
-function UploadZone() {
+function UploadZone({
+  disabled,
+  onFile,
+}: {
+  disabled: boolean
+  onFile: (file: File) => void
+}) {
   const [dragging, setDragging] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  function takeFile(file: File | undefined) {
+    if (!file || disabled) return
+    onFile(file)
+  }
 
   return (
     <div
-      onDragOver={e => { e.preventDefault(); setDragging(true) }}
+      onDragOver={e => { e.preventDefault(); if (!disabled) setDragging(true) }}
       onDragLeave={() => setDragging(false)}
-      onDrop={e => { e.preventDefault(); setDragging(false) }}
+      onDrop={e => {
+        e.preventDefault()
+        setDragging(false)
+        takeFile(e.dataTransfer.files[0])
+      }}
+      onClick={() => { if (!disabled) inputRef.current?.click() }}
       className={cn(
-        'border-2 border-dashed rounded-2xl p-8 text-center transition-colors cursor-pointer',
+        'border-2 border-dashed rounded-2xl p-8 text-center transition-colors',
+        disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
         dragging ? 'border-green-500/50 bg-green-500/8' : 'border-white/[0.08] hover:border-white/[0.14] bg-white/[0.02]'
       )}
     >
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".json,.csv,application/json,text/csv"
+        className="hidden"
+        onChange={e => {
+          takeFile(e.target.files?.[0])
+          e.target.value = ''
+        }}
+      />
       <Upload className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
-      <p className="text-sm font-bold text-zinc-400">Drop scorecard PDFs or Excel files here</p>
+      <p className="text-sm font-bold text-zinc-400">Drop a scorecard JSON or CSV here</p>
       <p className="text-xs text-zinc-700 mt-1">or <span className="text-green-400 font-semibold">browse to upload</span></p>
       <div className="flex items-center justify-center gap-4 mt-4 text-[10px] text-zinc-700">
-        <span>PDF · XLSX · CSV</span>
+        <span>JSON · CSV</span>
         <span>·</span>
-        <span>Max 50MB per file</span>
+        <span>Mapped into the existing adapter payload</span>
       </div>
     </div>
   )
@@ -220,16 +251,83 @@ export default function IngestPage() {
   const [loading, setLoading] = useState(true)
   const [activeJob, setActiveJob] = useState<IngestJob | null>(null)
   const [cricheroesSyncing, setCricheroesSyncing] = useState(false)
+  const [associationId, setAssociationId] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const excelInputRef = useRef<HTMLInputElement>(null)
+
+  async function refreshJobs() {
+    const res = await fetch('/api/ingest')
+    const data = await res.json()
+    setJobs(data.jobs ?? [])
+    if (typeof data.associationId === 'string') setAssociationId(data.associationId)
+  }
 
   useEffect(() => {
-    fetch('/api/ingest').then(r => r.json()).then(data => {
-      setJobs(data.jobs ?? [])
-      setLoading(false)
-    })
+    refreshJobs().finally(() => setLoading(false))
   }, [])
 
   function handleDecided(id: string, status: 'approved' | 'rejected') {
     setJobs(prev => prev.map(j => j.id === id ? { ...j, status } : j))
+  }
+
+  async function postPayload(sourceKey: IngestSourceKey, payload: unknown) {
+    if (!associationId) {
+      setSubmitError('No association is scoped to this session')
+      return
+    }
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      const res = await fetch('/api/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ associationId, sourceKey, payload }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Submit failed')
+      await refreshJobs()
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : 'Submit failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleFile(file: File) {
+    const name = file.name.toLowerCase()
+    try {
+      if (name.endsWith('.csv')) {
+        await postPayload('excel_mapper', mapCsvToIngestPayload(await file.text()))
+        return
+      }
+      if (name.endsWith('.json')) {
+        await postPayload('structured_parser', JSON.parse(await file.text()))
+        return
+      }
+      setSubmitError('JSON or CSV only — no PDF/OCR product in this slice')
+    } catch (e) {
+      setSubmitError(e instanceof Error ? e.message : 'Could not read file')
+    }
+  }
+
+  function downloadCsvTemplate() {
+    const blob = new Blob([INGEST_CSV_HEADERS.join(',') + '\n'], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'athlasx-ingest-template.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function syncCricHeroesFixture() {
+    setCricheroesSyncing(true)
+    try {
+      await postPayload('api_sync', CRICHEROES_SYNC_FIXTURE)
+    } finally {
+      setCricheroesSyncing(false)
+    }
   }
 
   const pending = jobs.filter(j => j.status === 'pending_review').length
@@ -266,23 +364,22 @@ export default function IngestPage() {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-white">CricHeroes</p>
-                  <p className="text-[10px] text-green-400">Connected</p>
+                  <p className="text-[10px] text-zinc-500">Offline — documented fixture</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[9px] text-green-400 font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                Live
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-[9px] text-zinc-500 font-bold">
+                Fixture
               </div>
             </div>
             <button
-              onClick={() => setCricheroesSyncing(true)}
-              disabled={cricheroesSyncing}
+              onClick={() => void syncCricHeroesFixture()}
+              disabled={cricheroesSyncing || submitting || !associationId}
               className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-green-600/80 hover:bg-green-600 text-white text-xs font-bold transition-colors disabled:opacity-60"
             >
               <RefreshCw className={cn('w-3 h-3', cricheroesSyncing && 'animate-spin')} />
               {cricheroesSyncing ? 'Syncing…' : 'Sync now'}
             </button>
-            <p className="text-[9px] text-zinc-700">Last sync: 2h ago · 412 rows queued</p>
+            <p className="text-[9px] text-zinc-700">Posts the documented JSON fixture through api_sync. No live CricHeroes call.</p>
           </div>
 
           {/* PDF */}
@@ -313,18 +410,43 @@ export default function IngestPage() {
                 <p className="text-[10px] text-zinc-600">Structured upload</p>
               </div>
             </div>
-            <button className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-white text-xs font-medium transition-colors">
+            <input
+              ref={excelInputRef}
+              type="file"
+              accept=".json,.csv,application/json,text/csv"
+              className="hidden"
+              onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) void handleFile(file)
+                e.target.value = ''
+              }}
+            />
+            <button
+              onClick={() => excelInputRef.current?.click()}
+              disabled={submitting || !associationId}
+              className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-white text-xs font-medium transition-colors disabled:opacity-50"
+            >
               <Upload className="w-3 h-3" />
               Upload file
             </button>
-            <p className="text-[9px] text-zinc-700">Download template → fill → upload for association data</p>
+            <p className="text-[9px] text-zinc-700">
+              <button type="button" onClick={downloadCsvTemplate} className="text-green-400 hover:underline">Download template</button>
+              {' '}→ fill → upload JSON or CSV
+            </p>
           </div>
         </div>
       </motion.div>
 
+      {submitError && (
+        <div className="flex items-start gap-2 p-3 rounded-xl border border-red-500/20 bg-red-500/8">
+          <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+          <p className="text-xs text-red-300">{submitError}</p>
+        </div>
+      )}
+
       {/* Upload zone */}
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <UploadZone />
+        <UploadZone disabled={submitting || !associationId} onFile={file => void handleFile(file)} />
       </motion.div>
 
       {/* Jobs queue */}

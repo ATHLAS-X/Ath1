@@ -4,10 +4,9 @@ import { requireRole } from '@/lib/require-auth'
 import { resolveAssociationScope } from '@/lib/association-scope'
 import { AttachSnapshotMissingError, attachSkippedPerformance } from '@/lib/identity-exception-attach'
 
-// Confirms an OPEN exception attaches to one of its own candidate_player_ids
-// (or a caller-supplied playerId, still validated against the candidate
-// list — never an arbitrary id). Writes the skipped Performance onto that
-// player. Never auto-merged; a human always confirms.
+// Merge: attach the skipped row onto an explicit surviving candidate.
+// Does not move or rewrite either player's existing Performance history —
+// only the new snapshot is written.
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireRole(req, ['association', 'athlasx_ops'])
   if (auth instanceof NextResponse) return auth
@@ -32,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       await attachSkippedPerformance(tx, exception, targetPlayerId)
       await tx.identityException.update({
         where: { id: params.id },
-        data: { status: 'CONFIRMED', resolved_by_user_id: auth.user.id, resolved_at: new Date() },
+        data: { status: 'MERGED', resolved_by_user_id: auth.user.id, resolved_at: new Date() },
       })
     })
   } catch (err) {
@@ -42,5 +41,5 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     throw err
   }
 
-  return NextResponse.json({ status: 'CONFIRMED', playerId: targetPlayerId })
+  return NextResponse.json({ status: 'MERGED', playerId: targetPlayerId })
 }

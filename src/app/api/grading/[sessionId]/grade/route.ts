@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { requireAuth } from '@/lib/require-auth'
+import { requireRole } from '@/lib/require-auth'
 
 // Submits (or updates) one selector's grade for one player. This is the
 // actual blind-grading enforcement point: a selector can only ever write
@@ -11,7 +11,7 @@ import { requireAuth } from '@/lib/require-auth'
 // any other selector's grade — see mine/route.ts and convergence/route.ts
 // for the read side of that boundary.
 export async function POST(req: NextRequest, { params }: { params: { sessionId: string } }) {
-  const auth = await requireAuth(req)
+  const auth = await requireRole(req, ['selection_panel'])
   if (auth instanceof NextResponse) return auth
   const selectorId = auth.user.id
 

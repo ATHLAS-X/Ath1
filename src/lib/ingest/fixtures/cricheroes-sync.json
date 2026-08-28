@@ -1,0 +1,31 @@
+{
+  "tournamentName": "CricHeroes Fixture — U19 District Trophy",
+  "season": "2026",
+  "format": "T20",
+  "ageCategory": "U19",
+  "level": "district",
+  "matchDate": "2026-01-15",
+  "homeTeam": "Kanpur XI",
+  "awayTeam": "Lucknow XI",
+  "venue": "Green Park",
+  "performances": [
+    {
+      "full_name": "Adult Player",
+      "dob": "2000-01-01",
+      "district": "Kanpur",
+      "academy_raw": "Kanpur Cricket Academy",
+      "batting_runs": 45,
+      "batting_balls": 30,
+      "batting_dismissed": true
+    },
+    {
+      "full_name": "Brand New Player",
+      "dob": "2003-06-15",
+      "district": "Lucknow",
+      "academy_raw": "Lucknow Cricket Academy",
+      "bowling_overs": 4,
+      "bowling_wickets": 2,
+      "bowling_runs_conceded": 22
+    }
+  ]
+}

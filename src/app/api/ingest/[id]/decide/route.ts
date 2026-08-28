@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
-import { requireAuth } from '@/lib/require-auth'
+import { requireRole } from '@/lib/require-auth'
+import { resolveRequestedAssociationScope } from '@/lib/association-scope'
 import { resolveIdentity } from '@/lib/identity-resolution'
 import { enqueueAcademyCapture } from '@/lib/academy-capture'
 import type { NormalizedIngestPayload } from '@/lib/ingest/types'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const auth = await requireAuth(req)
+  const auth = await requireRole(req, ['association', 'athlasx_ops'])
   if (auth instanceof NextResponse) return auth
 
   const { decision } = await req.json()
@@ -18,6 +20,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 })
   if (job.status !== 'pending_review') {
     return NextResponse.json({ error: 'Job is not pending review' }, { status: 409 })
+  }
+  if (job.association_id) {
+    const scope = await resolveRequestedAssociationScope(auth.user, job.association_id)
+    if (scope !== null && !scope.includes(job.association_id)) {
+      return NextResponse.json({ error: 'Forbidden — not scoped to this association' }, { status: 403 })
+    }
   }
 
   if (decision === 'rejected') {
@@ -93,6 +101,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       )
       if (outcome.outcome === 'AMBIGUOUS') {
         identityAmbiguous++
+        await tx.identityException.update({
+          where: { id: outcome.exceptionId },
+          data: {
+            match_id: match.id,
+            performance_snapshot: row as unknown as Prisma.InputJsonValue,
+          },
+        })
         continue // no Performance row without a resolved player_id
       }
       identityResolved++

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { requireAuth } from '@/lib/require-auth'
+import { requireRole } from '@/lib/require-auth'
 
 // Only the session's chair_id can unlock convergence — checked server-side,
 // not left to the client to decide whether to show a "Lock squad" button.
@@ -9,7 +9,7 @@ import { requireAuth } from '@/lib/require-auth'
 // unlock convergence (and read every selector's grade) just by knowing the
 // chair's id.
 export async function POST(req: NextRequest, { params }: { params: { sessionId: string } }) {
-  const auth = await requireAuth(req)
+  const auth = await requireRole(req, ['selection_panel'])
   if (auth instanceof NextResponse) return auth
   const chairId = auth.user.id
 

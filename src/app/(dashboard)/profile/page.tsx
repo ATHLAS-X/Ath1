@@ -1,8 +1,13 @@
 'use client'
 
 import { User } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { chromeIdentity } from '@/lib/chrome'
 
 export default function ProfilePage() {
+  const { data: session } = useSession()
+  const identity = chromeIdentity(session?.user)
+
   return (
     <div className="space-y-5 max-w-[900px]">
       <div>
@@ -14,8 +19,8 @@ export default function ProfilePage() {
           <User className="w-6 h-6 text-white" />
         </div>
         <div>
-          <p className="text-sm font-bold text-white">Hritvik Garg</p>
-          <p className="text-xs text-zinc-600">AthlasX Ops</p>
+          <p className="text-sm font-bold text-white">{identity.email || 'Not signed in'}</p>
+          <p className="text-xs text-zinc-600">{identity.roleLabel}</p>
         </div>
       </div>
     </div>

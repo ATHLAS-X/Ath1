@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { calculateAthlasXScore } from '@/lib/athlasx-score'
 import { dbRoleMap, seedPerformances } from '@/lib/mock-performance-seed'
-import { requireAuth } from '@/lib/require-auth'
+import { requireRole } from '@/lib/require-auth'
 import { resolveAssociationScope } from '@/lib/association-scope'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAuth(req)
+  const auth = await requireRole(req, ['association', 'selection_panel', 'coach', 'athlasx_ops'])
   if (auth instanceof NextResponse) return auth
 
   // association is now derived from the caller's own membership (null scope

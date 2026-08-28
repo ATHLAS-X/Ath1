@@ -50,6 +50,7 @@ export default function OnboardingPage() {
   const [form, setForm] = useState({
     // Step 1 — Identity
     fullName: '', dob: '', district: '', state: '',
+    email: '', password: '',
     guardianPhone: '',   // required if under-18
     cricheroes_handle: '',
     // Step 2 — Playing profile
@@ -79,7 +80,7 @@ export default function OnboardingPage() {
 
   function canProceed() {
     if (step === 1) {
-      const base = form.fullName && form.dob && form.district && form.state
+      const base = form.fullName && form.dob && form.district && form.state && form.email && form.password
       return minor ? base && form.guardianPhone : base
     }
     if (step === 2) return Boolean(form.playingRole)
@@ -91,13 +92,18 @@ export default function OnboardingPage() {
 
     setLoading(true)
     try {
-      // In production: POST to /api/player/onboard → creates shadow or claimed PlayerProfile in Supabase
-      await new Promise(r => setTimeout(r, 1000))
+      const res = await fetch('/api/player/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to save profile')
       toast.success('Profile created. Your match record will populate as data is ingested.')
       router.push('/dashboard')
     } catch (err) {
       console.error(err)
-      toast.error('Failed to save profile. Please try again.')
+      toast.error(err instanceof Error ? err.message : 'Failed to save profile. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -162,6 +168,31 @@ export default function OnboardingPage() {
                         placeholder="Arjun Sharma"
                         className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50"
                       />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-zinc-400 text-sm">Email *</Label>
+                        <Input
+                          type="email"
+                          value={form.email}
+                          onChange={e => update('email', e.target.value)}
+                          placeholder="arjun@example.com"
+                          autoComplete="email"
+                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-zinc-400 text-sm">Password *</Label>
+                        <Input
+                          type="password"
+                          value={form.password}
+                          onChange={e => update('password', e.target.value)}
+                          placeholder="Choose a password"
+                          autoComplete="new-password"
+                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50"
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
@@ -422,6 +453,7 @@ export default function OnboardingPage() {
                   <div className="space-y-3">
                     {[
                       { label: 'Name',         value: form.fullName || '—' },
+                      { label: 'Email',        value: form.email || '—' },
                       { label: 'DOB',          value: form.dob || '—' },
                       { label: 'District',     value: form.district || '—' },
                       { label: 'State',        value: form.state || '—' },
@@ -442,7 +474,7 @@ export default function OnboardingPage() {
                     <div>
                       <p className="text-xs font-bold text-zinc-300">What happens next</p>
                       <ul className="text-xs text-zinc-600 mt-1 space-y-0.5">
-                        <li>· Your profile is created as a shadow profile</li>
+                        <li>· Your profile is created and you are signed in</li>
                         <li>· Match history populates from association-ingested scorecard data</li>
                         <li>· AthlasX score is calculated from verified match data only — no self-reported stats</li>
                         {minor && <li>· Guardian consent OTP will be sent to {form.guardianPhone}</li>}

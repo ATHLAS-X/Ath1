@@ -201,6 +201,8 @@ enum ProfileSource {
 model User {
   id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email            String    @unique
+  password_hash    String?
+  phone            String?   @unique
   role             UserRole
   linked_player_id String?   @db.Uuid
   linked_staff_id  String?   @db.Uuid
@@ -295,11 +297,19 @@ model IdentityException {
   id                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   association_id      String                  @db.Uuid
   association         Association             @relation(fields: [association_id], references: [id], onDelete: Cascade)
+  // The Match created on ingest approve — kept so confirm/split/merge can
+  // write the skipped Performance onto a resolved player later.
+  match_id            String?                 @db.Uuid
+  match               Match?                  @relation(fields: [match_id], references: [id])
   raw_name            String
   raw_dob             DateTime?               @db.Date
   raw_district         String?
   reason              IdentityExceptionReason
   candidate_player_ids String[]               @default([])
+  // NormalizedPerformanceRow from the ingest payload — batting/bowling
+  // figures plus raw identity. Confirm/split/merge write this as a
+  // Performance; it must not be dropped when the row is ambiguous.
+  performance_snapshot Json?
   status              IdentityExceptionStatus @default(OPEN)
   resolved_by_user_id String?                 @db.Uuid
   resolved_by         User?                   @relation(fields: [resolved_by_user_id], references: [id])
@@ -484,6 +494,7 @@ model Match {
   association_approval_status   ApprovalStatus  @default(pending)
 
   performances Performance[]
+  identity_exceptions IdentityException[]
 
   @@map("matches")
   @@schema("athlasx")

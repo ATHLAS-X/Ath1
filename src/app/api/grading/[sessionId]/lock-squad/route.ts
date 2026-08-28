@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { requireAuth } from '@/lib/require-auth'
+import { requireRole } from '@/lib/require-auth'
 
 // Locks the final squad: creates one immutable Selection row per chosen
 // player and moves the session to 'locked'. Only the chair may call this,
 // and only after convergence has been unlocked. chairId is derived from
 // the caller's own verified session, not the request body.
 export async function POST(req: NextRequest, { params }: { params: { sessionId: string } }) {
-  const auth = await requireAuth(req)
+  const auth = await requireRole(req, ['selection_panel'])
   if (auth instanceof NextResponse) return auth
   const chairId = auth.user.id
 

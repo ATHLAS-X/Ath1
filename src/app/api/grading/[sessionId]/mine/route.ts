@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { requireAuth } from '@/lib/require-auth'
+import { requireRole } from '@/lib/require-auth'
 
 // Returns only the calling selector's own grades — never another
 // selector's. This is what makes blind grading real: there is no route
@@ -9,7 +9,7 @@ import { requireAuth } from '@/lib/require-auth'
 // selectorId is now derived from the verified session, not a query param
 // — the same class of caller-supplied-identity issue as grade/unlock.
 export async function GET(req: NextRequest, { params }: { params: { sessionId: string } }) {
-  const auth = await requireAuth(req)
+  const auth = await requireRole(req, ['selection_panel'])
   if (auth instanceof NextResponse) return auth
   const selectorId = auth.user.id
 

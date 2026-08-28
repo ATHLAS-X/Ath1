@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { signOut, useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, User, Users, ClipboardList,
@@ -10,51 +11,23 @@ import {
   Database, GitMerge, Building2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { chromeIdentity, navSectionsForRole } from '@/lib/chrome'
 
-// Navigation sections — one per platform role
-// In production these are filtered by the authenticated user's role.
-// For the beta demo all sections are visible for walkthrough purposes.
-
-const sections = [
-  {
-    label: 'Association',
-    items: [
-      { label: 'Overview',       href: '/dashboard',      icon: LayoutDashboard },
-      { label: 'Trial Cycles',   href: '/trial-cycles',   icon: ClipboardList,  badge: '1 open' },
-      { label: 'Ingest & Data',  href: '/ingest',         icon: Database, badge: '2' },
-      { label: 'Academy Matching', href: '/academy-matching', icon: Building2 },
-    ],
-  },
-  {
-    label: 'Selection',
-    items: [
-      { label: 'Candidate Pool', href: '/selection',      icon: Users },
-      { label: 'Grading',        href: '/grading',        icon: Shield },
-      { label: 'Convergence',    href: '/convergence',    icon: GitMerge },
-    ],
-  },
-  {
-    label: 'Season',
-    items: [
-      { label: 'Weekly Tracking',href: '/tracking',       icon: Activity,       badge: '2 flags' },
-      { label: 'Coach',          href: '/coach',          icon: BookOpen },
-    ],
-  },
-  {
-    label: 'Player',
-    items: [
-      { label: 'My Profile',     href: '/profile',        icon: User },
-      { label: 'My Record',      href: '/record',         icon: BarChart3  },
-    ],
-  },
-  {
-    label: 'Account',
-    items: [
-      { label: 'Notifications',  href: '/notifications',  icon: Bell,           badge: '3' },
-      { label: 'Settings',       href: '/settings',       icon: Settings },
-    ],
-  },
-]
+const ICONS: Record<string, React.ElementType> = {
+  '/dashboard': LayoutDashboard,
+  '/trial-cycles': ClipboardList,
+  '/ingest': Database,
+  '/academy-matching': Building2,
+  '/selection': Users,
+  '/grading': Shield,
+  '/convergence': GitMerge,
+  '/tracking': Activity,
+  '/coach': BookOpen,
+  '/profile': User,
+  '/record': BarChart3,
+  '/notifications': Bell,
+  '/settings': Settings,
+}
 
 interface NavItemProps {
   href: string
@@ -101,6 +74,10 @@ function NavItem({ href, icon: Icon, label, badge, active }: NavItemProps) {
 
 export default function DashboardSidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const sections = navSectionsForRole(session?.user?.role ?? '')
+  const identity = chromeIdentity(session?.user)
+  const initials = identity.email.slice(0, 2).toUpperCase()
 
   return (
     <aside className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-[#070707] border-r border-white/[0.05] z-30">
@@ -131,7 +108,10 @@ export default function DashboardSidebar() {
               {section.items.map((item) => (
                 <NavItem
                   key={item.href}
-                  {...item}
+                  href={item.href}
+                  icon={ICONS[item.href] ?? User}
+                  label={item.label}
+                  badge={item.badge}
                   active={pathname === item.href || pathname.startsWith(item.href + '/')}
                 />
               ))}
@@ -142,16 +122,20 @@ export default function DashboardSidebar() {
 
       {/* User row */}
       <div className="px-3 pb-4 border-t border-white/[0.05] pt-3">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer group">
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: '/api/auth/signin' })}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors group text-left"
+        >
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-500 to-emerald-700 flex items-center justify-center flex-shrink-0 text-xs font-black text-white">
-            HG
+            {initials || '—'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white truncate">Hritvik Garg</p>
-            <p className="text-[10px] text-zinc-600 truncate">AthlasX Ops</p>
+            <p className="text-xs font-bold text-white truncate">{identity.email || 'Not signed in'}</p>
+            <p className="text-[10px] text-zinc-600 truncate">{identity.roleLabel}</p>
           </div>
           <LogOut className="w-3.5 h-3.5 text-zinc-700 group-hover:text-zinc-400 transition-colors flex-shrink-0" />
-        </div>
+        </button>
       </div>
     </aside>
   )

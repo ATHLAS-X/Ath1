@@ -3,8 +3,10 @@
 // Run with: npx tsx prisma/seed.ts
 import { PrismaClient } from '@prisma/client'
 import { bestSimilarity } from '../src/lib/string-similarity'
+import { hashPassword } from '../src/lib/password'
 
 const db = new PrismaClient()
+const DEV_PASSWORD = 'athlasx-dev-password'
 
 async function main() {
   const association = await db.association.create({
@@ -12,10 +14,22 @@ async function main() {
   })
 
   const chair = await db.user.create({
-    data: { email: 'chair@upca.example', role: 'selection_panel' },
+    data: { email: 'chair@upca.example', role: 'selection_panel', password_hash: await hashPassword(DEV_PASSWORD) },
   })
   const selector2 = await db.user.create({
-    data: { email: 'selector2@upca.example', role: 'selection_panel' },
+    data: { email: 'selector2@upca.example', role: 'selection_panel', password_hash: await hashPassword(DEV_PASSWORD) },
+  })
+  const associationStaff = await db.user.create({
+    data: { email: 'staff@upca.example', role: 'association', password_hash: await hashPassword(DEV_PASSWORD) },
+  })
+  await db.associationStaff.create({
+    data: { association_id: association.id, user_id: associationStaff.id, is_lead: true },
+  })
+  await db.selectorProfile.create({
+    data: { user_id: chair.id, full_name: 'UPCA Chair', association_id: association.id },
+  })
+  await db.selectorProfile.create({
+    data: { user_id: selector2.id, full_name: 'UPCA Selector 2', association_id: association.id },
   })
 
   // Shadow profiles — never logged in, exist purely from ingest
@@ -178,6 +192,7 @@ async function main() {
   console.log(`  association: ${association.id}`)
   console.log(`  chair user:  ${chair.id}`)
   console.log(`  selector2:   ${selector2.id}`)
+  console.log(`  staff user:  ${associationStaff.id}`)
   console.log(`  session:     ${session.id}`)
   console.log(`  players:     ${shadowPlayers.map(p => p.id).join(', ')}`)
 }

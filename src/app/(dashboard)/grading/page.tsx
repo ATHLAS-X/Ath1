@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Shield, ChevronRight, CheckCircle2, Clock,
   AlertCircle, Info, Send, EyeOff, Loader2,
-  UserCog, Lock,
+  Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { PlayingRole, TournamentLevel } from '@/types'
@@ -38,11 +38,6 @@ interface DbPlayer {
   full_name: string
   district: string
   playing_role: string | null
-}
-
-interface Selector {
-  id: string
-  email: string
 }
 
 function buildQvPool(players: DbPlayer[]): PlayerQV[] {
@@ -224,11 +219,9 @@ function GradePanel({ existing, locked, onSubmit }: {
 export default function GradingPage() {
   const [loading, setLoading] = useState(true)
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [chairId, setChairId] = useState<string | null>(null)
   const [unlockedAt, setUnlockedAt] = useState<string | null>(null)
   const [qvPool, setQvPool] = useState<PlayerQV[]>([])
-  const [selectors, setSelectors] = useState<Selector[]>([])
-  const [selectorId, setSelectorId] = useState<string>('')
+  const [isChair, setIsChair] = useState(false)
   const [grades, setGrades] = useState<Record<string, number>>({})
   const [activeId, setActiveId] = useState<string | null>(null)
   const [unlocking, setUnlocking] = useState(false)
@@ -239,32 +232,30 @@ export default function GradingPage() {
       .then(data => {
         if (!data.session) { setLoading(false); return }
         setSessionId(data.session.id)
-        setChairId(data.session.chair_id)
         setUnlockedAt(data.session.convergence_unlocked_at)
         setQvPool(buildQvPool(data.session.players))
-        setSelectors(data.selectors)
-        setSelectorId(data.session.chair_id)
+        setIsChair(!!data.is_chair)
         setLoading(false)
       })
   }, [])
 
   useEffect(() => {
-    if (!sessionId || !selectorId) return
-    fetch(`/api/grading/${sessionId}/mine?selectorId=${selectorId}`)
+    if (!sessionId) return
+    fetch(`/api/grading/${sessionId}/mine`)
       .then(r => r.json())
       .then(data => {
         const map: Record<string, number> = {}
         for (const g of data.grades ?? []) map[g.player_id] = g.overall_grade
         setGrades(map)
       })
-  }, [sessionId, selectorId])
+  }, [sessionId])
 
   async function submitGrade(playerId: string, grade: number, notes: string) {
-    if (!sessionId || !selectorId) return
+    if (!sessionId) return
     const res = await fetch(`/api/grading/${sessionId}/grade`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ selectorId, playerId, grade, notes }),
+      body: JSON.stringify({ playerId, grade, notes }),
     })
     if (res.ok) setGrades(prev => ({ ...prev, [playerId]: grade }))
   }
@@ -274,8 +265,6 @@ export default function GradingPage() {
     setUnlocking(true)
     const res = await fetch(`/api/grading/${sessionId}/unlock`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chairId: selectorId }),
     })
     if (res.ok) {
       const data = await res.json()
@@ -286,7 +275,6 @@ export default function GradingPage() {
 
   const active = qvPool.find(p => p.id === activeId)
   const gradedCount = Object.keys(grades).length
-  const isChair = selectorId === chairId
   const locked = !!unlockedAt
 
   if (loading) {
@@ -320,33 +308,17 @@ export default function GradingPage() {
             {gradedCount === qvPool.length && qvPool.length > 0 ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
             {gradedCount} / {qvPool.length} graded
           </div>
+          {isChair && !locked && (
+            <button
+              onClick={unlockConvergence}
+              disabled={unlocking}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 border border-amber-500/25 text-amber-400 hover:bg-amber-500/15 transition-colors disabled:opacity-50"
+            >
+              {unlocking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
+              Unlock convergence
+            </button>
+          )}
         </div>
-      </motion.div>
-
-      {/* Acting-as selector — stand-in for real auth */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-3 flex items-center gap-3">
-        <UserCog className="w-4 h-4 text-zinc-500 shrink-0" />
-        <span className="text-xs text-zinc-500">Acting as selector:</span>
-        <select
-          value={selectorId}
-          onChange={e => { setActiveId(null); setSelectorId(e.target.value) }}
-          className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-green-500/40"
-        >
-          <option value={chairId ?? ''} className="bg-zinc-900">Chair ({chairId?.slice(0, 8)}…)</option>
-          {selectors.filter(s => s.id !== chairId).map(s => (
-            <option key={s.id} value={s.id} className="bg-zinc-900">{s.email}</option>
-          ))}
-        </select>
-        {isChair && !locked && (
-          <button
-            onClick={unlockConvergence}
-            disabled={unlocking}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500/10 border border-amber-500/25 text-amber-400 hover:bg-amber-500/15 transition-colors disabled:opacity-50"
-          >
-            {unlocking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lock className="w-3.5 h-3.5" />}
-            Unlock convergence
-          </button>
-        )}
       </motion.div>
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }}
