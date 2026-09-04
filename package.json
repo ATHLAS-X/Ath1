@@ -13,6 +13,7 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:security": "vitest run tests/security",
+    "test:ci": "vitest run tests/unit tests/integration tests/security tests/known-defects",
     "test:coverage": "vitest run --coverage",
     "postinstall": "prisma generate",
     "test:e2e": "playwright test",
