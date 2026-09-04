@@ -45,7 +45,7 @@ export default function RegisterClient({ cycleId }: { cycleId: string }) {
       <div className="glass-card p-8 flex flex-col items-center text-center gap-2">
         <CheckCircle2 className="w-8 h-8 text-emerald-400" />
         <p className="text-sm font-bold text-zinc-200">Registration submitted</p>
-        <p className="text-xs text-zinc-500">Your registration is saved. Pay ₹{cycle.fee_amount} in cash at the venue on trial day — online payment isn't available yet.</p>
+        <p className="text-xs text-zinc-500">Your registration is saved. Pay ₹{cycle.fee_amount} in cash at the venue on trial day — online payment isn&apos;t available yet.</p>
       </div>
     )
   }

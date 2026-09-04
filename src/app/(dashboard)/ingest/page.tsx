@@ -153,7 +153,7 @@ function JobPanel({ job, onClose, onDecided }: { job: IngestJob; onClose: () => 
           <div className="flex items-start gap-2 p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
             <Zap className="w-3 h-3 text-zinc-600 mt-0.5 shrink-0" />
             <p className="text-[9px] text-zinc-600 leading-relaxed">
-              Every approved row carries: source, ingest_method, confidence_score, association_approval_status. This provenance travels with the player's Performance record permanently.
+              Every approved row carries: source, ingest_method, confidence_score, association_approval_status. This provenance travels with the player&apos;s Performance record permanently.
             </p>
           </div>
 
