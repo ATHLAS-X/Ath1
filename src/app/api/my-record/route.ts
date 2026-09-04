@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { calculateAthlasXScore, getScoreTier } from '@/lib/athlasx-score'
-import { dbRoleMap, seedMatchHistory } from '@/lib/mock-performance-seed'
+import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { requireAuth } from '@/lib/require-auth'
+import { verifiedMatchHistoryForPlayer } from '@/lib/verified-performances'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
   if (player.consent_status === 'withdrawn') return NextResponse.json({ player: null })
 
   const role = dbRoleMap[player.playing_role ?? 'Batsman'] ?? 'Batsman'
-  const matches = seedMatchHistory(player.id, role)
+  const matches = await verifiedMatchHistoryForPlayer(player.id)
   const performances = matches.map(m => ({
     level: m.level, batting_runs: m.batting_runs, batting_balls: m.batting_balls,
     batting_dismissed: m.batting_dismissed, bowling_overs: m.bowling_overs,

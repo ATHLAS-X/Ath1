@@ -6,6 +6,8 @@ import { requireRole } from '@/lib/require-auth'
 // player and moves the session to 'locked'. Only the chair may call this,
 // and only after convergence has been unlocked. chairId is derived from
 // the caller's own verified session, not the request body.
+//
+// T-GRADE-AUTH: role gate added alongside the existing chair_id check.
 export async function POST(req: NextRequest, { params }: { params: { sessionId: string } }) {
   const auth = await requireRole(req, ['selection_panel'])
   if (auth instanceof NextResponse) return auth

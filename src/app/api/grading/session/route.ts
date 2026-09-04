@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireRole } from '@/lib/require-auth'
 import { resolveAssociationScope } from '@/lib/association-scope'
+import { verifiedPerformancesByPlayer } from '@/lib/verified-performances'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,6 +24,7 @@ function serializeSession(
     }
   },
   callerId: string,
+  performancesByPlayer: Awaited<ReturnType<typeof verifiedPerformancesByPlayer>>,
 ) {
   return {
     session: {
@@ -34,6 +36,7 @@ function serializeSession(
         full_name: p.full_name,
         district: p.district,
         playing_role: p.playing_role,
+        performances: performancesByPlayer[p.id],
       })),
     },
     is_chair: session.chair_id === callerId,
@@ -83,5 +86,10 @@ export async function GET(req: NextRequest) {
   })
 
   if (!session) return NextResponse.json({ session: null })
-  return NextResponse.json(serializeSession(session, auth.user.id))
+
+  const performancesByPlayer = await verifiedPerformancesByPlayer(
+    session.association.players.map(p => p.id),
+  )
+
+  return NextResponse.json(serializeSession(session, auth.user.id, performancesByPlayer))
 }

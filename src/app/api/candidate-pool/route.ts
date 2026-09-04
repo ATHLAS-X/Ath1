@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { calculateAthlasXScore, getProvenanceLabel } from '@/lib/athlasx-score'
-import { dbRoleMap, seedPerformances } from '@/lib/mock-performance-seed'
+import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { requireAuth } from '@/lib/require-auth'
 import { resolveAssociationScope } from '@/lib/association-scope'
+import { verifiedPerformancesByPlayer } from '@/lib/verified-performances'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,9 +48,10 @@ export async function GET(req: NextRequest) {
   })
   const flagByPlayer = new Map(trendAlerts.map(t => [t.player_id, t.flag_type]))
 
+  const perfsByPlayer = await verifiedPerformancesByPlayer(session.association.players.map(p => p.id))
   const candidates = session.association.players.map(p => {
     const role = dbRoleMap[p.playing_role ?? 'Batsman'] ?? 'Batsman'
-    const performances = seedPerformances(p.id, role)
+    const performances = perfsByPlayer[p.id]
     const result = calculateAthlasXScore({ playingRole: role, performances, yearsExperience: 3 })
     const age = Math.floor((Date.now() - p.dob.getTime()) / (365.25 * 24 * 3600 * 1000))
     return {

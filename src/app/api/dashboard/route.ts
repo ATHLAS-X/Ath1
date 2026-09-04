@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { calculateAthlasXScore } from '@/lib/athlasx-score'
-import { dbRoleMap, seedPerformances } from '@/lib/mock-performance-seed'
+import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { requireRole } from '@/lib/require-auth'
 import { resolveAssociationScope } from '@/lib/association-scope'
+import { verifiedPerformancesByPlayer } from '@/lib/verified-performances'
 
 export const dynamic = 'force-dynamic'
 
@@ -68,11 +69,17 @@ export async function GET(req: NextRequest) {
     { band: '71–85', min: 71, max: 85 },
     { band: '86–100', min: 86, max: 100 },
   ]
-  const scores = players.map(p => {
-    const role = dbRoleMap[p.playing_role ?? 'Batsman'] ?? 'Batsman'
-    const result = calculateAthlasXScore({ playingRole: role, performances: seedPerformances(p.id, role), yearsExperience: 3 })
-    return result.total
-  })
+  const perfsByPlayer = await verifiedPerformancesByPlayer(players.map(p => p.id))
+  // Only players with real verified match data get a score here — a player
+  // with none isn't fabricated into a band, they're honestly excluded (same
+  // as an empty-history player never appearing in candidate-pool rankings).
+  const scores = players
+    .map(p => {
+      const role = dbRoleMap[p.playing_role ?? 'Batsman'] ?? 'Batsman'
+      return calculateAthlasXScore({ playingRole: role, performances: perfsByPlayer[p.id], yearsExperience: 3 })
+    })
+    .filter(result => result.verifiedMatchCount > 0)
+    .map(result => result.total)
   const scoreDist = bands.map(b => ({ band: b.band, count: scores.filter(s => s >= b.min && s <= b.max).length }))
 
   // Active flags

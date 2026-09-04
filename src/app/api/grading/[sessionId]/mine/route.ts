@@ -8,6 +8,11 @@ import { requireRole } from '@/lib/require-auth'
 // unlocked (see convergence/route.ts, which enforces that separately).
 // selectorId is now derived from the verified session, not a query param
 // — the same class of caller-supplied-identity issue as grade/unlock.
+//
+// T-GRADE-AUTH: role gate added for consistency with the other grading
+// routes (this endpoint was already safe against cross-selector leakage
+// since it only ever returns the caller's own rows, but a non-selector
+// had no reason to be able to call it either).
 export async function GET(req: NextRequest, { params }: { params: { sessionId: string } }) {
   const auth = await requireRole(req, ['selection_panel'])
   if (auth instanceof NextResponse) return auth

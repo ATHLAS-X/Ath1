@@ -9,8 +9,19 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { PlayingRole, TournamentLevel } from '@/types'
-import { calculateAthlasXScore, getProvenanceLabel } from '@/lib/athlasx-score'
-import { dbRoleMap, seedPerformances } from '@/lib/mock-performance-seed'
+import { calculateAthlasXScore, getProvenanceLabel, type VerifiedPerformanceRow } from '@/lib/athlasx-score'
+import { dbRoleMap } from '@/lib/mock-performance-seed'
+
+// Highest tournament level present in a player's verified performances —
+// drives the Quick View provenance label. 'local' (the TQI floor) when the
+// player has no verified match history yet.
+function topLevelOf(performances: VerifiedPerformanceRow[]): TournamentLevel {
+  const levels = new Set(performances.map(p => p.level))
+  if (levels.has('national')) return 'national'
+  if (levels.has('state')) return 'state'
+  if (levels.has('district')) return 'district'
+  return 'local'
+}
 
 /* ─── Quick View card ─────────────────────────────────────────────────────────
    Batting and Bowling only — fielding/keeping excluded (scorecard incomplete)
@@ -38,12 +49,13 @@ interface DbPlayer {
   full_name: string
   district: string
   playing_role: string | null
+  performances: VerifiedPerformanceRow[]
 }
 
 function buildQvPool(players: DbPlayer[]): PlayerQV[] {
   return players.map(p => {
     const role = dbRoleMap[p.playing_role ?? 'Batsman'] ?? 'Batsman'
-    const performances = seedPerformances(p.id, role)
+    const performances = p.performances
     const result = calculateAthlasXScore({ playingRole: role, performances, yearsExperience: 3 })
     return {
       id: p.id,
@@ -54,7 +66,7 @@ function buildQvPool(players: DbPlayer[]): PlayerQV[] {
       bowling_0_to_10: result.bowling > 0 ? result.bowling : undefined,
       match_count: result.verifiedMatchCount,
       tqi_weighted: result.tqiWeightedMatches,
-      top_level: 'district',
+      top_level: topLevelOf(performances),
     }
   })
 }

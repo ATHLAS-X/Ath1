@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { calculateAthlasXScore } from '@/lib/athlasx-score'
-import { dbRoleMap, seedPerformances } from '@/lib/mock-performance-seed'
+import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { requireAuth } from '@/lib/require-auth'
 import { canAccessSquad } from '@/lib/squad-access'
+import { verifiedPerformancesByPlayer } from '@/lib/verified-performances'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,10 +53,11 @@ export async function GET(req: NextRequest) {
   const latestByPlayer = new Map<string, typeof latestWeeks[number]>()
   for (const w of latestWeeks) if (!latestByPlayer.has(w.player_id)) latestByPlayer.set(w.player_id, w)
 
+  const perfsByPlayer = await verifiedPerformancesByPlayer(playerIds)
   const squad = players.map(p => {
     const role = dbRoleMap[p.playing_role ?? 'Batsman'] ?? 'Batsman'
     const week = latestByPlayer.get(p.id)
-    const performances = seedPerformances(p.id, role)
+    const performances = perfsByPlayer[p.id]
     // coachFitnessRating/coachBehaviourRating are deprecated no-ops on
     // calculateAthlasXScore (DEFECT 1 — coach ratings no longer affect the
     // score at all). Passing them here is harmless but pointless; kept

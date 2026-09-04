@@ -218,6 +218,75 @@ describe('unlocking convergence', () => {
   })
 })
 
+describe('T-GRADE-AUTH — non-selectors are blocked from every grading write path', () => {
+  // Synthetic ids: the JWT role claim alone is what gets checked before any
+  // DB write is attempted, so these never need to exist as real rows — the
+  // same class of caller this session's live walkthrough used to prove the
+  // escalation (a real player-role user, no selection_panel role, no
+  // AssociationStaff row, successfully POSTed a grade and got a real Grade
+  // row created).
+  const asPlayer = (body?: unknown) =>
+    body === undefined
+      ? getAsUser(URL, '11111111-1111-1111-1111-111111111111', 'player')
+      : postAsUser(URL, '11111111-1111-1111-1111-111111111111', 'player', body)
+  const asCoach = (body?: unknown) =>
+    postAsUser(URL, '22222222-2222-2222-2222-222222222222', 'coach', body)
+  const asStaffer = (body?: unknown) =>
+    postAsUser(URL, '33333333-3333-3333-3333-333333333333', 'association', body)
+
+  it('rejects a player POSTing a grade — the exact escalation live-proved against the real DB', async () => {
+    const res = await submitGrade(
+      await asPlayer({ playerId: fx.adult.id, grade: 9 }),
+      { params: { sessionId: fx.session.id } },
+    )
+    expect(res.status).toBe(403)
+    const rows = await testDb.grade.findMany({ where: { selection_session_id: fx.session.id } })
+    expect(rows).toHaveLength(0)
+  })
+
+  it('rejects a coach POSTing a grade', async () => {
+    const res = await submitGrade(
+      await asCoach({ playerId: fx.adult.id, grade: 9 }),
+      { params: { sessionId: fx.session.id } },
+    )
+    expect(res.status).toBe(403)
+  })
+
+  it('rejects an association staffer POSTing a grade', async () => {
+    const res = await submitGrade(
+      await asStaffer({ playerId: fx.adult.id, grade: 9 }),
+      { params: { sessionId: fx.session.id } },
+    )
+    expect(res.status).toBe(403)
+  })
+
+  it('rejects a non-selector unlocking convergence', async () => {
+    const res = await unlock(await asPlayer({}), { params: { sessionId: fx.session.id } })
+    expect(res.status).toBe(403)
+  })
+
+  it('rejects a non-selector reading /mine', async () => {
+    const res = await myGrades(await asPlayer(), { params: { sessionId: fx.session.id } })
+    expect(res.status).toBe(403)
+  })
+
+  it('rejects a non-selector locking the squad', async () => {
+    const res = await lockSquad(
+      await asPlayer({ playerIds: [fx.adult.id] }),
+      { params: { sessionId: fx.session.id } },
+    )
+    expect(res.status).toBe(403)
+  })
+
+  it('a legitimate selection_panel member on this session still succeeds', async () => {
+    const res = await submitGrade(
+      await asChair({ playerId: fx.adult.id, grade: 8 }),
+      { params: { sessionId: fx.session.id } },
+    )
+    expect(res.status).toBe(200)
+  })
+})
+
 describe('convergence view — after unlock', () => {
   beforeEach(async () => {
     const args = { params: { sessionId: fx.session.id } }

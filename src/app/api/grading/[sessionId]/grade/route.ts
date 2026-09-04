@@ -10,6 +10,13 @@ import { requireRole } from '@/lib/require-auth'
 // [session, selector, player] constraint) and this route never returns
 // any other selector's grade — see mine/route.ts and convergence/route.ts
 // for the read side of that boundary.
+//
+// T-GRADE-AUTH: requireAuth alone let ANY authenticated user (player,
+// coach, staff) POST a grade — live-proved as a full privilege escalation
+// into blind selection-panel grading. Selectors have no per-session or
+// per-association membership row in this schema (see convergence/route.ts's
+// note on the same gap) — role 'selection_panel' is the only membership
+// concept that exists, so that's the enforcement boundary here.
 export async function POST(req: NextRequest, { params }: { params: { sessionId: string } }) {
   const auth = await requireRole(req, ['selection_panel'])
   if (auth instanceof NextResponse) return auth

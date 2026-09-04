@@ -8,6 +8,10 @@ import { requireRole } from '@/lib/require-auth'
 // from the request body — that's what let an unauthenticated caller
 // unlock convergence (and read every selector's grade) just by knowing the
 // chair's id.
+//
+// T-GRADE-AUTH: added the role gate as defense-in-depth alongside the
+// existing chair_id check — a non-selection_panel caller now 403s before
+// the chair_id comparison even runs.
 export async function POST(req: NextRequest, { params }: { params: { sessionId: string } }) {
   const auth = await requireRole(req, ['selection_panel'])
   if (auth instanceof NextResponse) return auth

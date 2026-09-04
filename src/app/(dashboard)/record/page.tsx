@@ -156,6 +156,14 @@ export default function RecordPage() {
         </motion.div>
       </div>
 
+      {matches.length === 0 && (
+        <div className="glass-card p-8 flex flex-col items-center justify-center text-center">
+          <BarChart3 className="w-8 h-8 text-zinc-700 mb-3" />
+          <p className="text-sm font-bold text-zinc-500">No verified matches yet</p>
+          <p className="text-xs text-zinc-700 mt-1">Scores appear once your association ingests and approves match data</p>
+        </div>
+      )}
+
       <div className="space-y-2">
         {matches.map((m, i) => (
           <motion.div
