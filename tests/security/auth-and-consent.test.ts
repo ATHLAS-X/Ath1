@@ -25,7 +25,7 @@ import {
   assertIsTestSchema,
   type Fixtures,
 } from '../helpers/test-db'
-import { getAsUser } from '../helpers/auth'
+import { getAsUser, postAsUser } from '../helpers/auth'
 
 vi.mock('@/lib/db', async () => ({
   db: (await import('../helpers/test-db')).testDb,
@@ -222,7 +222,17 @@ describe('S4: withdrawing consent must stop the player being surfaced', () => {
         verified_at: new Date(),
       },
     })
-    await claimWithdraw(post({ claimId: claim.id }))
+
+    // claim/withdraw is now auth-gated and self-service only (previously
+    // had NO auth check at all — any caller who knew a claimId could
+    // withdraw someone else's consent). selectorB stands in as the real
+    // account linked to this player, same pattern used throughout this
+    // suite for turning a fixture user into a real signed-in identity.
+    await testDb.user.update({ where: { id: fx.selectorB.id }, data: { linked_player_id: fx.adult.id } })
+    const withdrawRes = await claimWithdraw(
+      await postAsUser('http://test.local/api', fx.selectorB.id, 'player', { claimId: claim.id }),
+    )
+    expect(withdrawRes.status).toBe(200)
 
     const res = await candidatePool(await getAsUser('http://test.local/api', fx.chair.id, 'association'))
     const raw = JSON.stringify(await res.json())
@@ -230,5 +240,44 @@ describe('S4: withdrawing consent must stop the player being surfaced', () => {
       raw.includes(fx.adult.id),
       'withdraw route flipped the flag but the player is still surfaced',
     ).toBe(false)
+  })
+
+  it('refuses to withdraw a claim that is not the caller\'s own', async () => {
+    const claim = await testDb.playerClaim.create({
+      data: {
+        player_id: fx.adult.id,
+        phone: '9123456789',
+        method: 'phone_otp',
+        consent_status: 'granted',
+        consent_granted_at: new Date(),
+        verified_at: new Date(),
+      },
+    })
+
+    // selectorB has no linked_player_id at all here — a real authenticated
+    // caller with no relationship to this claim must not be able to
+    // withdraw someone else's consent just by knowing/guessing a claimId.
+    const res = await claimWithdraw(
+      await postAsUser('http://test.local/api', fx.selectorB.id, 'player', { claimId: claim.id }),
+    )
+    expect(res.status).toBe(403)
+
+    const stillGranted = await testDb.playerClaim.findUnique({ where: { id: claim.id } })
+    expect(stillGranted?.consent_status).toBe('granted')
+  })
+
+  it('401s an anonymous caller attempting to withdraw', async () => {
+    const claim = await testDb.playerClaim.create({
+      data: {
+        player_id: fx.adult.id,
+        phone: '9123456789',
+        method: 'phone_otp',
+        consent_status: 'granted',
+        consent_granted_at: new Date(),
+        verified_at: new Date(),
+      },
+    })
+    const res = await claimWithdraw(post({ claimId: claim.id }))
+    expect(res.status).toBe(401)
   })
 })
