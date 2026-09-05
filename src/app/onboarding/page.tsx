@@ -100,7 +100,7 @@ export default function OnboardingPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to save profile')
       toast.success('Profile created. Your match record will populate as data is ingested.')
-      router.push('/dashboard')
+      router.push('/record')
     } catch (err) {
       console.error(err)
       toast.error(err instanceof Error ? err.message : 'Failed to save profile. Please try again.')

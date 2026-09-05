@@ -67,9 +67,18 @@ export function navHrefsForRole(role: string): string[] {
   return navSectionsForRole(role).flatMap((section) => section.items.map((item) => item.href))
 }
 
-export function rootDestination(session: { user?: { id?: string } } | null): string {
-  if (session?.user?.id) return '/dashboard'
-  return '/api/auth/signin?callbackUrl=/dashboard'
+/** Each role's own home page — where a signed-in visit to / should land. */
+const ROLE_HOME: Record<string, string> = {
+  player: '/record',
+  coach: '/coach',
+  association: '/dashboard',
+  athlasx_ops: '/dashboard',
+  selection_panel: '/selection',
+}
+
+export function rootDestination(session: { user?: { id?: string; role?: string } } | null): string {
+  if (!session?.user?.id) return '/api/auth/signin?callbackUrl=/dashboard'
+  return ROLE_HOME[session.user.role ?? ''] ?? '/dashboard'
 }
 
 const ROLE_LABELS: Record<string, string> = {

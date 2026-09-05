@@ -320,8 +320,8 @@ export default function ClaimPage() {
                   <h2 className="text-3xl font-black text-white mb-1">Profile Claimed</h2>
                   <p className="text-zinc-500 text-sm">{isMinor ? 'Guardian consent recorded. ' : ''}Your match history is now linked to your account.</p>
                 </div>
-                <Link href="/dashboard">
-                  <Button className="w-full">Go to dashboard <ArrowRight className="w-4 h-4" /></Button>
+                <Link href="/record">
+                  <Button className="w-full">Go to my record <ArrowRight className="w-4 h-4" /></Button>
                 </Link>
               </motion.div>
             )}
