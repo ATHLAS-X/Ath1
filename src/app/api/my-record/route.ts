@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
   }))
 
   return NextResponse.json({
-    player: { id: player.id, full_name: player.full_name, playing_role: role },
+    player: { id: player.id, full_name: player.full_name, playing_role: role, dob: player.dob },
     score: { total: result.total, tier: tier.label, batting: result.batting, bowling: result.bowling, fitness: result.fitness, fitnessAssessed: result.fitnessAssessed },
     summary: {
       matches: matches.length,
