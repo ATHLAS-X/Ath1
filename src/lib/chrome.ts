@@ -21,6 +21,7 @@ export const NAV_SECTIONS: ChromeNavSection[] = [
       { label: 'Overview', href: '/dashboard' },
       { label: 'Trial Cycles', href: '/trial-cycles', badge: '1 open' },
       { label: 'Ingest & Data', href: '/ingest', badge: '2' },
+      { label: 'Identity Exceptions', href: '/identity-exceptions' },
       { label: 'Academy Matching', href: '/academy-matching' },
     ],
   },
