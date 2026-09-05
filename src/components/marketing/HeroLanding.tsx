@@ -21,8 +21,10 @@ export default function HeroLanding() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="px-6 sm:px-10 py-6 flex items-center justify-between">
-        <div className="text-lg font-black tracking-tight">
-          Athlas<span className="text-gradient-green">X</span>
+        <div className="inline-block bg-black rounded-lg px-3 py-1">
+          <span className="text-lg font-black tracking-[-0.01em]">
+            Athlas<span className="text-gradient-green">X</span>
+          </span>
         </div>
         <a
           href="/api/auth/signin?callbackUrl=/dashboard"
