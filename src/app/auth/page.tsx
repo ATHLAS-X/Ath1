@@ -76,18 +76,21 @@ export default function AuthPage() {
       router.push('/onboarding/coach')
       return
     }
-    // association and scout: no working next step. Association is
-    // deliberately NOT routed to a self-serve flow — the pivot document's
-    // W1 workflow has AthlasX Ops approach associations directly (a
-    // sales-led relationship, not a signup form), so a working
-    // "sign up as an association" path would contradict the documented
-    // product model, not just be a missing page. Scout has no account
-    // path at all (no scout role exists in the pivot's phase-1 role
-    // table). Both surface the same clearly-labeled unavailable state,
-    // for different underlying reasons.
+    if (next === 'association') {
+      // Self-serve association onboarding now exists (src/app/onboarding/
+      // association/page.tsx) — built on explicit direction despite the
+      // earlier note here that the pivot document's W1 workflow describes
+      // a sales-led relationship (AthlasX Ops approaching associations
+      // directly), not a signup form. That tension is real and unresolved
+      // at the product level, but routing here is what was asked for.
+      router.push('/onboarding/association')
+      return
+    }
+    // scout: no account path at all — no scout role exists in the pivot's
+    // phase-1 role table, so there is nothing to route to.
   }
 
-  const roleUnavailable = role === 'association' || role === 'scout'
+  const roleUnavailable = role === 'scout'
 
   return (
     <div className="min-h-screen flex items-center justify-center px-6 py-16">
@@ -188,9 +191,7 @@ export default function AuthPage() {
               <div className="p-3 rounded-lg border border-amber-500/25 bg-amber-500/[0.06]">
                 <p className="text-xs font-bold text-amber-400">Not yet available</p>
                 <p className="text-[11px] text-zinc-500 mt-1">
-                  {role === 'association'
-                    ? 'Association accounts are set up directly by the AthlasX team as part of onboarding your association — there is no self-serve sign-up for this role yet.'
-                    : 'Scout accounts are not yet supported on AthlasX — there is no scout-facing role or workflow in the current platform.'}
+                  Scout accounts are not yet supported on AthlasX — there is no scout-facing role or workflow in the current platform.
                 </p>
               </div>
             )}
