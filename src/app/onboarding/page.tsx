@@ -1,9 +1,9 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, ArrowLeft, Loader2, CheckCircle2, AlertCircle, Upload, Link2, ShieldCheck } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Loader2, CheckCircle2, AlertCircle, Upload, Link2, ShieldCheck, Check } from 'lucide-react'
 import { Anton, Barlow, Barlow_Semi_Condensed } from 'next/font/google'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,11 +26,21 @@ import { toast } from 'sonner'
  * Still does NOT collect self-reported stats or fitness/behaviour ratings —
  * those come from ingested scorecard data / coach-supervised evaluations only.
  *
- * Presentation-only restyle to design/import/AthlasX Onboarding.html's
- * orange/Anton-Barlow palette, matching the scoping commit 0d19f74 already
- * used for / and /auth: fonts + tokens are local to this file (inline CSS
- * vars on the wrapper), not added to globals.css or tailwind.config.ts. No
- * behavior, field, copy, or logic change from the previous version.
+ * Presentation restyle to design/import/AthlasX Onboarding.html's
+ * orange/Anton-Barlow palette, scoped exactly like commit 0d19f74 (/  and
+ * /auth): fonts + tokens are local to this file (inline CSS vars on the
+ * wrapper), nothing added to globals.css or tailwind.config.ts. Layout is
+ * adapted from the mockup's two-column rail+form shell, but the rail lists
+ * this flow's actual 3 stages, not the mockup's 9-step player spec.
+ *
+ * "Leave and resume anytime" (rail copy, taken literally): accumulated
+ * form/Aadhaar/consent state is persisted to localStorage on every
+ * successful stage advance and restored on mount, jumping straight to the
+ * furthest-completed stage. This is single-browser, single-device resume
+ * only — there is no backend draft model. A real cross-device draft would
+ * need a new PlayerOnboardingDraft-style table and a schema migration,
+ * which is out of scope for a presentation-layer prompt; localStorage was
+ * the only mechanism authorized here.
  */
 
 const anton = Anton({ subsets: ['latin'], weight: '400', variable: '--font-anton' })
@@ -53,6 +63,13 @@ const ONBOARDING_VARS = {
 } as React.CSSProperties
 
 const TOTAL_STAGES = 3
+const STORAGE_KEY = 'athlasx.onboarding.player.v1'
+
+const STAGE_META = [
+  { n: 1, label: 'Basic Info', sub: 'Identity & playing profile' },
+  { n: 2, label: 'Aadhaar Verification', sub: 'OTP, + guardian if minor' },
+  { n: 3, label: 'Footage, Bio & Consent', sub: 'Review & submit' },
+]
 
 const battingStyles = ['Right-handed', 'Left-handed']
 const bowlingStyles = [
@@ -89,6 +106,60 @@ interface AadhaarState {
 const EMPTY_AADHAAR: AadhaarState = {
   number: '', otp: '', requestId: '', devCode: '', last4: '', status: 'unverified',
   sending: false, verifying: false, error: '',
+}
+
+const EMPTY_FORM = {
+  fullName: '', dob: '', district: '', state: '',
+  email: '', password: '',
+  guardianPhone: '',
+  cricheroes_handle: '',
+  playingRole: '', battingStyle: '', bowlingStyle: '',
+  selectedFormats: [] as string[],
+  academy: '', yearsExperience: '',
+  batting_url: '', bowling_url: '', keeping_url: '',
+  youtube_channel: '',
+  bio: '',
+}
+
+const EMPTY_CONSENTS = { dataUse: false, dpdpGuardian: false, visibility: false, terms: false }
+const EMPTY_SCROLLED = { dataUse: false, dpdpGuardian: false, visibility: false, terms: false }
+
+interface PersistedState {
+  stage: number
+  form: typeof EMPTY_FORM
+  aadhaar: AadhaarState
+  guardianAadhaar: AadhaarState
+  consents: Record<string, boolean>
+  scrolledEnd: Record<string, boolean>
+}
+
+function saveProgress(snapshot: PersistedState) {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot))
+  } catch {
+    // localStorage can throw (private browsing, quota, disabled) — resume
+    // is a convenience, never a requirement to keep filling the form.
+  }
+}
+
+function loadProgress(): PersistedState | null {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object' || typeof parsed.stage !== 'number') return null
+    return parsed as PersistedState
+  } catch {
+    return null
+  }
+}
+
+function clearProgress() {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY)
+  } catch {
+    // nothing to do — worst case a stale draft lingers until overwritten
+  }
 }
 
 // Consent copy — the four confirmed with the user directly (not the
@@ -166,30 +237,35 @@ const OPTCARD_CLS = (active: boolean) => cn(
 export default function OnboardingPage() {
   const [stage, setStage] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [resumed, setResumed] = useState(false)
   const router = useRouter()
 
-  const [form, setForm] = useState({
-    fullName: '', dob: '', district: '', state: '',
-    email: '', password: '',
-    guardianPhone: '',
-    cricheroes_handle: '',
-    playingRole: '', battingStyle: '', bowlingStyle: '',
-    selectedFormats: [] as string[],
-    academy: '', yearsExperience: '',
-    batting_url: '', bowling_url: '', keeping_url: '',
-    youtube_channel: '',
-    bio: '',
-  })
-
+  const [form, setForm] = useState(EMPTY_FORM)
   const [aadhaar, setAadhaar] = useState<AadhaarState>(EMPTY_AADHAAR)
   const [guardianAadhaar, setGuardianAadhaar] = useState<AadhaarState>(EMPTY_AADHAAR)
+  const [consents, setConsents] = useState<Record<string, boolean>>(EMPTY_CONSENTS)
+  const [scrolledEnd, setScrolledEnd] = useState<Record<string, boolean>>(EMPTY_SCROLLED)
 
-  const [consents, setConsents] = useState<Record<string, boolean>>({
-    dataUse: false, dpdpGuardian: false, visibility: false, terms: false,
-  })
-  const [scrolledEnd, setScrolledEnd] = useState<Record<string, boolean>>({
-    dataUse: false, dpdpGuardian: false, visibility: false, terms: false,
-  })
+  // Restore on mount — client-only (localStorage isn't available during
+  // SSR), so this deliberately runs after first paint rather than as a
+  // useState initializer, to avoid a hydration mismatch.
+  useEffect(() => {
+    const saved = loadProgress()
+    if (!saved) return
+    setForm(f => ({ ...f, ...saved.form }))
+    setAadhaar(a => ({ ...a, ...saved.aadhaar }))
+    setGuardianAadhaar(a => ({ ...a, ...saved.guardianAadhaar }))
+    setConsents(c => ({ ...c, ...saved.consents }))
+    setScrolledEnd(s => ({ ...s, ...saved.scrolledEnd }))
+    setStage(Math.min(Math.max(saved.stage, 1), TOTAL_STAGES))
+    setResumed(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (!resumed) return
+    toast.info('Welcome back — picked up where you left off.')
+  }, [resumed])
 
   function update(key: string, value: string) {
     setForm(f => ({ ...f, [key]: value }))
@@ -270,7 +346,12 @@ export default function OnboardingPage() {
   }
 
   function handleNextFromStage(current: number) {
-    if (current < TOTAL_STAGES) { setStage(s => s + 1); return }
+    if (current < TOTAL_STAGES) {
+      const next = current + 1
+      setStage(next)
+      saveProgress({ stage: next, form, aadhaar, guardianAadhaar, consents, scrolledEnd })
+      return
+    }
     void handleSubmit()
   }
 
@@ -292,6 +373,7 @@ export default function OnboardingPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to save profile')
+      clearProgress()
       toast.success('Profile created. Your match record will populate as data is ingested.')
       router.push('/record')
     } catch (err) {
@@ -307,306 +389,361 @@ export default function OnboardingPage() {
 
   return (
     <div className={cn(anton.variable, barlow.variable, barlowSemi.variable)} style={ONBOARDING_VARS}>
-      <div className="min-h-screen bg-[color:var(--bg)] flex flex-col font-[family-name:var(--font-barlow)]">
-        <div className="border-b border-[color:var(--card-border)] px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="font-[family-name:var(--font-barlow-semi)] text-lg font-bold uppercase tracking-[0.1em] text-white">
-              Athlas<span className="text-[color:var(--accent)]">X</span>
-            </span>
+      <div className="min-h-screen bg-[color:var(--bg)] grid lg:grid-cols-[360px_1fr] font-[family-name:var(--font-barlow)]">
+        {/* ── LEFT RAIL ── */}
+        <aside className="hidden lg:flex flex-col p-10 bg-[color:var(--bg-soft)] border-r border-[color:var(--card-border)]">
+          <Link href="/" className="font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-[0.22em] text-white">
+            Athlas<span className="text-[color:var(--accent)]">X</span>
           </Link>
-          <div className="flex items-center gap-3">
+
+          <div className="mt-8">
+            <p className="font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--accent-bright)] mb-2">
+              Player Onboarding
+            </p>
+            <h1 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl leading-[0.95] text-white">
+              Build your <span className="text-[color:var(--accent)]">athlete</span> profile.
+            </h1>
+            <p className="mt-3 text-sm text-white/60 leading-relaxed max-w-[22rem]">
+              Three steps, each auto-saved the moment you continue. Leave and resume anytime.
+            </p>
+          </div>
+
+          <nav className="mt-10 flex flex-col gap-1" aria-label="Onboarding stages">
+            {STAGE_META.map((s, i) => {
+              const done = stage > s.n
+              const current = stage === s.n
+              return (
+                <div key={s.n} className="flex items-start gap-3 py-2">
+                  <div className="flex flex-col items-center">
+                    <div
+                      className={cn(
+                        'w-7 h-7 rounded-full border-[1.5px] flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
+                        current && 'bg-[color:var(--accent)] border-[color:var(--accent)] text-[#1a0e02] shadow-[0_0_0_4px_rgba(255,138,30,0.18)]',
+                        done && !current && 'bg-[rgba(255,138,30,0.14)] border-[color:var(--accent)] text-[color:var(--accent-bright)]',
+                        !current && !done && 'border-[color:var(--card-border)] text-white/50',
+                      )}
+                    >
+                      {done ? <Check className="w-3.5 h-3.5" /> : s.n}
+                    </div>
+                    {i < STAGE_META.length - 1 && (
+                      <div className={cn('w-px flex-1 min-h-[1.75rem] mt-1', done ? 'bg-[color:var(--accent)]' : 'bg-[color:var(--card-border)]')} />
+                    )}
+                  </div>
+                  <div className="pt-0.5">
+                    <p className={cn('font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-wide', current || done ? 'text-white' : 'text-white/50')}>
+                      {s.label}
+                    </p>
+                    <p className="text-[11px] text-white/40">{s.sub}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </nav>
+
+          <div className="mt-auto pt-8 flex items-center gap-2 text-xs text-white/40">
+            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--ok)] shadow-[0_0_6px_var(--ok)]" />
+            All progress saved automatically
+          </div>
+        </aside>
+
+        {/* ── RIGHT: FORM ── */}
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between px-6 lg:px-10 py-4 border-b border-[color:var(--card-border)]">
+            <Link href="/" className="lg:hidden font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-[0.1em] text-white">
+              Athlas<span className="text-[color:var(--accent)]">X</span>
+            </Link>
             <Link href="/claim" className="text-xs text-white/50 hover:text-[color:var(--accent-bright)] transition-colors">Already have match data? Claim your profile</Link>
             <div className="font-[family-name:var(--font-barlow-semi)] text-xs uppercase tracking-wide text-white/50">Stage {stage} of {TOTAL_STAGES}</div>
           </div>
-        </div>
 
-        <div className="h-[3px] bg-[color:var(--card-border)]">
-          <motion.div
-            className="h-full"
-            style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-bright))' }}
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.4 }}
-          />
-        </div>
+          <div className="h-[3px] bg-[color:var(--card-border)]">
+            <motion.div
+              className="h-full"
+              style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-bright))' }}
+              initial={{ width: 0 }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.4 }}
+            />
+          </div>
 
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className={cn('w-full', stage === 3 ? 'max-w-2xl' : 'max-w-lg')}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={stage}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
-              >
-                {/* ── Stage 1: Basic player details ── */}
-                {stage === 1 && (
-                  <>
-                    <div>
-                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Basic details</h2>
-                      <p className="text-white/50 text-sm">Who you are and how you play</p>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-1.5">
-                        <Label className={LABEL_CLS}>Full name *</Label>
-                        <Input value={form.fullName} onChange={e => update('fullName', e.target.value)} placeholder="Arjun Sharma"
-                          className={FIELD_CLS} />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <Label className={LABEL_CLS}>Email *</Label>
-                          <Input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="arjun@example.com" autoComplete="email"
-                            className={FIELD_CLS} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className={LABEL_CLS}>Password *</Label>
-                          <Input type="password" value={form.password} onChange={e => update('password', e.target.value)} placeholder="Choose a password" autoComplete="new-password"
-                            className={FIELD_CLS} />
-                        </div>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <Label className={LABEL_CLS}>Date of birth *</Label>
-                        <Input type="date" value={form.dob} onChange={e => update('dob', e.target.value)}
-                          className={cn(FIELD_CLS, '[color-scheme:dark]')} />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <Label className={LABEL_CLS}>District *</Label>
-                          <Input value={form.district} onChange={e => update('district', e.target.value)} placeholder="Kanpur"
-                            className={FIELD_CLS} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className={LABEL_CLS}>State *</Label>
-                          <select value={form.state} onChange={e => update('state', e.target.value)}
-                            className={cn('w-full px-3', FIELD_CLS, 'bg-[color:var(--field-bg)]')}>
-                            <option value="" className="bg-[#141312]">Select state</option>
-                            {indianStates.map(s => <option key={s} value={s} className="bg-[#141312]">{s}</option>)}
-                          </select>
-                        </div>
-                      </div>
-
-                      <AnimatePresence>
-                        {minor && (
-                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                            <div className="space-y-1.5">
-                              <Label className={LABEL_CLS}>Guardian phone *</Label>
-                              <Input type="tel" value={form.guardianPhone} onChange={e => update('guardianPhone', e.target.value)} placeholder="+91 98765 43210"
-                                className={FIELD_CLS} />
-                              <div className="flex items-start gap-2 p-3 rounded-[10px] border-[color:var(--card-border)] border bg-[rgba(255,138,30,0.08)]">
-                                <AlertCircle className="w-3.5 h-3.5 text-[color:var(--accent-bright)] mt-0.5 shrink-0" />
-                                <p className="text-[11px] text-white/70">
-                                  Required for players under 18 (DPDP Act compliance). Your guardian will also complete a separate Aadhaar verification and consent in the next stages.
-                                </p>
-                              </div>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      <div className="space-y-1.5">
-                        <Label className={LABEL_CLS}>CricHeroes handle</Label>
-                        <Input value={form.cricheroes_handle} onChange={e => update('cricheroes_handle', e.target.value)} placeholder="@arjun_sharma"
-                          className={FIELD_CLS} />
-                      </div>
-
-                      <div className="pt-2 border-t border-[color:var(--card-border)] space-y-2">
-                        <Label className={LABEL_CLS}>Playing role *</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {playingRoles.map(role => (
-                            <button key={role} type="button" onClick={() => update('playingRole', role)}
-                              className={cn('px-3 py-2.5 text-sm font-medium', OPTCARD_CLS(form.playingRole === role))}>
-                              {role}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className={LABEL_CLS}>Batting style</Label>
-                        <div className="flex gap-2">
-                          {battingStyles.map(s => (
-                            <button key={s} type="button" onClick={() => update('battingStyle', s)}
-                              className={cn('flex-1 py-2 text-sm font-medium', OPTCARD_CLS(form.battingStyle === s))}>
-                              {s}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className={LABEL_CLS}>Bowling style</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {bowlingStyles.map(s => (
-                            <button key={s} type="button" onClick={() => update('bowlingStyle', s)}
-                              className={cn('px-2 py-2 text-xs font-medium text-left', OPTCARD_CLS(form.bowlingStyle === s))}>
-                              {s}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className={LABEL_CLS}>Preferred formats</Label>
-                        <div className="flex gap-2">
-                          {formats.map(f => (
-                            <button key={f} type="button" onClick={() => toggleFormat(f)}
-                              className={cn('flex-1 py-2 text-sm font-medium', OPTCARD_CLS(form.selectedFormats.includes(f)))}>
-                              {f}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <Label className={LABEL_CLS}>Academy</Label>
-                          <Input value={form.academy} onChange={e => update('academy', e.target.value)} placeholder="Tara Cricket Academy"
-                            className={FIELD_CLS} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className={LABEL_CLS}>Years of cricket</Label>
-                          <Input type="number" value={form.yearsExperience} onChange={e => update('yearsExperience', e.target.value)} placeholder="5" min="0" max="25"
-                            className={FIELD_CLS} />
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* ── Stage 2: Aadhaar verification ── */}
-                {stage === 2 && (
-                  <>
-                    <div>
-                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Verify your identity</h2>
-                      <p className="text-white/50 text-sm">
-                        Aadhaar OTP verification. We never store your raw Aadhaar number — only the last 4 digits and your verified status.
-                      </p>
-                    </div>
-                    <AadhaarBlock label="Your Aadhaar" subject="player" state={aadhaar} setState={setAadhaar}
-                      onSend={() => sendAadhaarOtp('player')} onVerify={() => verifyAadhaarOtp('player')} />
-
-                    {minor && (
-                      <div className="pt-4 border-t border-[color:var(--card-border)]">
-                        <p className="text-sm font-bold text-white mb-1">Parent / guardian verification</p>
-                        <p className="text-xs text-white/50 mb-3">Required in addition to the guardian phone number already provided — this independently verifies your guardian&apos;s own identity.</p>
-                        <AadhaarBlock label="Guardian's Aadhaar" subject="guardian" state={guardianAadhaar} setState={setGuardianAadhaar}
-                          onSend={() => sendAadhaarOtp('guardian')} onVerify={() => verifyAadhaarOtp('guardian')} />
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* ── Stage 3: Footage, bio, review, consent ── */}
-                {stage === 3 && (
-                  <>
-                    <div>
-                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Footage, review & consent</h2>
-                      <p className="text-white/50 text-sm">Last step — add footage, review your details, and accept the required consents.</p>
-                    </div>
-
-                    <div className="flex items-start gap-2.5 p-4 rounded-[14px] border border-[color:var(--card-border)] bg-white/[0.02]">
-                      <Upload className="w-4 h-4 text-white/50 mt-0.5 shrink-0" />
+          <div className="flex-1 flex items-start justify-center p-6 lg:p-10 overflow-y-auto">
+            <div className={cn('w-full', stage === 3 ? 'max-w-2xl' : 'max-w-lg')}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={stage}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-6"
+                >
+                  {/* ── Stage 1: Basic player details ── */}
+                  {stage === 1 && (
+                    <>
                       <div>
-                        <p className="text-xs font-bold text-white/80">Why add footage?</p>
-                        <p className="text-xs text-white/50 mt-0.5">
-                          Batting and bowling are scored from verified scorecard data. Fielding and wicket-keeping cannot be — footage lets selectors assess those directly.
-                        </p>
+                        <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Basic details</h2>
+                        <p className="text-white/50 text-sm">Who you are and how you play</p>
                       </div>
-                    </div>
 
-                    <div className="space-y-4">
-                      {[
-                        { key: 'batting_url', label: 'Batting clip URL', placeholder: 'YouTube / Google Drive link' },
-                        { key: 'bowling_url', label: 'Bowling clip URL', placeholder: 'YouTube / Google Drive link' },
-                        { key: 'keeping_url', label: 'Keeping clip URL', placeholder: 'Optional · YouTube / Google Drive link' },
-                        { key: 'youtube_channel', label: 'YouTube channel', placeholder: 'youtube.com/@handle (optional)' },
-                      ].map(f => (
-                        <div key={f.key} className="space-y-1.5">
-                          <Label className={LABEL_CLS}>{f.label}</Label>
-                          <div className="relative">
-                            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40" />
-                            <Input value={(form as unknown as Record<string, string>)[f.key]} onChange={e => update(f.key, e.target.value)} placeholder={f.placeholder}
-                              className={cn(FIELD_CLS, 'pl-8')} />
+                      <div className="space-y-4">
+                        <div className="space-y-1.5">
+                          <Label className={LABEL_CLS}>Full name *</Label>
+                          <Input value={form.fullName} onChange={e => update('fullName', e.target.value)} placeholder="Arjun Sharma"
+                            className={FIELD_CLS} />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <Label className={LABEL_CLS}>Email *</Label>
+                            <Input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="arjun@example.com" autoComplete="email"
+                              className={FIELD_CLS} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className={LABEL_CLS}>Password *</Label>
+                            <Input type="password" value={form.password} onChange={e => update('password', e.target.value)} placeholder="Choose a password" autoComplete="new-password"
+                              className={FIELD_CLS} />
                           </div>
                         </div>
-                      ))}
 
-                      <div className="space-y-1.5">
-                        <Label className={LABEL_CLS}>Bio</Label>
-                        <textarea value={form.bio} onChange={e => update('bio', e.target.value)} placeholder="Your cricket journey, strengths, goals…" maxLength={400} rows={3}
-                          className="w-full bg-[color:var(--field-bg)] border border-[color:var(--card-border)] rounded-[9px] px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] resize-none" />
-                        <p className="text-[10px] text-white/40 text-right">{form.bio.length}/400</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <h3 className="font-[family-name:var(--font-barlow-semi)] text-base font-bold uppercase tracking-wide text-white">Review</h3>
-                      {[
-                        { label: 'Name', value: form.fullName || '—' },
-                        { label: 'Email', value: form.email || '—' },
-                        { label: 'DOB', value: form.dob || '—' },
-                        { label: 'District', value: form.district || '—' },
-                        { label: 'State', value: form.state || '—' },
-                        { label: 'Role', value: form.playingRole || '—' },
-                        { label: 'Batting', value: form.battingStyle || '—' },
-                        { label: 'Aadhaar', value: aadhaar.last4 ? `Verified · ••••${aadhaar.last4}` : 'Not verified' },
-                        ...(minor ? [{ label: 'Guardian Aadhaar', value: guardianAadhaar.last4 ? `Verified · ••••${guardianAadhaar.last4}` : 'Not verified' }] : []),
-                        { label: 'Footage', value: [form.batting_url, form.bowling_url].filter(Boolean).length + ' clips added' },
-                      ].map(row => (
-                        <div key={row.label} className="flex justify-between text-sm py-2 border-b border-[color:var(--card-border)]">
-                          <span className="text-white/50">{row.label}</span>
-                          <span className="text-white font-semibold truncate max-w-[220px] text-right">{row.value}</span>
+                        <div className="space-y-1.5">
+                          <Label className={LABEL_CLS}>Date of birth *</Label>
+                          <Input type="date" value={form.dob} onChange={e => update('dob', e.target.value)}
+                            className={cn(FIELD_CLS, '[color-scheme:dark]')} />
                         </div>
-                      ))}
-                    </div>
 
-                    <div className="space-y-3">
-                      <h3 className="font-[family-name:var(--font-barlow-semi)] text-base font-bold uppercase tracking-wide text-white">Required consents</h3>
-                      {CONSENTS.filter(c => !c.minorOnly || minor).map(c => (
-                        <ConsentPanel
-                          key={c.key}
-                          title={c.title}
-                          body={c.body}
-                          accepted={consents[c.key]}
-                          reachedEnd={scrolledEnd[c.key]}
-                          onReachEnd={() => setScrolledEnd(s => ({ ...s, [c.key]: true }))}
-                          onAccept={(v) => setConsents(s => ({ ...s, [c.key]: v }))}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-              </motion.div>
-            </AnimatePresence>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <Label className={LABEL_CLS}>District *</Label>
+                            <Input value={form.district} onChange={e => update('district', e.target.value)} placeholder="Kanpur"
+                              className={FIELD_CLS} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className={LABEL_CLS}>State *</Label>
+                            <select value={form.state} onChange={e => update('state', e.target.value)}
+                              className={cn('w-full px-3', FIELD_CLS, 'bg-[color:var(--field-bg)]')}>
+                              <option value="" className="bg-[#141312]">Select state</option>
+                              {indianStates.map(s => <option key={s} value={s} className="bg-[#141312]">{s}</option>)}
+                            </select>
+                          </div>
+                        </div>
 
-            <div className="flex items-center justify-between mt-8 gap-4">
-              {stage > 1 ? (
-                <button onClick={() => setStage(s => s - 1)}
-                  className="font-[family-name:var(--font-barlow-semi)] flex items-center gap-2 px-4 py-2.5 rounded-[9px] bg-transparent border-[1.5px] border-[color:var(--card-border)] text-white/70 hover:text-white hover:border-white/40 text-sm font-bold uppercase tracking-wide transition-colors">
-                  <ArrowLeft className="w-4 h-4" /> Back
+                        <AnimatePresence>
+                          {minor && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                              <div className="space-y-1.5">
+                                <Label className={LABEL_CLS}>Guardian phone *</Label>
+                                <Input type="tel" value={form.guardianPhone} onChange={e => update('guardianPhone', e.target.value)} placeholder="+91 98765 43210"
+                                  className={FIELD_CLS} />
+                                <div className="flex items-start gap-2 p-3 rounded-[10px] border-[color:var(--card-border)] border bg-[rgba(255,138,30,0.08)]">
+                                  <AlertCircle className="w-3.5 h-3.5 text-[color:var(--accent-bright)] mt-0.5 shrink-0" />
+                                  <p className="text-[11px] text-white/70">
+                                    Required for players under 18 (DPDP Act compliance). Your guardian will also complete a separate Aadhaar verification and consent in the next stages.
+                                  </p>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        <div className="space-y-1.5">
+                          <Label className={LABEL_CLS}>CricHeroes handle</Label>
+                          <Input value={form.cricheroes_handle} onChange={e => update('cricheroes_handle', e.target.value)} placeholder="@arjun_sharma"
+                            className={FIELD_CLS} />
+                        </div>
+
+                        <div className="pt-2 border-t border-[color:var(--card-border)] space-y-2">
+                          <Label className={LABEL_CLS}>Playing role *</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {playingRoles.map(role => (
+                              <button key={role} type="button" onClick={() => update('playingRole', role)}
+                                className={cn('px-3 py-2.5 text-sm font-medium', OPTCARD_CLS(form.playingRole === role))}>
+                                {role}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className={LABEL_CLS}>Batting style</Label>
+                          <div className="flex gap-2">
+                            {battingStyles.map(s => (
+                              <button key={s} type="button" onClick={() => update('battingStyle', s)}
+                                className={cn('flex-1 py-2 text-sm font-medium', OPTCARD_CLS(form.battingStyle === s))}>
+                                {s}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className={LABEL_CLS}>Bowling style</Label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {bowlingStyles.map(s => (
+                              <button key={s} type="button" onClick={() => update('bowlingStyle', s)}
+                                className={cn('px-2 py-2 text-xs font-medium text-left', OPTCARD_CLS(form.bowlingStyle === s))}>
+                                {s}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className={LABEL_CLS}>Preferred formats</Label>
+                          <div className="flex gap-2">
+                            {formats.map(f => (
+                              <button key={f} type="button" onClick={() => toggleFormat(f)}
+                                className={cn('flex-1 py-2 text-sm font-medium', OPTCARD_CLS(form.selectedFormats.includes(f)))}>
+                                {f}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <Label className={LABEL_CLS}>Academy</Label>
+                            <Input value={form.academy} onChange={e => update('academy', e.target.value)} placeholder="Tara Cricket Academy"
+                              className={FIELD_CLS} />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className={LABEL_CLS}>Years of cricket</Label>
+                            <Input type="number" value={form.yearsExperience} onChange={e => update('yearsExperience', e.target.value)} placeholder="5" min="0" max="25"
+                              className={FIELD_CLS} />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* ── Stage 2: Aadhaar verification ── */}
+                  {stage === 2 && (
+                    <>
+                      <div>
+                        <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Verify your identity</h2>
+                        <p className="text-white/50 text-sm">
+                          Aadhaar OTP verification. We never store your raw Aadhaar number — only the last 4 digits and your verified status.
+                        </p>
+                      </div>
+                      <AadhaarBlock label="Your Aadhaar" subject="player" state={aadhaar} setState={setAadhaar}
+                        onSend={() => sendAadhaarOtp('player')} onVerify={() => verifyAadhaarOtp('player')} />
+
+                      {minor && (
+                        <div className="pt-4 border-t border-[color:var(--card-border)]">
+                          <p className="text-sm font-bold text-white mb-1">Parent / guardian verification</p>
+                          <p className="text-xs text-white/50 mb-3">Required in addition to the guardian phone number already provided — this independently verifies your guardian&apos;s own identity.</p>
+                          <AadhaarBlock label="Guardian's Aadhaar" subject="guardian" state={guardianAadhaar} setState={setGuardianAadhaar}
+                            onSend={() => sendAadhaarOtp('guardian')} onVerify={() => verifyAadhaarOtp('guardian')} />
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* ── Stage 3: Footage, bio, review, consent ── */}
+                  {stage === 3 && (
+                    <>
+                      <div>
+                        <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Footage, review & consent</h2>
+                        <p className="text-white/50 text-sm">Last step — add footage, review your details, and accept the required consents.</p>
+                      </div>
+
+                      <div className="flex items-start gap-2.5 p-4 rounded-[14px] border border-[color:var(--card-border)] bg-white/[0.02]">
+                        <Upload className="w-4 h-4 text-white/50 mt-0.5 shrink-0" />
+                        <div>
+                          <p className="text-xs font-bold text-white/80">Why add footage?</p>
+                          <p className="text-xs text-white/50 mt-0.5">
+                            Batting and bowling are scored from verified scorecard data. Fielding and wicket-keeping cannot be — footage lets selectors assess those directly.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        {[
+                          { key: 'batting_url', label: 'Batting clip URL', placeholder: 'YouTube / Google Drive link' },
+                          { key: 'bowling_url', label: 'Bowling clip URL', placeholder: 'YouTube / Google Drive link' },
+                          { key: 'keeping_url', label: 'Keeping clip URL', placeholder: 'Optional · YouTube / Google Drive link' },
+                          { key: 'youtube_channel', label: 'YouTube channel', placeholder: 'youtube.com/@handle (optional)' },
+                        ].map(f => (
+                          <div key={f.key} className="space-y-1.5">
+                            <Label className={LABEL_CLS}>{f.label}</Label>
+                            <div className="relative">
+                              <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40" />
+                              <Input value={(form as unknown as Record<string, string>)[f.key]} onChange={e => update(f.key, e.target.value)} placeholder={f.placeholder}
+                                className={cn(FIELD_CLS, 'pl-8')} />
+                            </div>
+                          </div>
+                        ))}
+
+                        <div className="space-y-1.5">
+                          <Label className={LABEL_CLS}>Bio</Label>
+                          <textarea value={form.bio} onChange={e => update('bio', e.target.value)} placeholder="Your cricket journey, strengths, goals…" maxLength={400} rows={3}
+                            className="w-full bg-[color:var(--field-bg)] border border-[color:var(--card-border)] rounded-[9px] px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] resize-none" />
+                          <p className="text-[10px] text-white/40 text-right">{form.bio.length}/400</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h3 className="font-[family-name:var(--font-barlow-semi)] text-base font-bold uppercase tracking-wide text-white">Review</h3>
+                        {[
+                          { label: 'Name', value: form.fullName || '—' },
+                          { label: 'Email', value: form.email || '—' },
+                          { label: 'DOB', value: form.dob || '—' },
+                          { label: 'District', value: form.district || '—' },
+                          { label: 'State', value: form.state || '—' },
+                          { label: 'Role', value: form.playingRole || '—' },
+                          { label: 'Batting', value: form.battingStyle || '—' },
+                          { label: 'Aadhaar', value: aadhaar.last4 ? `Verified · ••••${aadhaar.last4}` : 'Not verified' },
+                          ...(minor ? [{ label: 'Guardian Aadhaar', value: guardianAadhaar.last4 ? `Verified · ••••${guardianAadhaar.last4}` : 'Not verified' }] : []),
+                          { label: 'Footage', value: [form.batting_url, form.bowling_url].filter(Boolean).length + ' clips added' },
+                        ].map(row => (
+                          <div key={row.label} className="flex justify-between text-sm py-2 border-b border-[color:var(--card-border)]">
+                            <span className="text-white/50">{row.label}</span>
+                            <span className="text-white font-semibold truncate max-w-[220px] text-right">{row.value}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="space-y-3">
+                        <h3 className="font-[family-name:var(--font-barlow-semi)] text-base font-bold uppercase tracking-wide text-white">Required consents</h3>
+                        {CONSENTS.filter(c => !c.minorOnly || minor).map(c => (
+                          <ConsentPanel
+                            key={c.key}
+                            title={c.title}
+                            body={c.body}
+                            accepted={consents[c.key]}
+                            reachedEnd={scrolledEnd[c.key]}
+                            onReachEnd={() => setScrolledEnd(s => ({ ...s, [c.key]: true }))}
+                            onAccept={(v) => setConsents(s => ({ ...s, [c.key]: v }))}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+
+              <div className="flex items-center justify-between mt-8 gap-4">
+                {stage > 1 ? (
+                  <button onClick={() => setStage(s => s - 1)}
+                    className="font-[family-name:var(--font-barlow-semi)] flex items-center gap-2 px-4 py-2.5 rounded-[9px] bg-transparent border-[1.5px] border-[color:var(--card-border)] text-white/70 hover:text-white hover:border-white/40 text-sm font-bold uppercase tracking-wide transition-colors">
+                    <ArrowLeft className="w-4 h-4" /> Back
+                  </button>
+                ) : <div />}
+
+                <button
+                  onClick={() => handleNextFromStage(stage)}
+                  disabled={!canProceed || loading}
+                  className={cn(
+                    'font-[family-name:var(--font-barlow-semi)] flex items-center gap-2 px-6 py-2.5 rounded-[9px] text-sm font-bold uppercase tracking-wide transition-all',
+                    canProceed && !loading
+                      ? 'bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_8px_22px_-8px_rgba(255,138,30,0.7)] hover:bg-[color:var(--accent-bright)]'
+                      : 'bg-white/[0.04] border border-[color:var(--card-border)] text-white/40 cursor-not-allowed',
+                  )}
+                >
+                  {loading ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>)
+                    : stage === TOTAL_STAGES ? (<><CheckCircle2 className="w-4 h-4" /> Create Profile</>)
+                    : (<>Continue <ArrowRight className="w-4 h-4" /></>)}
                 </button>
-              ) : <div />}
-
-              <button
-                onClick={() => handleNextFromStage(stage)}
-                disabled={!canProceed || loading}
-                className={cn(
-                  'font-[family-name:var(--font-barlow-semi)] flex items-center gap-2 px-6 py-2.5 rounded-[9px] text-sm font-bold uppercase tracking-wide transition-all',
-                  canProceed && !loading
-                    ? 'bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_8px_22px_-8px_rgba(255,138,30,0.7)] hover:bg-[color:var(--accent-bright)]'
-                    : 'bg-white/[0.04] border border-[color:var(--card-border)] text-white/40 cursor-not-allowed',
-                )}
-              >
-                {loading ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>)
-                  : stage === TOTAL_STAGES ? (<><CheckCircle2 className="w-4 h-4" /> Create Profile</>)
-                  : (<>Continue <ArrowRight className="w-4 h-4" /></>)}
-              </button>
+              </div>
             </div>
           </div>
         </div>
