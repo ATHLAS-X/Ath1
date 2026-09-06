@@ -3,7 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
+import Image from 'next/image'
+import { Anton, Barlow, Barlow_Semi_Condensed } from 'next/font/google'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 /*
  * New front door for sign-in and role-based sign-up. Does not replace
@@ -12,13 +15,29 @@ import { cn } from '@/lib/utils'
  * replacement for either. Sign-in delegates entirely to the existing
  * NextAuth credentials provider (src/lib/auth.ts) — no auth logic here.
  *
- * Token note: design/import/AthlasX Auth.html's own palette (orange accent,
- * near-black background) is a still-open design-system decision per
- * design/import/MAPPING.md (§3, open decision #4) — this page intentionally
- * uses the existing --ax-bg/--ax-green + glass-card tokens instead of the
- * mockup's literal values, rather than silently introducing a second
- * accent color.
+ * Visual language matches design/import/AthlasX Auth.html on direct
+ * instruction — resolves design/import/MAPPING.md's open decision #4
+ * (orange/Anton palette) for the landing + auth pages specifically, not
+ * site-wide. Two deliberate deviations from the mockup's markup:
+ *   - Sign-up stays a role picker into the real onboarding wizards built
+ *     this session, not a generic name/email/password form — those wizards
+ *     each collect name/etc. themselves, so duplicating those fields here
+ *     would just be discarded input.
+ *   - "Continue with Google" is disabled with a toast, not wired to a demo
+ *     "signed in!" state — no Google OAuth provider is configured in
+ *     src/lib/auth.ts, and faking a working button would be worse than
+ *     admitting it isn't there yet.
  */
+
+const anton = Anton({ subsets: ['latin'], weight: '400', variable: '--font-anton' })
+const barlow = Barlow({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-barlow' })
+const barlowSemi = Barlow_Semi_Condensed({ subsets: ['latin'], weight: ['600', '700'], variable: '--font-barlow-semi' })
+
+const AUTH_VARS = {
+  '--accent': '#FF8A1E',
+  '--accent-bright': '#FFA64D',
+  '--bg': '#0D0D0D',
+} as React.CSSProperties
 
 type Mode = 'signin' | 'signup'
 type Role = 'player' | 'association' | 'academy' | 'coach' | 'scout'
@@ -29,6 +48,13 @@ const ROLES: { value: Role; label: string; blurb: string }[] = [
   { value: 'academy', label: 'Academy', blurb: 'Manage talent' },
   { value: 'coach', label: 'Coach', blurb: 'Train & track' },
   { value: 'scout', label: 'Scout', blurb: 'Discover players' },
+]
+
+const TILES = [
+  { src: '/images/hero/motorsport.jpg', alt: 'Motorsport driver on a single-seater under a vast sky', className: 'row-span-2' },
+  { src: '/images/hero/badminton.jpg', alt: 'Badminton player roaring in triumph, flag behind' },
+  { src: '/images/hero/tennis-sunburst.jpg', alt: 'Stylised tennis player against a warm sunburst', className: 'row-span-2' },
+  { src: '/images/hero/cricket.jpg', alt: 'Cricketer in national kit against a smoke-coloured sky' },
 ]
 
 export default function AuthPage() {
@@ -50,153 +76,184 @@ export default function AuthPage() {
       setError('Incorrect email or password.')
       return
     }
-    // Root page's rootDestination() sends the now-signed-in session to its
-    // own role's home page — no role branching needed here.
     router.push('/')
   }
 
   function handleRoleSelect(next: Role) {
     setRole(next)
-    if (next === 'player') {
-      router.push('/onboarding')
-      return
-    }
-    if (next === 'academy') {
-      // Target for Academy self-serve onboarding — that flow itself is not
-      // yet built in this codebase (no page exists under this path today).
-      // Routing here anyway rather than silently downgrading Academy to a
-      // "not yet available" state, since a real Academy onboarding build
-      // is expected to land at this path — but until it does, this link
-      // 404s. Flagging rather than faking a working destination.
-      router.push('/onboarding/academy')
-      return
-    }
-    if (next === 'coach') {
-      // Same caveat as Academy above — /onboarding/coach doesn't exist yet.
-      router.push('/onboarding/coach')
-      return
-    }
-    if (next === 'association') {
-      // Self-serve association onboarding now exists (src/app/onboarding/
-      // association/page.tsx) — built on explicit direction despite the
-      // earlier note here that the pivot document's W1 workflow describes
-      // a sales-led relationship (AthlasX Ops approaching associations
-      // directly), not a signup form. That tension is real and unresolved
-      // at the product level, but routing here is what was asked for.
-      router.push('/onboarding/association')
-      return
-    }
-    // scout: no account path at all — no scout role exists in the pivot's
-    // phase-1 role table, so there is nothing to route to.
+    if (next === 'player') { router.push('/onboarding'); return }
+    if (next === 'academy') { router.push('/onboarding/academy'); return }
+    if (next === 'coach') { router.push('/onboarding/coach'); return }
+    if (next === 'association') { router.push('/onboarding/association'); return }
   }
 
   const roleUnavailable = role === 'scout'
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-16">
-      <div className="w-full max-w-md glass-card p-8 space-y-6">
-        <div className="text-center">
-          <div className="text-lg font-black tracking-tight mb-1">
-            Athlas<span className="text-gradient-green">X</span>
+    <div className={cn(anton.variable, barlow.variable, barlowSemi.variable)} style={AUTH_VARS}>
+      <div className="grid lg:grid-cols-[1fr_2fr] min-h-screen bg-[color:var(--bg)]">
+        {/* ── LEFT: collage showcase ── */}
+        <div className="relative hidden lg:block overflow-hidden">
+          <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-[3px]">
+            {TILES.map((t) => (
+              <div key={t.src} className={cn('relative overflow-hidden', t.className)}>
+                <Image src={t.src} alt={t.alt} fill sizes="33vw" style={{ objectFit: 'cover' }} />
+              </div>
+            ))}
           </div>
-          <p className="text-xs text-zinc-500">Where India&apos;s next champions get found.</p>
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(120% 100% at 40% 42%, rgba(13,13,13,0) 0%, rgba(13,13,13,0.15) 40%, rgba(13,13,13,0.6) 74%, rgba(13,13,13,0.94) 100%), linear-gradient(90deg, rgba(13,13,13,0) 55%, rgba(13,13,13,0.75) 100%)',
+            }}
+          />
+          <div className="absolute top-8 left-8 font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-[0.22em] text-white">
+            Athlas<span className="text-[color:var(--accent)]">X</span>
+          </div>
+          <div className="absolute left-8 right-8 bottom-8 max-w-md">
+            <p className="font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.3em] text-[color:var(--accent-bright)] mb-2.5">
+              Grassroots to Global
+            </p>
+            <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-white text-4xl">
+              Where India&apos;s next <b className="text-[color:var(--accent)] font-normal">champions</b> get found.
+            </h2>
+            <p className="font-[family-name:var(--font-barlow)] mt-3 text-sm text-white/80">
+              One profile. Every sport. Seen by the coaches, academies and scouts who matter.
+            </p>
+          </div>
         </div>
 
-        <div role="tablist" aria-label="Sign in or sign up" className="flex rounded-lg border border-white/10 p-1 gap-1">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'signin'}
-            onClick={() => { setMode('signin'); setError(null) }}
-            className={cn(
-              'flex-1 text-sm font-bold py-2 rounded-md transition-colors',
-              mode === 'signin' ? 'bg-white/10 text-white' : 'text-zinc-500 hover:text-zinc-300',
-            )}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'signup'}
-            onClick={() => { setMode('signup'); setError(null) }}
-            className={cn(
-              'flex-1 text-sm font-bold py-2 rounded-md transition-colors',
-              mode === 'signup' ? 'bg-white/10 text-white' : 'text-zinc-500 hover:text-zinc-300',
-            )}
-          >
-            Sign Up
-          </button>
-        </div>
+        {/* ── RIGHT: form ── */}
+        <div className="relative flex flex-col justify-center px-6 sm:px-14 py-16">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(120% 60% at 100% 0%, rgba(255,138,30,0.08), transparent 60%)' }}
+          />
+          <div className="relative w-full max-w-md mx-auto lg:mx-0">
+            <p className="font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--accent-bright)] mb-1.5">
+              {mode === 'signup' ? 'Join AthlasX' : 'Welcome back'}
+            </p>
+            <h1 className="font-[family-name:var(--font-anton)] uppercase font-normal text-4xl sm:text-5xl text-white mb-1.5">
+              {mode === 'signup' ? 'Create account' : 'Sign in'}
+            </h1>
+            <p className="font-[family-name:var(--font-barlow)] text-sm text-white/60 mb-6">
+              {mode === 'signup' ? 'Set up your profile in under a minute.' : 'Pick up right where you left off.'}
+            </p>
 
-        {mode === 'signin' ? (
-          <form onSubmit={handleSignIn} className="space-y-4">
-            <div className="space-y-1.5">
-              <label htmlFor="email" className="text-xs font-semibold text-zinc-400">Email</label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 text-sm text-white focus:outline-none focus:border-[--ax-green]"
-              />
+            <div role="tablist" aria-label="Sign in or sign up" className="grid grid-cols-2 gap-1 p-1 mb-6 rounded-[11px] bg-white/[0.06] border border-white/[0.14]">
+              <button
+                type="button" role="tab" aria-selected={mode === 'signin'}
+                onClick={() => { setMode('signin'); setError(null) }}
+                className={cn(
+                  'font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-wide py-2.5 rounded-lg transition-colors',
+                  mode === 'signin' ? 'bg-[color:var(--accent)] text-[#1a0e02]' : 'text-white/60 hover:text-white',
+                )}
+              >
+                Sign In
+              </button>
+              <button
+                type="button" role="tab" aria-selected={mode === 'signup'}
+                onClick={() => { setMode('signup'); setError(null) }}
+                className={cn(
+                  'font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-wide py-2.5 rounded-lg transition-colors',
+                  mode === 'signup' ? 'bg-[color:var(--accent)] text-[#1a0e02]' : 'text-white/60 hover:text-white',
+                )}
+              >
+                Sign Up
+              </button>
             </div>
-            <div className="space-y-1.5">
-              <label htmlFor="password" className="text-xs font-semibold text-zinc-400">Password</label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/10 text-sm text-white focus:outline-none focus:border-[--ax-green]"
-              />
-            </div>
-            {error && <p role="status" className="text-xs text-red-400">{error}</p>}
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full text-sm font-bold px-4 py-2.5 rounded-lg bg-[--ax-green] text-black hover:brightness-110 transition disabled:opacity-50"
-            >
-              {submitting ? 'Signing in…' : 'Sign In'}
-            </button>
-          </form>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-xs font-semibold text-zinc-400">Select your role</p>
-            <div className="grid grid-cols-1 gap-2" role="group" aria-label="Select your role">
-              {ROLES.map((r) => (
+
+            {mode === 'signin' ? (
+              <form onSubmit={handleSignIn} className="space-y-3">
+                <input
+                  type="email" required value={email} placeholder="Email address"
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-3.5 py-3 rounded-[9px] bg-white/[0.06] border border-white/[0.14] text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] focus:bg-white/[0.09] transition-colors"
+                />
+                <input
+                  type="password" required value={password} placeholder="Password"
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-3.5 py-3 rounded-[9px] bg-white/[0.06] border border-white/[0.14] text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] focus:bg-white/[0.09] transition-colors"
+                />
+                {error && <p role="status" className="text-xs text-[#ff8a7e]">{error}</p>}
+
+                <div className="flex items-center justify-between text-sm text-white/60 pt-1 pb-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="w-[15px] h-[15px] accent-[color:var(--accent)]" />
+                    Remember me
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => toast.info('Password reset isn’t wired up yet.')}
+                    className="text-[color:var(--accent-bright)] hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+
                 <button
-                  key={r.value}
-                  type="button"
-                  aria-pressed={role === r.value}
-                  onClick={() => handleRoleSelect(r.value)}
-                  className={cn(
-                    'flex items-center justify-between text-left px-4 py-3 rounded-lg border transition-colors',
-                    role === r.value
-                      ? 'border-[--ax-green] bg-[--ax-green]/10'
-                      : 'border-white/10 bg-white/[0.03] hover:border-white/20',
-                  )}
+                  type="submit" disabled={submitting}
+                  className="font-[family-name:var(--font-barlow-semi)] w-full py-3.5 rounded-[10px] text-base font-bold uppercase tracking-wide bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_10px_26px_-10px_rgba(255,138,30,0.8)] hover:bg-[color:var(--accent-bright)] transition-colors disabled:opacity-50"
                 >
-                  <span>
-                    <span className="block text-sm font-bold text-white">{r.label}</span>
-                    <span className="block text-[11px] text-zinc-500">{r.blurb}</span>
-                  </span>
+                  {submitting ? 'Signing in…' : 'Sign In'}
                 </button>
-              ))}
-            </div>
-
-            {roleUnavailable && (
-              <div className="p-3 rounded-lg border border-amber-500/25 bg-amber-500/[0.06]">
-                <p className="text-xs font-bold text-amber-400">Not yet available</p>
-                <p className="text-[11px] text-zinc-500 mt-1">
-                  Scout accounts are not yet supported on AthlasX — there is no scout-facing role or workflow in the current platform.
-                </p>
+              </form>
+            ) : (
+              <div className="space-y-4">
+                <p className="font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.14em] text-white/60">I am a&hellip;</p>
+                <div className="grid grid-cols-2 gap-2" role="group" aria-label="Select your role">
+                  {ROLES.map((r) => (
+                    <button
+                      key={r.value} type="button" aria-pressed={role === r.value}
+                      onClick={() => handleRoleSelect(r.value)}
+                      className={cn(
+                        'flex items-center gap-2.5 text-left px-3.5 py-3 rounded-[10px] border-[1.5px] transition-colors',
+                        role === r.value ? 'border-[color:var(--accent)] bg-[rgba(255,138,30,0.14)]' : 'border-white/[0.14] bg-white/[0.06] hover:border-white/30',
+                      )}
+                    >
+                      <span>
+                        <span className="block text-sm font-bold text-white">{r.label}</span>
+                        <span className="block text-[11px] text-white/60">{r.blurb}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {roleUnavailable && (
+                  <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/[0.08]">
+                    <p className="text-xs font-bold text-amber-400">Not yet available</p>
+                    <p className="text-[11px] text-white/60 mt-1">
+                      Scout accounts are not yet supported on AthlasX — there is no scout-facing role or workflow in the current platform.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
+
+            <div className="flex items-center gap-3 my-5 text-[11px] font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.14em] text-white/40">
+              <span className="flex-1 h-px bg-white/[0.14]" />
+              or
+              <span className="flex-1 h-px bg-white/[0.14]" />
+            </div>
+            <button
+              type="button"
+              onClick={() => toast.info('Google sign-in isn’t connected yet.')}
+              className="w-full py-3 rounded-[10px] text-sm font-bold text-white border-[1.5px] border-white/[0.14] hover:border-white/30 transition-colors"
+            >
+              {mode === 'signup' ? 'Sign up with Google' : 'Continue with Google'}
+            </button>
+
+            <p className="text-center text-sm text-white/60 mt-5">
+              {mode === 'signup' ? 'Already on AthlasX?' : 'New to AthlasX?'}{' '}
+              <button type="button" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')} className="text-[color:var(--accent-bright)] font-bold hover:underline">
+                {mode === 'signup' ? 'Sign in instead' : 'Create an account'}
+              </button>
+            </p>
+            <p className="text-center text-xs text-white/40 mt-4">
+              By continuing you agree to our <a href="#" className="text-[color:var(--accent-bright)] hover:underline">Terms</a> &amp; <a href="#" className="text-[color:var(--accent-bright)] hover:underline">Privacy Policy</a>.
+            </p>
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
