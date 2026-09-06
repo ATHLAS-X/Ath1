@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, ArrowLeft, Loader2, CheckCircle2, AlertCircle, Upload, Link2, ShieldCheck, Check } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Loader2, CheckCircle2, AlertCircle, Upload, Link2, ShieldCheck } from 'lucide-react'
 import { Anton, Barlow, Barlow_Semi_Condensed } from 'next/font/google'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { StepRail } from '@/components/ui/step-rail'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -54,6 +55,9 @@ const ONBOARDING_VARS = {
   '--accent': '#FF8A1E',
   '--accent-bright': '#FFA64D',
   '--accent-rgb': '255, 138, 30',
+  '--ov08': 'rgba(255, 138, 30, 0.08)',
+  '--ov14': 'rgba(255, 138, 30, 0.14)',
+  '--ov22': 'rgba(255, 138, 30, 0.22)',
   '--ok': '#38d39f',
   '--bad': '#ff5a4d',
   '--card-bg': 'rgba(13, 13, 13, 0.55)',
@@ -238,7 +242,34 @@ export default function OnboardingPage() {
   const [stage, setStage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [resumed, setResumed] = useState(false)
+  // Mirrors the 'stage-advance' lock below for one purpose only: blocking
+  // pointer events on the stage panel while a transition is in flight, so
+  // the outgoing AnimatePresence panel can't be clicked a second time
+  // during its exit animation (a ref alone can guard re-entry into JS
+  // handlers, but can't disable the DOM's hit-testing — that needs a
+  // style applied via a render, hence this being state, not a ref).
+  const [transitioning, setTransitioning] = useState(false)
   const router = useRouter()
+
+  // Re-entry locks for async/navigation actions — a Set checked and
+  // mutated synchronously, not React state. Two click events dispatched
+  // in the same tick (e.g. a rapid double-click, or the outgoing
+  // AnimatePresence panel staying briefly clickable during its exit
+  // animation) both read the SAME pre-render `sending`/`verifying`/
+  // `loading` state value, since neither click's state update has
+  // committed yet when the second one runs — so a state-only guard can't
+  // stop the second invocation. A ref-backed Set closes that race: the
+  // first call's synchronous `.add()` is visible to the second call
+  // immediately, with no render in between.
+  const locksRef = useRef<Set<string>>(new Set())
+  function withLock(key: string, fn: () => void | Promise<void>) {
+    if (locksRef.current.has(key)) return
+    locksRef.current.add(key)
+    const release = () => locksRef.current.delete(key)
+    const result = fn()
+    if (result instanceof Promise) result.finally(release)
+    else release()
+  }
 
   const [form, setForm] = useState(EMPTY_FORM)
   const [aadhaar, setAadhaar] = useState<AadhaarState>(EMPTY_AADHAAR)
@@ -283,6 +314,17 @@ export default function OnboardingPage() {
   const minor = isUnder18(form.dob)
 
   async function sendAadhaarOtp(subject: 'player' | 'guardian') {
+    const lockKey = `${subject}-send-otp`
+    if (locksRef.current.has(lockKey)) return
+    locksRef.current.add(lockKey)
+    try {
+      await sendAadhaarOtpImpl(subject)
+    } finally {
+      locksRef.current.delete(lockKey)
+    }
+  }
+
+  async function sendAadhaarOtpImpl(subject: 'player' | 'guardian') {
     const [state, setState] = subject === 'player' ? [aadhaar, setAadhaar] : [guardianAadhaar, setGuardianAadhaar]
     const digits = state.number.replace(/\D/g, '')
     if (digits.length !== 12) {
@@ -309,6 +351,17 @@ export default function OnboardingPage() {
   }
 
   async function verifyAadhaarOtp(subject: 'player' | 'guardian') {
+    const lockKey = `${subject}-verify-otp`
+    if (locksRef.current.has(lockKey)) return
+    locksRef.current.add(lockKey)
+    try {
+      await verifyAadhaarOtpImpl(subject)
+    } finally {
+      locksRef.current.delete(lockKey)
+    }
+  }
+
+  async function verifyAadhaarOtpImpl(subject: 'player' | 'guardian') {
     const [state, setState] = subject === 'player' ? [aadhaar, setAadhaar] : [guardianAadhaar, setGuardianAadhaar]
     if (state.otp.replace(/\D/g, '').length !== 6) {
       setState(s => ({ ...s, error: 'Enter the 6-digit code.' }))
@@ -346,13 +399,22 @@ export default function OnboardingPage() {
   }
 
   function handleNextFromStage(current: number) {
+    const lockKey = 'stage-advance'
+    if (locksRef.current.has(lockKey)) return
+    locksRef.current.add(lockKey)
     if (current < TOTAL_STAGES) {
       const next = current + 1
       setStage(next)
+      setTransitioning(true)
       saveProgress({ stage: next, form, aadhaar, guardianAadhaar, consents, scrolledEnd })
+      // Held for the AnimatePresence exit/enter transition duration
+      // (0.3s, matching this file's `transition={{ duration: 0.3 }}`)
+      // rather than released immediately — a second click landing on the
+      // outgoing panel mid-animation must not re-trigger this too.
+      setTimeout(() => { locksRef.current.delete(lockKey); setTransitioning(false) }, 350)
       return
     }
-    void handleSubmit()
+    void handleSubmit().finally(() => locksRef.current.delete(lockKey))
   }
 
   async function handleSubmit() {
@@ -378,7 +440,26 @@ export default function OnboardingPage() {
       router.push('/record')
     } catch (err) {
       console.error(err)
-      toast.error(err instanceof Error ? err.message : 'Failed to save profile. Please try again.')
+      const message = err instanceof Error ? err.message : 'Failed to save profile. Please try again.'
+      // The server re-checks Aadhaar verification at submit time rather than
+      // trusting client state (consumeVerifiedAadhaar is single-use and
+      // TTL-bound) — if that recheck fails after the client already showed
+      // "verified", stranding the user behind a generic toast would force a
+      // full wizard restart. Instead, drop back to Stage 2 with a fresh
+      // Send-OTP prompt for whichever party's verification didn't hold,
+      // keeping every other field the user already filled in.
+      const recoveryMessage = "We couldn't confirm your verification — please verify again to finish."
+      if (/aadhaar verification is required/i.test(message)) {
+        if (/guardian aadhaar/i.test(message)) {
+          setGuardianAadhaar(a => ({ ...a, status: 'unverified', otp: '', requestId: '', devCode: '', error: recoveryMessage }))
+        } else {
+          setAadhaar(a => ({ ...a, status: 'unverified', otp: '', requestId: '', devCode: '', error: recoveryMessage }))
+        }
+        setStage(2)
+        toast.error(recoveryMessage)
+        return
+      }
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -389,66 +470,38 @@ export default function OnboardingPage() {
 
   return (
     <div className={cn(anton.variable, barlow.variable, barlowSemi.variable)} style={ONBOARDING_VARS}>
-      <div className="min-h-screen bg-[color:var(--bg)] grid lg:grid-cols-[360px_1fr] font-[family-name:var(--font-barlow)]">
+      <div className="min-h-screen grid lg:grid-cols-[1fr_2fr] bg-[color:var(--bg)] font-[family-name:var(--font-barlow)] text-white">
         {/* ── LEFT RAIL ── */}
-        <aside className="hidden lg:flex flex-col p-10 bg-[color:var(--bg-soft)] border-r border-[color:var(--card-border)]">
-          <Link href="/" className="font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-[0.22em] text-white">
-            Athlas<span className="text-[color:var(--accent)]">X</span>
-          </Link>
+        <aside className="relative overflow-hidden hidden lg:flex flex-col p-8 lg:p-[2.618rem] bg-[color:var(--bg-soft)]">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(120% 80% at 0% 0%, var(--ov14), transparent 55%), radial-gradient(110% 70% at 0% 100%, var(--ov08), transparent 55%), linear-gradient(180deg, rgba(16,26,20,0.5) 0%, rgba(26,14,10,0.55) 100%)',
+            }}
+          />
+          <div className="relative z-10 flex flex-col flex-1">
+            <Link href="/" className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.22em] font-bold text-[0.95rem] text-white">
+              ATHLAS<span className="text-[color:var(--accent)]">X</span>
+            </Link>
 
-          <div className="mt-8">
-            <p className="font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--accent-bright)] mb-2">
-              Player Onboarding
-            </p>
-            <h1 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl leading-[0.95] text-white">
-              Build your <span className="text-[color:var(--accent)]">athlete</span> profile.
-            </h1>
-            <p className="mt-3 text-sm text-white/60 leading-relaxed max-w-[22rem]">
-              Three steps, each auto-saved the moment you continue. Leave and resume anytime.
-            </p>
-          </div>
+            <div className="mt-6">
+              <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.2em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Player Onboarding</p>
+              <h1 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[42px] text-white">
+                Build your <b className="text-[color:var(--accent)] font-normal">athlete</b> profile.
+              </h1>
+              <p className="mt-3.5 text-sm leading-relaxed text-white/60 max-w-[22rem]">Three steps, each auto-saved the moment you continue. Leave and resume anytime.</p>
+            </div>
 
-          <nav className="mt-10 flex flex-col gap-1" aria-label="Onboarding stages">
-            {STAGE_META.map((s, i) => {
-              const done = stage > s.n
-              const current = stage === s.n
-              return (
-                <div key={s.n} className="flex items-start gap-3 py-2">
-                  <div className="flex flex-col items-center">
-                    <div
-                      className={cn(
-                        'w-7 h-7 rounded-full border-[1.5px] flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
-                        current && 'bg-[color:var(--accent)] border-[color:var(--accent)] text-[#1a0e02] shadow-[0_0_0_4px_rgba(255,138,30,0.18)]',
-                        done && !current && 'bg-[rgba(255,138,30,0.14)] border-[color:var(--accent)] text-[color:var(--accent-bright)]',
-                        !current && !done && 'border-[color:var(--card-border)] text-white/50',
-                      )}
-                    >
-                      {done ? <Check className="w-3.5 h-3.5" /> : s.n}
-                    </div>
-                    {i < STAGE_META.length - 1 && (
-                      <div className={cn('w-px flex-1 min-h-[1.75rem] mt-1', done ? 'bg-[color:var(--accent)]' : 'bg-[color:var(--card-border)]')} />
-                    )}
-                  </div>
-                  <div className="pt-0.5">
-                    <p className={cn('font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-wide', current || done ? 'text-white' : 'text-white/50')}>
-                      {s.label}
-                    </p>
-                    <p className="text-[11px] text-white/40">{s.sub}</p>
-                  </div>
-                </div>
-              )
-            })}
-          </nav>
-
-          <div className="mt-auto pt-8 flex items-center gap-2 text-xs text-white/40">
-            <span className="w-1.5 h-1.5 rounded-full bg-[color:var(--ok)] shadow-[0_0_6px_var(--ok)]" />
-            All progress saved automatically
+            <StepRail steps={STAGE_META.map(s => ({ key: String(s.n), label: s.label, sublabel: s.sub }))} currentIndex={stage - 1} className="mt-8" />
           </div>
         </aside>
 
         {/* ── RIGHT: FORM ── */}
-        <div className="flex flex-col">
-          <div className="flex items-center justify-between px-6 lg:px-10 py-4 border-b border-[color:var(--card-border)]">
+        <div className="relative flex flex-col min-w-0">
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(110% 50% at 100% 0%, var(--ov08), transparent 55%)' }} />
+
+          <div className="relative z-20 flex items-center justify-between px-6 lg:px-10 py-4 border-b border-[color:var(--card-border)]">
             <Link href="/" className="lg:hidden font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-[0.1em] text-white">
               Athlas<span className="text-[color:var(--accent)]">X</span>
             </Link>
@@ -456,7 +509,7 @@ export default function OnboardingPage() {
             <div className="font-[family-name:var(--font-barlow-semi)] text-xs uppercase tracking-wide text-white/50">Stage {stage} of {TOTAL_STAGES}</div>
           </div>
 
-          <div className="h-[3px] bg-[color:var(--card-border)]">
+          <div className="relative z-20 h-[3px] bg-[color:var(--card-border)]">
             <motion.div
               className="h-full"
               style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-bright))' }}
@@ -466,7 +519,7 @@ export default function OnboardingPage() {
             />
           </div>
 
-          <div className="flex-1 flex items-start justify-center p-6 lg:p-10 overflow-y-auto">
+          <div className="relative z-10 flex-1 flex items-start justify-center p-6 lg:p-10 overflow-y-auto">
             <div className={cn('w-full', stage === 3 ? 'max-w-2xl' : 'max-w-lg')}>
               <AnimatePresence mode="wait">
                 <motion.div
@@ -475,6 +528,7 @@ export default function OnboardingPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3 }}
+                  style={{ pointerEvents: transitioning ? 'none' : 'auto' }}
                   className="space-y-6"
                 >
                   {/* ── Stage 1: Basic player details ── */}
@@ -723,18 +777,25 @@ export default function OnboardingPage() {
 
               <div className="flex items-center justify-between mt-8 gap-4">
                 {stage > 1 ? (
-                  <button onClick={() => setStage(s => s - 1)}
-                    className="font-[family-name:var(--font-barlow-semi)] flex items-center gap-2 px-4 py-2.5 rounded-[9px] bg-transparent border-[1.5px] border-[color:var(--card-border)] text-white/70 hover:text-white hover:border-white/40 text-sm font-bold uppercase tracking-wide transition-colors">
+                  <button onClick={() => {
+                    if (locksRef.current.has('stage-advance')) return
+                    locksRef.current.add('stage-advance')
+                    setStage(s => s - 1)
+                    setTransitioning(true)
+                    setTimeout(() => { locksRef.current.delete('stage-advance'); setTransitioning(false) }, 350)
+                  }}
+                    disabled={transitioning}
+                    className="font-[family-name:var(--font-barlow-semi)] flex items-center gap-2 px-4 py-2.5 rounded-[9px] bg-transparent border-[1.5px] border-[color:var(--card-border)] text-white/70 hover:text-white hover:border-white/40 text-sm font-bold uppercase tracking-wide transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     <ArrowLeft className="w-4 h-4" /> Back
                   </button>
                 ) : <div />}
 
                 <button
                   onClick={() => handleNextFromStage(stage)}
-                  disabled={!canProceed || loading}
+                  disabled={!canProceed || loading || transitioning}
                   className={cn(
                     'font-[family-name:var(--font-barlow-semi)] flex items-center gap-2 px-6 py-2.5 rounded-[9px] text-sm font-bold uppercase tracking-wide transition-all',
-                    canProceed && !loading
+                    canProceed && !loading && !transitioning
                       ? 'bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_8px_22px_-8px_rgba(255,138,30,0.7)] hover:bg-[color:var(--accent-bright)]'
                       : 'bg-white/[0.04] border border-[color:var(--card-border)] text-white/40 cursor-not-allowed',
                   )}

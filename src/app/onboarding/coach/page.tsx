@@ -1,87 +1,77 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, ArrowLeft, Loader2, CheckCircle2, Upload, ShieldAlert, Info } from 'lucide-react'
 import { Anton, Barlow, Barlow_Semi_Condensed } from 'next/font/google'
+import { ArrowRight, Loader2, CheckCircle2, Upload, ShieldAlert, Info, Megaphone, User, Target, Star, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { StepRail } from '@/components/ui/step-rail'
 import { cn } from '@/lib/utils'
-import Link from 'next/link'
 
 /*
- * Coach self-serve onboarding — rebuilt from design/import/AthlasX Coach
- * Onboarding.html. Coach accounts were previously seed-only
- * (prisma/seed.ts) with no self-serve path.
+ * Coach self-serve onboarding — restyled to match the authoritative export
+ * design/import/export_v2/export/coach-onboarding.html/.css (2026-09-06
+ * zip): rail : form two-column layout, cert-grid badges, reveal panels.
+ * Field set/step order/copy match that export, with the deviations already
+ * confirmed with the user for this flow, all still true:
+ *   - The mockup's real Step 4 ("Join an academy" — invite code / browse /
+ *     independent) has no home in the schema (CoachProfile.association_id
+ *     is required, no academy relation) — Step 4 here stays the real,
+ *     required Association picker built earlier, not the mockup's academy
+ *     UI. Copy/header for this step is this app's own, not the export's.
+ *   - Step 1 adds email+password alongside the export's optional-email,
+ *     no-password content.
+ *   - Steps 2-3 (Experience, Certifications) are collected for fidelity to
+ *     the mockup but not persisted — CoachProfile has no columns for them.
  *
- * Findings reported to and confirmed with the user before building:
- *   - The mockup does NOT self-assign a squad anywhere, and does NOT gate
- *     the account behind approval — certification review (24-48h) is
- *     async and non-blocking; the account is fully usable immediately
- *     with a "pending" cert badge.
- *   - The mockup's real Step 4 ("Join an academy" — invite code / browse
- *     / independent) has no home in the schema: CoachProfile.association_id
- *     is required and non-nullable, with no academy relation on
- *     CoachProfile at all. squad-access.ts was checked directly and does
- *     NOT read CoachProfile (coach squad access comes from real
- *     SquadCoach membership rows instead) — CoachProfile itself is
- *     entirely unused elsewhere in src/. So this is a declarative
- *     affiliation field, not a membership grant, and Step 4 here is a
- *     required Association picker (no independent option), accepted
- *     instantly/self-serve rather than gated behind that association's
- *     approval.
- *   - Step 1 adds email+password alongside the mockup's optional-email,
- *     no-password content, same reasoning as the academy/association
- *     flows: nothing else in this codebase can sign a phone-only account
- *     back in.
- *   - Steps 2-3 (Experience, Certifications) are collected for fidelity
- *     to the mockup but not persisted — CoachProfile has no columns for
- *     coaching role, specialisations, years of experience, or
- *     certification level, and adding them wasn't asked for.
- *
- * Presentation-only restyle to design/import/AthlasX Coach Onboarding.html's
- * orange/Anton-Barlow palette, scoped exactly like the player onboarding
- * restyle (f45bf2a): fonts + tokens are inline CSS vars local to this
- * file's wrapper, nothing added to globals.css or tailwind.config.ts. The
- * Association-picker step (Step 4), the certification "pending" badge
- * copy/logic, the send-otp/associations calls, and POST /api/coach/onboard
- * are all untouched — no behavior, field, or copy change.
+ * Per the design-rollout convention, the top PLAYER/COACH/ACADEMY/SCOUT
+ * pill-row switcher visible in the export's screenshots is NOT built.
  */
 
 const anton = Anton({ subsets: ['latin'], weight: '400', variable: '--font-anton' })
 const barlow = Barlow({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-barlow' })
 const barlowSemi = Barlow_Semi_Condensed({ subsets: ['latin'], weight: ['600', '700'], variable: '--font-barlow-semi' })
 
-// Tokens lifted from design/import/AthlasX Coach Onboarding.html's :root.
-const COACH_VARS = {
+const OB_VARS = {
   '--bg': '#0D0D0D',
   '--bg-soft': '#141312',
+  '--text': '#F5F5F0',
+  '--text-dim': 'rgba(245, 245, 240, 0.62)',
+  '--text-faint': 'rgba(245, 245, 240, 0.4)',
   '--accent': '#FF8A1E',
   '--accent-bright': '#FFA64D',
   '--accent-rgb': '255, 138, 30',
-  '--ok': '#38d39f',
-  '--bad': '#ff5a4d',
+  '--ov08': 'rgba(255, 138, 30, 0.08)',
+  '--ov14': 'rgba(255, 138, 30, 0.14)',
+  '--ov22': 'rgba(255, 138, 30, 0.22)',
   '--card-border': 'rgba(245, 245, 240, 0.14)',
   '--field-bg': 'rgba(245, 245, 240, 0.06)',
+  '--ok': '#38d39f',
+  '--bad': '#ff5a4d',
   '--ease': 'cubic-bezier(0.22, 1, 0.36, 1)',
 } as React.CSSProperties
 
-const FIELD_CLS = 'bg-[color:var(--field-bg)] border-[color:var(--card-border)] text-white placeholder:text-white/40 h-10 rounded-[9px] focus:border-[color:var(--accent)] focus:bg-white/[0.09]'
-const LABEL_CLS = 'font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.1em] text-white/70'
+const FIELD_CLS = 'bg-[color:var(--field-bg)] border-[color:var(--card-border)] text-[color:var(--text)] placeholder:text-[color:var(--text-faint)] h-[42px] rounded-[9px] focus:border-[color:var(--accent)] focus:bg-white/[0.09]'
+const LABEL_CLS = 'font-[family-name:var(--font-barlow-semi)] text-[10.5px] font-bold uppercase tracking-[0.12em] text-[color:var(--text-dim)]'
 const OPTCARD_CLS = (active: boolean) => cn(
   'transition-all border-[1.5px] rounded-[11px]',
-  active
-    ? 'bg-[rgba(255,138,30,0.14)] border-[color:var(--accent)] text-[color:var(--accent-bright)]'
-    : 'bg-[color:var(--field-bg)] border-[color:var(--card-border)] text-white/70 hover:border-white/30',
+  active ? 'bg-[color:var(--ov14)] border-[color:var(--accent)]' : 'bg-[color:var(--field-bg)] border-[color:var(--card-border)] hover:border-white/30',
 )
 
 const TOTAL_STEPS = 4
+const STEPS = [
+  { key: 'account', label: 'Account', sublabel: 'Phone + profile' },
+  { key: 'experience', label: 'Experience', sublabel: 'Role, skills, history' },
+  { key: 'certifications', label: 'Certifications', sublabel: 'BCCI levels, NCA' },
+  { key: 'association', label: 'Your Association', sublabel: 'Who you coach for' },
+]
 const COACH_ROLES = [
-  { v: 'Head Coach', s: 'Leads a squad or academy' },
-  { v: 'Assistant Coach', s: 'Supports the head coach' },
-  { v: 'Specialist', s: 'Batting / bowling / fielding focus' },
-  { v: 'Freelance', s: 'Independent, multiple clients' },
+  { v: 'Head Coach', s: 'Leads a squad or academy', icon: Megaphone },
+  { v: 'Assistant Coach', s: 'Supports the head coach', icon: User },
+  { v: 'Specialist', s: 'Batting / bowling / fielding focus', icon: Target },
+  { v: 'Freelance', s: 'Independent, multiple clients', icon: Star },
 ]
 const SPECIALISATIONS = ['Batting', 'Bowling (Pace)', 'Bowling (Spin)', 'Wicket-keeping', 'Fielding', 'Fitness & Conditioning', 'Mental Skills', 'All-round']
 const CERT_LEVELS = [
@@ -96,12 +86,20 @@ const CERT_LEVELS = [
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick}
-      className={cn('px-3.5 py-2 rounded-full text-sm font-semibold border-[1.5px] transition-all',
-        active
-          ? 'bg-[rgba(255,138,30,0.14)] border-[color:var(--accent)] text-[color:var(--accent-bright)]'
-          : 'bg-[color:var(--field-bg)] border-[color:var(--card-border)] text-white/60 hover:border-white/30')}>
+      className={cn('px-3.5 py-2 rounded-full text-[0.86rem] font-semibold border-[1.5px] transition-all',
+        active ? 'bg-[color:var(--ov14)] border-[color:var(--accent)] text-[color:var(--accent-bright)]' : 'bg-[color:var(--field-bg)] border-[color:var(--card-border)] text-[color:var(--text-dim)] hover:border-white/30 hover:text-[color:var(--text)]')}>
       {label}
     </button>
+  )
+}
+
+function NumStep({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
+  return (
+    <div className="inline-flex items-center border border-[color:var(--card-border)] rounded-[9px] overflow-hidden bg-[color:var(--field-bg)]">
+      <button type="button" onClick={() => onChange(Math.max(min, value - 1))} className="w-[38px] h-[42px] font-bold text-[color:var(--text)] hover:bg-[color:var(--ov14)] hover:text-[color:var(--accent-bright)] transition-colors">−</button>
+      <span className="w-14 text-center text-[0.98rem] font-bold text-[color:var(--text)] border-x border-[color:var(--card-border)] h-[42px] leading-[42px]">{value}</span>
+      <button type="button" onClick={() => onChange(Math.min(max, value + 1))} className="w-[38px] h-[42px] font-bold text-[color:var(--text)] hover:bg-[color:var(--ov14)] hover:text-[color:var(--accent-bright)] transition-colors">+</button>
+    </div>
   )
 }
 
@@ -112,7 +110,16 @@ export default function CoachOnboardingPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  const [transitioning, setTransitioning] = useState(false)
   const router = useRouter()
+
+  // Re-entry locks — see src/app/onboarding/page.tsx's identical
+  // `locksRef` for why this needs to be a ref (checked/mutated
+  // synchronously) rather than relying on the `sendingOtp`/`verifyingOtp`
+  // state flags alone: two click events fired in the same tick both read
+  // the same pre-render state value, since neither click's state update
+  // has committed when the second one runs.
+  const locksRef = useRef<Set<string>>(new Set())
 
   // Step 1
   const [coachName, setCoachName] = useState('')
@@ -147,7 +154,10 @@ export default function CoachOnboardingPage() {
 
   useEffect(() => {
     if (step !== 4) return
-    fetch('/api/coach/onboard/associations').then(r => r.json()).then(d => setAssociations(d.associations ?? []))
+    fetch('/api/coach/onboard/associations')
+      .then((r) => r.json())
+      .then((d) => setAssociations(d.associations ?? []))
+      .catch(() => setAssociations([]))
   }, [step])
 
   function toggleSpec(v: string) {
@@ -155,6 +165,16 @@ export default function CoachOnboardingPage() {
   }
 
   async function sendOtp() {
+    if (locksRef.current.has('send-otp')) return
+    locksRef.current.add('send-otp')
+    try {
+      await sendOtpImpl()
+    } finally {
+      locksRef.current.delete('send-otp')
+    }
+  }
+
+  async function sendOtpImpl() {
     if (mobile.replace(/\D/g, '').length !== 10) { setError('Enter a valid 10-digit mobile number.'); return }
     setSendingOtp(true); setError('')
     try {
@@ -174,6 +194,16 @@ export default function CoachOnboardingPage() {
   }
 
   async function verifyOtp() {
+    if (locksRef.current.has('verify-otp')) return
+    locksRef.current.add('verify-otp')
+    try {
+      await verifyOtpImpl()
+    } finally {
+      locksRef.current.delete('verify-otp')
+    }
+  }
+
+  async function verifyOtpImpl() {
     setVerifyingOtp(true); setError('')
     try {
       if (otp.replace(/\D/g, '') !== otpDevCode) throw new Error('Incorrect OTP')
@@ -193,7 +223,17 @@ export default function CoachOnboardingPage() {
 
   async function handleNext() {
     if (!canProceed()) return
-    if (step < TOTAL_STEPS) { setStep(s => s + 1); return }
+    if (locksRef.current.has('step-advance')) return
+    locksRef.current.add('step-advance')
+
+    if (step < TOTAL_STEPS) {
+      setStep(s => s + 1)
+      setTransitioning(true)
+      // Held for the AnimatePresence exit/enter transition duration
+      // (0.25s, matching this file's `transition={{ duration: 0.25 }}`).
+      setTimeout(() => { locksRef.current.delete('step-advance'); setTransitioning(false) }, 300)
+      return
+    }
 
     setLoading(true); setError('')
     try {
@@ -208,6 +248,7 @@ export default function CoachOnboardingPage() {
       setError(err instanceof Error ? err.message : 'Failed to set up your coach profile')
     } finally {
       setLoading(false)
+      locksRef.current.delete('step-advance')
     }
   }
 
@@ -215,288 +256,302 @@ export default function CoachOnboardingPage() {
   const filteredAssociations = associations.filter(a =>
     !associationQuery || a.name.toLowerCase().includes(associationQuery.toLowerCase()) || a.state.toLowerCase().includes(associationQuery.toLowerCase()))
 
-  if (done) {
-    return (
-      <div className={cn(anton.variable, barlow.variable, barlowSemi.variable)} style={COACH_VARS}>
-        <div className="min-h-screen bg-[color:var(--bg)] flex items-center justify-center p-6 font-[family-name:var(--font-barlow)]">
-          <div className="max-w-md w-full text-center space-y-4">
-            <div className="w-20 h-20 mx-auto rounded-full bg-[color:var(--ok)]/10 border border-[color:var(--ok)]/40 flex items-center justify-center">
-              <CheckCircle2 className="w-9 h-9 text-[color:var(--ok)]" />
-            </div>
-            <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white">You&apos;re a coach on AthlasX.</h2>
-            <p className="text-sm text-white/60">Your profile is submitted. Certifications are under review (24–48h) — you can start coaching now with a pending badge.</p>
-            <button onClick={() => router.push('/coach')}
-              className="font-[family-name:var(--font-barlow-semi)] mt-4 px-6 py-2.5 rounded-[9px] text-sm font-bold uppercase tracking-wide bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_8px_22px_-8px_rgba(255,138,30,0.7)] hover:bg-[color:var(--accent-bright)] transition-colors">
-              Go to Dashboard
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className={cn(anton.variable, barlow.variable, barlowSemi.variable)} style={COACH_VARS}>
-      <div className="min-h-screen bg-[color:var(--bg)] flex flex-col font-[family-name:var(--font-barlow)]">
-        <div className="border-b border-[color:var(--card-border)] px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="font-[family-name:var(--font-barlow-semi)] text-lg font-bold uppercase tracking-[0.1em] text-white">
-              Athlas<span className="text-[color:var(--accent)]">X</span>
-            </span>
-          </Link>
-          <div className="font-[family-name:var(--font-barlow-semi)] text-xs uppercase tracking-wide text-white/50">Step {step} of {TOTAL_STEPS}</div>
-        </div>
+    <div className={cn(anton.variable, barlow.variable, barlowSemi.variable)} style={OB_VARS}>
+      <div className="min-h-screen grid lg:grid-cols-[1fr_2fr] bg-[color:var(--bg)] font-[family-name:var(--font-barlow)] text-[color:var(--text)]">
+        {/* ── LEFT RAIL ── */}
+        <aside className="relative overflow-hidden flex flex-col p-8 lg:p-[2.618rem] bg-[color:var(--bg-soft)]">
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(110% 75% at 0% 0%, var(--ov14), transparent 55%), linear-gradient(160deg, #1a0c04 0%, #0d0d0d 52%, #050505 100%)' }}
+          />
+          <div className="relative z-10 flex flex-col flex-1">
+            <div className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.22em] font-bold text-[0.95rem] text-[color:var(--text)]">
+              ATHLAS<span className="text-[color:var(--accent)]">X</span>
+            </div>
+            <div className="mt-6">
+              <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.2em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Coach Onboarding</p>
+              <h1 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[42px] text-[color:var(--text)]">
+                Join as a <b className="text-[color:var(--accent)] font-normal">coach.</b>
+              </h1>
+              <p className="mt-3.5 text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[22rem]">Four steps. Share your experience, get verified, and start coaching on AthlasX.</p>
+            </div>
 
-        <div className="h-[3px] bg-[color:var(--card-border)]">
-          <motion.div className="h-full" style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-bright))' }}
-            initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: 0.4 }} />
-        </div>
+            <StepRail steps={STEPS} currentIndex={done ? STEPS.length : step - 1} completedIndices={done ? STEPS.map((_, i) => i) : undefined} className="mt-8" />
+          </div>
+        </aside>
 
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="w-full max-w-lg">
-            <AnimatePresence mode="wait">
-              <motion.div key={step} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.3 }} className="space-y-6">
+        {/* ── RIGHT PANEL ── */}
+        <main className="relative flex flex-col min-w-0">
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(110% 50% at 100% 0%, var(--ov08), transparent 55%)' }} />
 
-                {step === 1 && (
-                  <>
-                    <div>
-                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Create your account</h2>
-                      <p className="text-white/50 text-sm">Your name and number become your coach profile. We verify by OTP.</p>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="space-y-1.5">
-                        <Label className={LABEL_CLS}>Full name *</Label>
-                        <Input value={coachName} onChange={e => setCoachName(e.target.value)} placeholder="e.g. Anil Kumble"
-                          className={FIELD_CLS} />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className={LABEL_CLS}>Mobile number *</Label>
-                        <div className="flex gap-2">
-                          <span className="flex items-center px-3 rounded-[9px] bg-[color:var(--field-bg)] border border-[color:var(--card-border)] text-white/80 text-sm font-bold">+91</span>
-                          <Input value={mobile} onChange={e => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" disabled={otpVerified}
-                            className={FIELD_CLS} />
-                          {!otpVerified && (
-                            <button type="button" onClick={sendOtp} disabled={sendingOtp}
-                              className="font-[family-name:var(--font-barlow-semi)] shrink-0 text-xs font-bold uppercase tracking-wide px-4 rounded-[9px] bg-[color:var(--accent)] text-[#1a0e02] hover:bg-[color:var(--accent-bright)] transition-colors disabled:opacity-50">
-                              {sendingOtp ? 'Sending…' : otpRequestId ? 'Resend OTP' : 'Send OTP'}
+          <div className="relative z-20 h-[3px] bg-[color:var(--card-border)]">
+            <motion.div className="h-full" style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-bright))' }}
+              initial={{ width: 0 }} animate={{ width: done ? '100%' : `${progress}%` }} transition={{ duration: 0.5 }} />
+          </div>
+
+          <div className="relative z-10 flex-1 overflow-y-auto">
+            <div className="w-full max-w-[40rem] mx-auto px-6 sm:px-10 py-8 sm:py-10">
+              {done ? (
+                <div className="text-center py-10">
+                  <div className="w-20 h-20 mx-auto rounded-full bg-[color:var(--ov14)] border-[1.5px] border-[color:var(--accent)] flex items-center justify-center mb-6">
+                    <CheckCircle2 className="w-10 h-10 text-[color:var(--accent)]" />
+                  </div>
+                  <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-[clamp(30px,4vw,44px)] leading-[0.92] text-[color:var(--text)] mb-3">
+                    You&apos;re a <b className="text-[color:var(--accent)] font-normal">coach</b> on AthlasX.
+                  </h2>
+                  <p className="text-[0.95rem] text-[color:var(--text-dim)] leading-relaxed max-w-[28rem] mx-auto">Your profile is submitted. Certifications are under review (24–48h) — you can start coaching now with a pending badge.</p>
+                </div>
+              ) : (
+                <AnimatePresence mode="wait">
+                  <motion.div key={step} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.25 }} style={{ pointerEvents: transitioning ? 'none' : 'auto' }}>
+
+                    {step === 1 && (
+                      <>
+                        <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step 1 of 4</p>
+                        <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[40px] text-[color:var(--text)] mb-2">Create your account</h2>
+                        <p className="text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[32rem] mb-7">Your name and number become your coach profile. We verify by OTP.</p>
+
+                        <div className="grid grid-cols-2 gap-x-4 mb-4">
+                          <div className="col-span-2">
+                            <Label className={LABEL_CLS}>Full Name<span className="text-[color:var(--accent)] ml-0.5">*</span></Label>
+                            <Input value={coachName} onChange={e => setCoachName(e.target.value)} placeholder="e.g. Anil Kumble" className={cn(FIELD_CLS, 'mt-1.5 mb-4')} />
+                          </div>
+                        </div>
+
+                        <div className="mb-4">
+                          <Label className={LABEL_CLS}>Mobile Number<span className="text-[color:var(--accent)] ml-0.5">*</span></Label>
+                          <div className="flex gap-2 mt-1.5">
+                            <span className="flex-none flex items-center px-3.5 border border-[color:var(--card-border)] rounded-[9px] bg-[color:var(--field-bg)] font-bold text-[0.92rem] text-[color:var(--text)]">+91</span>
+                            <Input value={mobile} onChange={e => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" disabled={otpVerified} className={FIELD_CLS} />
+                            {!otpVerified && (
+                              <button type="button" onClick={sendOtp} disabled={sendingOtp}
+                                className="flex-none px-[1.1rem] rounded-[9px] bg-[color:var(--accent)] text-[#1a0e02] font-[family-name:var(--font-barlow-semi)] uppercase tracking-wide font-bold text-[0.84rem] hover:bg-[color:var(--accent-bright)] transition-colors disabled:opacity-50">
+                                {sendingOtp ? 'Sending…' : otpRequestId ? 'Resend OTP' : 'Send OTP'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {otpVerified ? (
+                          <div className="flex items-center gap-2 p-3 rounded-[9px] border border-[color:var(--ok)]/40 bg-[color:var(--ok)]/10 text-[color:var(--ok)] text-sm font-semibold mb-4">
+                            <CheckCircle2 className="w-4 h-4" /> Mobile number verified
+                          </div>
+                        ) : otpRequestId && (
+                          <div className="mb-4">
+                            <div className="p-2.5 rounded-[9px] border border-[color:var(--card-border)] bg-[color:var(--ov08)] mb-3">
+                              <p className="text-[11px] font-bold text-[color:var(--accent-bright)]">Dev mode — no SMS gateway connected</p>
+                              <p className="text-xs text-[color:var(--text-dim)] mt-0.5">Your test code is <span className="font-mono font-bold text-[color:var(--text)]">{otpDevCode}</span></p>
+                            </div>
+                            <Label className={LABEL_CLS}>Enter OTP</Label>
+                            <div className="flex gap-2 mt-1.5">
+                              <Input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit code" className={FIELD_CLS} />
+                              <button type="button" onClick={verifyOtp} disabled={verifyingOtp}
+                                className="flex-none px-4 rounded-[9px] border-[1.5px] border-[color:var(--card-border)] text-[color:var(--text)] font-[family-name:var(--font-barlow-semi)] uppercase tracking-wide font-bold text-xs hover:border-white/50 transition-colors disabled:opacity-50">
+                                {verifyingOtp ? 'Verifying…' : 'Verify'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <Label className={LABEL_CLS}>Email<span className="text-[color:var(--accent)] ml-0.5">*</span></Label>
+                            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" autoComplete="email" className={cn(FIELD_CLS, 'mt-1.5')} />
+                          </div>
+                          <div>
+                            <Label className={LABEL_CLS}>Password<span className="text-[color:var(--accent)] ml-0.5">*</span></Label>
+                            <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Choose a password" autoComplete="new-password" className={cn(FIELD_CLS, 'mt-1.5')} />
+                          </div>
+                        </div>
+                        <p className="text-[11px] text-[color:var(--text-faint)] mb-4">Email + password sign you back in later — WhatsApp OTP only verifies this number belongs to you now.</p>
+
+                        <div className="grid grid-cols-2 gap-4 mb-5">
+                          <div>
+                            <Label className={LABEL_CLS}>City</Label>
+                            <Input value={city} onChange={e => setCity(e.target.value)} placeholder="e.g. Bengaluru" className={cn(FIELD_CLS, 'mt-1.5')} />
+                          </div>
+                          <div>
+                            <Label className={LABEL_CLS}>Display Photo<span className="text-[color:var(--text-faint)] font-medium tracking-normal normal-case ml-1.5">optional</span></Label>
+                            <button type="button" onClick={() => setPhotoUploaded(true)}
+                              className="w-full mt-1.5 h-[42px] flex items-center justify-center gap-2 rounded-[9px] border-2 border-dashed border-[color:var(--accent)] bg-[color:var(--ov08)] hover:bg-[color:var(--ov14)] transition-colors">
+                              <Upload className="w-4 h-4 text-[color:var(--accent)]" />
+                              <span className="text-[0.82rem] font-bold text-[color:var(--text)]">{photoUploaded ? 'Uploaded ✓' : 'Upload a headshot'}</span>
                             </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {step === 2 && (
+                      <>
+                        <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step 2 of 4</p>
+                        <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[40px] text-[color:var(--text)] mb-2">Experience</h2>
+                        <p className="text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[32rem] mb-7">Your coaching background helps us match you with the right academies and players.</p>
+
+                        <div className="mb-5">
+                          <Label className={LABEL_CLS}>Primary Coaching Role</Label>
+                          <div className="grid grid-cols-2 gap-2.5 mt-2">
+                            {COACH_ROLES.map(r => (
+                              <button key={r.v} type="button" onClick={() => setCoachRole(r.v)}
+                                className={cn('flex items-start gap-2.5 text-left px-3.5 py-3 rounded-[11px]', OPTCARD_CLS(coachRole === r.v))}>
+                                <span className={cn('w-8 h-8 flex-none rounded-[8px] grid place-items-center', coachRole === r.v ? 'bg-[color:var(--accent)] text-[#1a0e02]' : 'bg-[rgba(255,138,30,0.16)] text-[color:var(--accent-bright)]')}>
+                                  <r.icon className="w-[17px] h-[17px]" />
+                                </span>
+                                <span>
+                                  <span className="block text-[0.94rem] font-bold text-[color:var(--text)]">{r.v}</span>
+                                  <span className="block text-[0.74rem] leading-snug text-[color:var(--text-dim)]">{r.s}</span>
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mb-5">
+                          <Label className={LABEL_CLS}>Coaching Specialisation</Label>
+                          <div className="flex flex-wrap gap-2 mt-1.5">{SPECIALISATIONS.map(v => <Chip key={v} label={v} active={specialisations.includes(v)} onClick={() => toggleSpec(v)} />)}</div>
+                        </div>
+
+                        <div className="mb-5">
+                          <Label className={LABEL_CLS}>Years of Coaching Experience</Label>
+                          <div className="mt-1.5"><NumStep value={years} onChange={setYears} min={0} max={50} /></div>
+                        </div>
+
+                        <div>
+                          <Label className={LABEL_CLS}>Played at State / Higher Level?</Label>
+                          <div className="flex gap-2 mt-1.5">{['Yes', 'No'].map(v => <Chip key={v} label={v} active={playedHigh === v} onClick={() => setPlayedHigh(v)} />)}</div>
+                          {playedHigh === 'Yes' && (
+                            <div className="grid grid-cols-2 gap-4 p-[0.9rem] mt-[0.7rem] rounded-[10px] bg-[color:var(--field-bg)] border border-[color:var(--card-border)]">
+                              <div>
+                                <Label className={LABEL_CLS}>Highest Level Played</Label>
+                                <select value={playedLevel} onChange={e => setPlayedLevel(e.target.value)} className={cn(FIELD_CLS, 'mt-1.5 w-full px-3.5 appearance-none cursor-pointer')}>
+                                  <option value="" className="bg-[#141312]">Select level</option>
+                                  {['District', 'State', 'Ranji Trophy', 'India A', 'International', 'IPL / Franchise'].map(l => <option key={l} value={l} className="bg-[#141312]">{l}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <Label className={LABEL_CLS}>Playing Role</Label>
+                                <select value={playedRole} onChange={e => setPlayedRole(e.target.value)} className={cn(FIELD_CLS, 'mt-1.5 w-full px-3.5 appearance-none cursor-pointer')}>
+                                  <option value="" className="bg-[#141312]">Select role</option>
+                                  {['Batsman', 'Bowler', 'All-Rounder', 'Wicket-Keeper'].map(r => <option key={r} value={r} className="bg-[#141312]">{r}</option>)}
+                                </select>
+                              </div>
+                            </div>
                           )}
                         </div>
-                      </div>
-
-                      {otpVerified ? (
-                        <div className="flex items-center gap-2 p-3 rounded-[9px] border border-[color:var(--ok)]/40 bg-[color:var(--ok)]/10 text-[color:var(--ok)] text-sm font-semibold">
-                          <CheckCircle2 className="w-4 h-4" /> Mobile number verified
-                        </div>
-                      ) : otpRequestId && (
-                        <div className="space-y-2">
-                          <div className="p-2.5 rounded-[9px] border border-[color:var(--card-border)] bg-[rgba(255,138,30,0.08)]">
-                            <p className="text-[11px] font-bold text-[color:var(--accent-bright)]">Dev mode — no SMS gateway connected</p>
-                            <p className="text-xs text-white/70 mt-0.5">Your test code is <span className="font-mono font-bold text-white">{otpDevCode}</span></p>
-                          </div>
-                          <Label className={LABEL_CLS}>Enter OTP</Label>
-                          <div className="flex gap-2">
-                            <Input value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit code"
-                              className={FIELD_CLS} />
-                            <button type="button" onClick={verifyOtp} disabled={verifyingOtp}
-                              className="font-[family-name:var(--font-barlow-semi)] shrink-0 text-xs font-bold uppercase tracking-wide px-4 rounded-[9px] border-[1.5px] border-[color:var(--card-border)] text-white hover:border-white/50 transition-colors disabled:opacity-50">
-                              {verifyingOtp ? 'Verifying…' : 'Verify'}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="pt-3 border-t border-[color:var(--card-border)] space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <Label className={LABEL_CLS}>Email *</Label>
-                            <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" autoComplete="email"
-                              className={FIELD_CLS} />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className={LABEL_CLS}>Password *</Label>
-                            <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Choose a password" autoComplete="new-password"
-                              className={FIELD_CLS} />
-                          </div>
-                        </div>
-                        <p className="text-[10px] text-white/40">Email + password sign you back in later — WhatsApp OTP only verifies this number belongs to you now.</p>
-                        <div className="space-y-1.5">
-                          <Label className={LABEL_CLS}>City</Label>
-                          <Input value={city} onChange={e => setCity(e.target.value)} placeholder="e.g. Bengaluru"
-                            className={FIELD_CLS} />
-                        </div>
-                        <button type="button" onClick={() => setPhotoUploaded(true)}
-                          className="w-full flex flex-col items-center gap-1.5 p-5 rounded-[11px] border-2 border-dashed border-[color:var(--accent)] bg-[rgba(255,138,30,0.08)] hover:bg-[rgba(255,138,30,0.14)] transition-colors">
-                          <Upload className="w-5 h-5 text-[color:var(--accent)]" />
-                          <span className="text-sm font-bold text-white">{photoUploaded ? 'Photo uploaded ✓' : 'Upload a headshot'}</span>
-                          <span className="text-[11px] text-white/40">PNG or JPG — max 5 MB</span>
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {step === 2 && (
-                  <>
-                    <div>
-                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Experience</h2>
-                      <p className="text-white/50 text-sm">Your coaching background helps us match you with the right academies and players.</p>
-                    </div>
-                    <div className="space-y-5">
-                      <div className="space-y-2">
-                        <Label className={LABEL_CLS}>Primary coaching role</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {COACH_ROLES.map(r => (
-                            <button key={r.v} type="button" onClick={() => setCoachRole(r.v)}
-                              className={cn('text-left px-3 py-2.5', OPTCARD_CLS(coachRole === r.v))}>
-                              <span className="block text-sm font-bold text-white">{r.v}</span>
-                              <span className="block text-[11px] text-white/50">{r.s}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className={LABEL_CLS}>Coaching specialisation</Label>
-                        <div className="flex flex-wrap gap-2">{SPECIALISATIONS.map(v => <Chip key={v} label={v} active={specialisations.includes(v)} onClick={() => toggleSpec(v)} />)}</div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className={LABEL_CLS}>Years of coaching experience</Label>
-                        <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => setYears(n => Math.max(0, n - 1))} className="w-9 h-9 rounded-[9px] bg-[color:var(--field-bg)] border border-[color:var(--card-border)] text-white font-bold">−</button>
-                          <span className="w-10 text-center text-sm font-bold text-white">{years}</span>
-                          <button type="button" onClick={() => setYears(n => Math.min(50, n + 1))} className="w-9 h-9 rounded-[9px] bg-[color:var(--field-bg)] border border-[color:var(--card-border)] text-white font-bold">+</button>
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className={LABEL_CLS}>Played at state / higher level?</Label>
-                        <div className="flex gap-2">{['Yes', 'No'].map(v => <Chip key={v} label={v} active={playedHigh === v} onClick={() => setPlayedHigh(v)} />)}</div>
-                        {playedHigh === 'Yes' && (
-                          <div className="grid grid-cols-2 gap-4 p-3 rounded-[11px] bg-white/[0.03] border border-[color:var(--card-border)] mt-2">
-                            <div className="space-y-1.5">
-                              <Label className={LABEL_CLS}>Highest level played</Label>
-                              <select value={playedLevel} onChange={e => setPlayedLevel(e.target.value)}
-                                className={cn('w-full px-3', FIELD_CLS)}>
-                                <option value="" className="bg-[#141312]">Select level</option>
-                                {['District', 'State', 'Ranji Trophy', 'India A', 'International', 'IPL / Franchise'].map(l => <option key={l} value={l} className="bg-[#141312]">{l}</option>)}
-                              </select>
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label className={LABEL_CLS}>Playing role</Label>
-                              <select value={playedRole} onChange={e => setPlayedRole(e.target.value)}
-                                className={cn('w-full px-3', FIELD_CLS)}>
-                                <option value="" className="bg-[#141312]">Select role</option>
-                                {['Batsman', 'Bowler', 'All-Rounder', 'Wicket-Keeper'].map(r => <option key={r} value={r} className="bg-[#141312]">{r}</option>)}
-                              </select>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {step === 3 && (
-                  <>
-                    <div>
-                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Certifications</h2>
-                      <p className="text-white/50 text-sm">Verified certifications build trust with academies and parents. Upload whatever you have — even a single cert helps.</p>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="space-y-1.5">
-                        <Label className={LABEL_CLS}>Highest certification level</Label>
-                        <div className="grid grid-cols-3 gap-2">
-                          {CERT_LEVELS.map(c => (
-                            <button key={c.v} type="button" onClick={() => setCertLevel(c.v)}
-                              className={cn('flex flex-col items-center gap-1.5 p-3 text-center', OPTCARD_CLS(certLevel === c.v))}>
-                              <span className={cn('w-10 h-10 rounded-[8px] flex items-center justify-center text-xs font-bold',
-                                certLevel === c.v ? 'bg-[color:var(--accent)] text-[#1a0e02]' : 'bg-white/[0.06] text-white')}>{c.v}</span>
-                              <span className="text-xs font-bold text-white">{c.n}</span>
-                              <span className="text-[10px] text-white/50">{c.s}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <button type="button" onClick={() => setCertUploaded(true)}
-                        className="w-full flex flex-col items-center gap-1.5 p-6 rounded-[11px] border-2 border-dashed border-[color:var(--accent)] bg-[rgba(255,138,30,0.08)] hover:bg-[rgba(255,138,30,0.14)] transition-colors">
-                        <Upload className="w-6 h-6 text-[color:var(--accent)]" />
-                        <span className="text-sm font-bold text-white">{certUploaded ? 'Certificate uploaded ✓' : 'Upload certificate or ID proof'}</span>
-                        <span className="text-[11px] text-white/40">PDF, PNG, JPG — max 5 MB per file</span>
-                      </button>
-                      <div className="flex items-start gap-2.5 p-4 rounded-[14px] border border-[color:var(--card-border)] bg-white/[0.02]">
-                        <Info className="w-4 h-4 text-white/50 mt-0.5 shrink-0" />
-                        <p className="text-xs text-white/50">Uploaded certs are reviewed within <b className="text-white/80">24–48 hours</b>. You can still join and coach while verification is pending — academies will see a &quot;pending&quot; badge.</p>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {step === 4 && (
-                  <>
-                    <div>
-                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Your association</h2>
-                      <p className="text-white/50 text-sm">Which cricket association are you affiliated with?</p>
-                    </div>
-                    <div className="space-y-3">
-                      <Input value={associationQuery} onChange={e => setAssociationQuery(e.target.value)} placeholder="Search associations by name or state"
-                        className={FIELD_CLS} />
-                      <div className="max-h-72 overflow-y-auto space-y-1.5">
-                        {filteredAssociations.map(a => (
-                          <button key={a.id} type="button" onClick={() => setAssociationId(a.id)}
-                            className={cn('w-full flex items-center justify-between text-left px-4 py-3 rounded-[11px] border-[1.5px] transition-colors',
-                              associationId === a.id
-                                ? 'border-[color:var(--accent)] bg-[rgba(255,138,30,0.08)]'
-                                : 'border-[color:var(--card-border)] bg-[color:var(--field-bg)] hover:border-white/30')}>
-                            <span>
-                              <span className="block text-sm font-bold text-white">{a.name}</span>
-                              <span className="block text-[11px] text-white/50 capitalize">{a.type} · {a.state}</span>
-                            </span>
-                            {associationId === a.id && <CheckCircle2 className="w-4 h-4 text-[color:var(--accent-bright)] shrink-0" />}
-                          </button>
-                        ))}
-                        {filteredAssociations.length === 0 && (
-                          <p className="text-xs text-white/40 px-1 py-2">No associations found. Try a different search.</p>
-                        )}
-                      </div>
-                    </div>
-                    {error && (
-                      <div className="flex items-start gap-2 p-3 rounded-[11px] border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/[0.08]">
-                        <ShieldAlert className="w-3.5 h-3.5 text-[color:var(--bad)] mt-0.5 shrink-0" />
-                        <p className="text-xs text-[color:var(--bad)]">{error}</p>
-                      </div>
+                      </>
                     )}
-                  </>
-                )}
-              </motion.div>
-            </AnimatePresence>
 
-            {error && step !== 4 && step !== 1 && (
-              <p className="mt-4 text-xs text-[color:var(--bad)]">{error}</p>
-            )}
+                    {step === 3 && (
+                      <>
+                        <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step 3 of 4</p>
+                        <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[40px] text-[color:var(--text)] mb-2">Certifications</h2>
+                        <p className="text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[32rem] mb-7">Verified certifications build trust with academies and parents. Upload whatever you have — even a single cert helps.</p>
 
-            <div className="flex items-center justify-between mt-8 gap-4">
-              {step > 1 ? (
-                <button onClick={() => setStep(s => s - 1)}
-                  className="font-[family-name:var(--font-barlow-semi)] flex items-center gap-2 px-4 py-2.5 rounded-[9px] bg-transparent border-[1.5px] border-[color:var(--card-border)] text-white/70 hover:text-white hover:border-white/40 text-sm font-bold uppercase tracking-wide transition-colors">
-                  <ArrowLeft className="w-4 h-4" /> Back
+                        <div className="mb-5">
+                          <Label className={LABEL_CLS}>Highest Certification Level</Label>
+                          <div className="grid grid-cols-3 gap-2 mt-2">
+                            {CERT_LEVELS.map(c => (
+                              <button key={c.v} type="button" onClick={() => setCertLevel(c.v)}
+                                className={cn('flex flex-col items-center gap-1.5 p-3 text-center', OPTCARD_CLS(certLevel === c.v))}>
+                                <span className={cn('w-9 h-9 rounded-[8px] flex items-center justify-center text-[0.7rem] font-bold',
+                                  certLevel === c.v ? 'bg-[color:var(--accent)] text-[#1a0e02]' : 'bg-white/[0.06] text-[color:var(--text)]')}>
+                                  {c.v === 'None' ? <X className="w-4 h-4" /> : c.v}
+                                </span>
+                                <span className="text-[0.78rem] font-bold text-[color:var(--text)]">{c.n}</span>
+                                <span className="text-[0.68rem] text-[color:var(--text-dim)]">{c.s}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <button type="button" onClick={() => setCertUploaded(true)}
+                          className="w-full flex flex-col items-center gap-1.5 p-7 rounded-[11px] border-2 border-dashed border-[color:var(--accent)] bg-[color:var(--ov08)] hover:bg-[color:var(--ov14)] transition-colors mb-4">
+                          <Upload className="w-[30px] h-[30px] text-[color:var(--accent)]" />
+                          <span className="text-[0.9rem] font-bold text-[color:var(--text)]">{certUploaded ? 'Certificate uploaded ✓' : 'Upload certificate or ID proof'}</span>
+                          <span className="text-[0.74rem] text-[color:var(--text-faint)]">PDF, PNG, JPG — max 5 MB per file</span>
+                        </button>
+
+                        <div className="flex gap-2.5 p-[0.85rem_1rem] rounded-[10px] bg-[color:var(--ov08)] border border-[color:var(--ov22)]">
+                          <Info className="w-[18px] h-[18px] text-[color:var(--accent-bright)] mt-0.5 flex-none" />
+                          <p className="text-[0.84rem] leading-relaxed text-[color:var(--text)]">Uploaded certs are reviewed within <b className="text-[color:var(--accent-bright)]">24–48 hours</b>. You can still join and coach while verification is pending — academies will see a &quot;pending&quot; badge.</p>
+                        </div>
+                      </>
+                    )}
+
+                    {step === 4 && (
+                      <>
+                        <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step 4 of 4</p>
+                        <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[40px] text-[color:var(--text)] mb-2">Your association</h2>
+                        <p className="text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[32rem] mb-7">Which cricket association are you affiliated with?</p>
+
+                        <Input value={associationQuery} onChange={e => setAssociationQuery(e.target.value)} placeholder="Search associations by name or state" className={cn(FIELD_CLS, 'mb-3')} />
+                        <div className="max-h-72 overflow-y-auto space-y-1.5">
+                          {filteredAssociations.map(a => (
+                            <button key={a.id} type="button" onClick={() => setAssociationId(a.id)}
+                              className={cn('w-full flex items-center justify-between text-left px-4 py-3 rounded-[11px] border-[1.5px] transition-colors',
+                                associationId === a.id ? 'border-[color:var(--accent)] bg-[color:var(--ov08)]' : 'border-[color:var(--card-border)] bg-[color:var(--field-bg)] hover:border-white/30')}>
+                              <span>
+                                <span className="block text-sm font-bold text-[color:var(--text)]">{a.name}</span>
+                                <span className="block text-[11px] text-[color:var(--text-dim)] capitalize">{a.type} · {a.state}</span>
+                              </span>
+                              {associationId === a.id && <CheckCircle2 className="w-4 h-4 text-[color:var(--accent-bright)] shrink-0" />}
+                            </button>
+                          ))}
+                          {filteredAssociations.length === 0 && (
+                            <p className="text-xs text-[color:var(--text-faint)] px-1 py-2">No associations found. Try a different search.</p>
+                          )}
+                        </div>
+                        {error && (
+                          <div className="flex items-start gap-2 p-3 mt-4 rounded-[9px] border border-[color:var(--bad)]/30 bg-[color:var(--bad)]/[0.08]">
+                            <ShieldAlert className="w-3.5 h-3.5 text-[color:var(--bad)] mt-0.5 shrink-0" />
+                            <p className="text-xs text-[color:var(--bad)]">{error}</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              )}
+
+              {error && step !== 4 && step !== 1 && !done && (
+                <p className="mt-4 text-xs text-[color:var(--bad)]">{error}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="relative z-20 flex items-center justify-between gap-4 px-6 sm:px-10 py-4 border-t border-[color:var(--card-border)] bg-[rgba(13,13,13,0.6)] backdrop-blur-md">
+            <span className="text-[0.82rem] text-[color:var(--text-dim)]">{done ? 'Done' : `Step ${step} of ${TOTAL_STEPS}`}</span>
+            <div className="flex gap-2.5">
+              {!done && step > 1 && (
+                <button onClick={() => {
+                  if (locksRef.current.has('step-advance')) return
+                  locksRef.current.add('step-advance')
+                  setStep(s => s - 1)
+                  setTransitioning(true)
+                  setTimeout(() => { locksRef.current.delete('step-advance'); setTransitioning(false) }, 300)
+                }}
+                  disabled={transitioning}
+                  className="px-6 py-[0.78rem] rounded-[9px] border-[1.5px] border-[color:var(--card-border)] text-[color:var(--text)] font-[family-name:var(--font-barlow-semi)] uppercase tracking-wide font-bold text-[0.92rem] hover:border-white/50 hover:bg-white/[0.06] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                  Back
                 </button>
-              ) : <div />}
+              )}
               <button
-                onClick={handleNext}
-                disabled={!canProceed() || loading}
-                className={cn(
-                  'font-[family-name:var(--font-barlow-semi)] flex items-center gap-2 px-6 py-2.5 rounded-[9px] text-sm font-bold uppercase tracking-wide transition-all',
-                  canProceed() && !loading
-                    ? 'bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_8px_22px_-8px_rgba(255,138,30,0.7)] hover:bg-[color:var(--accent-bright)]'
-                    : 'bg-white/[0.04] border border-[color:var(--card-border)] text-white/40 cursor-not-allowed',
-                )}
+                onClick={() => done ? router.push('/coach') : handleNext()}
+                disabled={!done && (!canProceed() || loading || transitioning)}
+                className={cn('flex items-center gap-2 px-6 py-[0.78rem] rounded-[9px] font-[family-name:var(--font-barlow-semi)] uppercase tracking-wide font-bold text-[0.92rem] transition-all',
+                  done || (canProceed() && !loading && !transitioning)
+                    ? 'bg-[color:var(--accent)] text-[#1a0e02] border-[1.5px] border-[color:var(--accent)] shadow-[0_8px_22px_-8px_rgba(255,138,30,0.7)] hover:bg-[color:var(--accent-bright)] hover:border-[color:var(--accent-bright)]'
+                    : 'bg-white/[0.04] border-[1.5px] border-[color:var(--card-border)] text-[color:var(--text-faint)] cursor-not-allowed')}
               >
                 {loading ? (<><Loader2 className="w-4 h-4 animate-spin" /> Setting up…</>)
-                  : step === TOTAL_STEPS ? (<><CheckCircle2 className="w-4 h-4" /> Finish</>)
-                  : (<>Save & Continue <ArrowRight className="w-4 h-4" /></>)}
+                  : done ? 'Go to Dashboard'
+                  : step === TOTAL_STEPS ? 'Finish →'
+                  : <>Save & Continue <ArrowRight className="w-4 h-4" /></>}
               </button>
             </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   )
