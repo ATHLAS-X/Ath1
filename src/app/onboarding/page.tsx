@@ -3,8 +3,8 @@
 import { useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, ArrowLeft, Loader2, Zap, CheckCircle2, AlertCircle, Upload, Link2, ShieldCheck } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ArrowRight, ArrowLeft, Loader2, CheckCircle2, AlertCircle, Upload, Link2, ShieldCheck } from 'lucide-react'
+import { Anton, Barlow, Barlow_Semi_Condensed } from 'next/font/google'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
@@ -25,7 +25,32 @@ import { toast } from 'sonner'
  *
  * Still does NOT collect self-reported stats or fitness/behaviour ratings —
  * those come from ingested scorecard data / coach-supervised evaluations only.
+ *
+ * Presentation-only restyle to design/import/AthlasX Onboarding.html's
+ * orange/Anton-Barlow palette, matching the scoping commit 0d19f74 already
+ * used for / and /auth: fonts + tokens are local to this file (inline CSS
+ * vars on the wrapper), not added to globals.css or tailwind.config.ts. No
+ * behavior, field, copy, or logic change from the previous version.
  */
+
+const anton = Anton({ subsets: ['latin'], weight: '400', variable: '--font-anton' })
+const barlow = Barlow({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-barlow' })
+const barlowSemi = Barlow_Semi_Condensed({ subsets: ['latin'], weight: ['600', '700'], variable: '--font-barlow-semi' })
+
+// Tokens lifted from design/import/AthlasX Onboarding.html's :root.
+const ONBOARDING_VARS = {
+  '--bg': '#0D0D0D',
+  '--bg-soft': '#141312',
+  '--accent': '#FF8A1E',
+  '--accent-bright': '#FFA64D',
+  '--accent-rgb': '255, 138, 30',
+  '--ok': '#38d39f',
+  '--bad': '#ff5a4d',
+  '--card-bg': 'rgba(13, 13, 13, 0.55)',
+  '--card-border': 'rgba(245, 245, 240, 0.14)',
+  '--field-bg': 'rgba(245, 245, 240, 0.06)',
+  '--ease': 'cubic-bezier(0.22, 1, 0.36, 1)',
+} as React.CSSProperties
 
 const TOTAL_STAGES = 3
 
@@ -127,6 +152,16 @@ AthlasX is provided as-is, without warranty of any kind regarding selection outc
 You may delete your account at any time. These terms may be updated from time to time; continued use of the platform after an update constitutes acceptance of the revised terms.`,
   },
 ]
+
+// Shared field styling — orange-token equivalent of the old green inputs.
+const FIELD_CLS = 'bg-[color:var(--field-bg)] border-[color:var(--card-border)] text-white placeholder:text-white/40 h-10 rounded-[9px] focus:border-[color:var(--accent)] focus:bg-white/[0.09]'
+const LABEL_CLS = 'font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.1em] text-white/70'
+const OPTCARD_CLS = (active: boolean) => cn(
+  'transition-all border-[1.5px] rounded-[11px]',
+  active
+    ? 'bg-[rgba(255,138,30,0.14)] border-[color:var(--accent)] text-[color:var(--accent-bright)]'
+    : 'bg-[color:var(--field-bg)] border-[color:var(--card-border)] text-white/70 hover:border-white/30',
+)
 
 export default function OnboardingPage() {
   const [stage, setStage] = useState(1)
@@ -271,307 +306,308 @@ export default function OnboardingPage() {
   const canProceed = stage === 1 ? canProceedStage1() : stage === 2 ? canProceedStage2() : canSubmit()
 
   return (
-    <div className="min-h-screen bg-[#050505] flex flex-col">
-      <div className="border-b border-white/[0.05] px-6 py-4 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-400 to-emerald-700 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-white fill-white" />
+    <div className={cn(anton.variable, barlow.variable, barlowSemi.variable)} style={ONBOARDING_VARS}>
+      <div className="min-h-screen bg-[color:var(--bg)] flex flex-col font-[family-name:var(--font-barlow)]">
+        <div className="border-b border-[color:var(--card-border)] px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="font-[family-name:var(--font-barlow-semi)] text-lg font-bold uppercase tracking-[0.1em] text-white">
+              Athlas<span className="text-[color:var(--accent)]">X</span>
+            </span>
+          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/claim" className="text-xs text-white/50 hover:text-[color:var(--accent-bright)] transition-colors">Already have match data? Claim your profile</Link>
+            <div className="font-[family-name:var(--font-barlow-semi)] text-xs uppercase tracking-wide text-white/50">Stage {stage} of {TOTAL_STAGES}</div>
           </div>
-          <span className="text-xl font-black tracking-tight">
-            Athlas<span className="text-gradient-green">X</span>
-          </span>
-        </Link>
-        <div className="flex items-center gap-3">
-          <Link href="/claim" className="text-xs text-zinc-500 hover:text-green-400 transition-colors">Already have match data? Claim your profile</Link>
-          <div className="text-xs text-zinc-500">Stage {stage} of {TOTAL_STAGES}</div>
         </div>
-      </div>
 
-      <div className="h-0.5 bg-white/[0.05]">
-        <motion.div
-          className="h-full bg-gradient-to-r from-green-600 to-emerald-400"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.4 }}
-        />
-      </div>
+        <div className="h-[3px] bg-[color:var(--card-border)]">
+          <motion.div
+            className="h-full"
+            style={{ background: 'linear-gradient(90deg, var(--accent), var(--accent-bright))' }}
+            initial={{ width: 0 }}
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.4 }}
+          />
+        </div>
 
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className={cn('w-full', stage === 3 ? 'max-w-2xl' : 'max-w-lg')}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={stage}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
-            >
-              {/* ── Stage 1: Basic player details ── */}
-              {stage === 1 && (
-                <>
-                  <div>
-                    <h2 className="text-3xl font-black text-white mb-1">Basic details</h2>
-                    <p className="text-zinc-500 text-sm">Who you are and how you play</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-zinc-400 text-sm">Full name *</Label>
-                      <Input value={form.fullName} onChange={e => update('fullName', e.target.value)} placeholder="Arjun Sharma"
-                        className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-zinc-400 text-sm">Email *</Label>
-                        <Input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="arjun@example.com" autoComplete="email"
-                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-zinc-400 text-sm">Password *</Label>
-                        <Input type="password" value={form.password} onChange={e => update('password', e.target.value)} placeholder="Choose a password" autoComplete="new-password"
-                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-zinc-400 text-sm">Date of birth *</Label>
-                      <Input type="date" value={form.dob} onChange={e => update('dob', e.target.value)}
-                        className="bg-white/[0.05] border-white/10 text-white h-10 rounded-xl focus:border-green-500/50 [color-scheme:dark]" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-zinc-400 text-sm">District *</Label>
-                        <Input value={form.district} onChange={e => update('district', e.target.value)} placeholder="Kanpur"
-                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-zinc-400 text-sm">State *</Label>
-                        <select value={form.state} onChange={e => update('state', e.target.value)}
-                          className="w-full h-10 px-3 rounded-xl bg-white/[0.05] border border-white/10 text-white text-sm focus:outline-none focus:border-green-500/50">
-                          <option value="" className="bg-zinc-900">Select state</option>
-                          {indianStates.map(s => <option key={s} value={s} className="bg-zinc-900">{s}</option>)}
-                        </select>
-                      </div>
-                    </div>
-
-                    <AnimatePresence>
-                      {minor && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                          <div className="space-y-1.5">
-                            <Label className="text-zinc-400 text-sm">Guardian phone *</Label>
-                            <Input type="tel" value={form.guardianPhone} onChange={e => update('guardianPhone', e.target.value)} placeholder="+91 98765 43210"
-                              className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
-                            <div className="flex items-start gap-2 p-3 rounded-xl border border-amber-500/15 bg-amber-500/8">
-                              <AlertCircle className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
-                              <p className="text-[11px] text-amber-300/80">
-                                Required for players under 18 (DPDP Act compliance). Your guardian will also complete a separate Aadhaar verification and consent in the next stages.
-                              </p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-zinc-400 text-sm">CricHeroes handle</Label>
-                      <Input value={form.cricheroes_handle} onChange={e => update('cricheroes_handle', e.target.value)} placeholder="@arjun_sharma"
-                        className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
-                    </div>
-
-                    <div className="pt-2 border-t border-white/[0.05] space-y-2">
-                      <Label className="text-zinc-400 text-sm">Playing role *</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {playingRoles.map(role => (
-                          <button key={role} type="button" onClick={() => update('playingRole', role)}
-                            className={cn('px-3 py-2.5 rounded-xl text-sm font-medium border transition-all',
-                              form.playingRole === role ? 'bg-green-500/15 border-green-500/40 text-green-400' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:bg-white/[0.06]')}>
-                            {role}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-zinc-400 text-sm">Batting style</Label>
-                      <div className="flex gap-2">
-                        {battingStyles.map(s => (
-                          <button key={s} type="button" onClick={() => update('battingStyle', s)}
-                            className={cn('flex-1 py-2 rounded-xl text-sm font-medium border transition-all',
-                              form.battingStyle === s ? 'bg-green-500/15 border-green-500/40 text-green-400' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:bg-white/[0.06]')}>
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-zinc-400 text-sm">Bowling style</Label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {bowlingStyles.map(s => (
-                          <button key={s} type="button" onClick={() => update('bowlingStyle', s)}
-                            className={cn('px-2 py-2 rounded-xl text-xs font-medium border transition-all text-left',
-                              form.bowlingStyle === s ? 'bg-green-500/15 border-green-500/40 text-green-400' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:bg-white/[0.06]')}>
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-zinc-400 text-sm">Preferred formats</Label>
-                      <div className="flex gap-2">
-                        {formats.map(f => (
-                          <button key={f} type="button" onClick={() => toggleFormat(f)}
-                            className={cn('flex-1 py-2 rounded-xl text-sm font-medium border transition-all',
-                              form.selectedFormats.includes(f) ? 'bg-green-500/15 border-green-500/40 text-green-400' : 'bg-white/[0.03] border-white/10 text-zinc-400 hover:bg-white/[0.06]')}>
-                            {f}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-zinc-400 text-sm">Academy</Label>
-                        <Input value={form.academy} onChange={e => update('academy', e.target.value)} placeholder="Tara Cricket Academy"
-                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-zinc-400 text-sm">Years of cricket</Label>
-                        <Input type="number" value={form.yearsExperience} onChange={e => update('yearsExperience', e.target.value)} placeholder="5" min="0" max="25"
-                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* ── Stage 2: Aadhaar verification ── */}
-              {stage === 2 && (
-                <>
-                  <div>
-                    <h2 className="text-3xl font-black text-white mb-1">Verify your identity</h2>
-                    <p className="text-zinc-500 text-sm">
-                      Aadhaar OTP verification. We never store your raw Aadhaar number — only the last 4 digits and your verified status.
-                    </p>
-                  </div>
-                  <AadhaarBlock label="Your Aadhaar" subject="player" state={aadhaar} setState={setAadhaar}
-                    onSend={() => sendAadhaarOtp('player')} onVerify={() => verifyAadhaarOtp('player')} />
-
-                  {minor && (
-                    <div className="pt-4 border-t border-white/[0.06]">
-                      <p className="text-sm font-bold text-white mb-1">Parent / guardian verification</p>
-                      <p className="text-xs text-zinc-500 mb-3">Required in addition to the guardian phone number already provided — this independently verifies your guardian&apos;s own identity.</p>
-                      <AadhaarBlock label="Guardian's Aadhaar" subject="guardian" state={guardianAadhaar} setState={setGuardianAadhaar}
-                        onSend={() => sendAadhaarOtp('guardian')} onVerify={() => verifyAadhaarOtp('guardian')} />
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* ── Stage 3: Footage, bio, review, consent ── */}
-              {stage === 3 && (
-                <>
-                  <div>
-                    <h2 className="text-3xl font-black text-white mb-1">Footage, review & consent</h2>
-                    <p className="text-zinc-500 text-sm">Last step — add footage, review your details, and accept the required consents.</p>
-                  </div>
-
-                  <div className="flex items-start gap-2.5 p-4 rounded-2xl border border-white/[0.06] bg-white/[0.02]">
-                    <Upload className="w-4 h-4 text-zinc-500 mt-0.5 shrink-0" />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className={cn('w-full', stage === 3 ? 'max-w-2xl' : 'max-w-lg')}>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={stage}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6"
+              >
+                {/* ── Stage 1: Basic player details ── */}
+                {stage === 1 && (
+                  <>
                     <div>
-                      <p className="text-xs font-bold text-zinc-300">Why add footage?</p>
-                      <p className="text-xs text-zinc-600 mt-0.5">
-                        Batting and bowling are scored from verified scorecard data. Fielding and wicket-keeping cannot be — footage lets selectors assess those directly.
-                      </p>
+                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Basic details</h2>
+                      <p className="text-white/50 text-sm">Who you are and how you play</p>
                     </div>
-                  </div>
 
-                  <div className="space-y-4">
-                    {[
-                      { key: 'batting_url', label: 'Batting clip URL', placeholder: 'YouTube / Google Drive link' },
-                      { key: 'bowling_url', label: 'Bowling clip URL', placeholder: 'YouTube / Google Drive link' },
-                      { key: 'keeping_url', label: 'Keeping clip URL', placeholder: 'Optional · YouTube / Google Drive link' },
-                      { key: 'youtube_channel', label: 'YouTube channel', placeholder: 'youtube.com/@handle (optional)' },
-                    ].map(f => (
-                      <div key={f.key} className="space-y-1.5">
-                        <Label className="text-zinc-400 text-sm">{f.label}</Label>
-                        <div className="relative">
-                          <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-600" />
-                          <Input value={(form as unknown as Record<string, string>)[f.key]} onChange={e => update(f.key, e.target.value)} placeholder={f.placeholder}
-                            className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl pl-8 focus:border-green-500/50" />
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label className={LABEL_CLS}>Full name *</Label>
+                        <Input value={form.fullName} onChange={e => update('fullName', e.target.value)} placeholder="Arjun Sharma"
+                          className={FIELD_CLS} />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className={LABEL_CLS}>Email *</Label>
+                          <Input type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="arjun@example.com" autoComplete="email"
+                            className={FIELD_CLS} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className={LABEL_CLS}>Password *</Label>
+                          <Input type="password" value={form.password} onChange={e => update('password', e.target.value)} placeholder="Choose a password" autoComplete="new-password"
+                            className={FIELD_CLS} />
                         </div>
                       </div>
-                    ))}
 
-                    <div className="space-y-1.5">
-                      <Label className="text-zinc-400 text-sm">Bio</Label>
-                      <textarea value={form.bio} onChange={e => update('bio', e.target.value)} placeholder="Your cricket journey, strengths, goals…" maxLength={400} rows={3}
-                        className="w-full bg-white/[0.05] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-green-500/50 resize-none" />
-                      <p className="text-[10px] text-zinc-700 text-right">{form.bio.length}/400</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-bold text-white">Review</h3>
-                    {[
-                      { label: 'Name', value: form.fullName || '—' },
-                      { label: 'Email', value: form.email || '—' },
-                      { label: 'DOB', value: form.dob || '—' },
-                      { label: 'District', value: form.district || '—' },
-                      { label: 'State', value: form.state || '—' },
-                      { label: 'Role', value: form.playingRole || '—' },
-                      { label: 'Batting', value: form.battingStyle || '—' },
-                      { label: 'Aadhaar', value: aadhaar.last4 ? `Verified · ••••${aadhaar.last4}` : 'Not verified' },
-                      ...(minor ? [{ label: 'Guardian Aadhaar', value: guardianAadhaar.last4 ? `Verified · ••••${guardianAadhaar.last4}` : 'Not verified' }] : []),
-                      { label: 'Footage', value: [form.batting_url, form.bowling_url].filter(Boolean).length + ' clips added' },
-                    ].map(row => (
-                      <div key={row.label} className="flex justify-between text-sm py-2 border-b border-white/[0.05]">
-                        <span className="text-zinc-500">{row.label}</span>
-                        <span className="text-zinc-200 font-semibold truncate max-w-[220px] text-right">{row.value}</span>
+                      <div className="space-y-1.5">
+                        <Label className={LABEL_CLS}>Date of birth *</Label>
+                        <Input type="date" value={form.dob} onChange={e => update('dob', e.target.value)}
+                          className={cn(FIELD_CLS, '[color-scheme:dark]')} />
                       </div>
-                    ))}
-                  </div>
 
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-bold text-white">Required consents</h3>
-                    {CONSENTS.filter(c => !c.minorOnly || minor).map(c => (
-                      <ConsentPanel
-                        key={c.key}
-                        title={c.title}
-                        body={c.body}
-                        accepted={consents[c.key]}
-                        reachedEnd={scrolledEnd[c.key]}
-                        onReachEnd={() => setScrolledEnd(s => ({ ...s, [c.key]: true }))}
-                        onAccept={(v) => setConsents(s => ({ ...s, [c.key]: v }))}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className={LABEL_CLS}>District *</Label>
+                          <Input value={form.district} onChange={e => update('district', e.target.value)} placeholder="Kanpur"
+                            className={FIELD_CLS} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className={LABEL_CLS}>State *</Label>
+                          <select value={form.state} onChange={e => update('state', e.target.value)}
+                            className={cn('w-full px-3', FIELD_CLS, 'bg-[color:var(--field-bg)]')}>
+                            <option value="" className="bg-[#141312]">Select state</option>
+                            {indianStates.map(s => <option key={s} value={s} className="bg-[#141312]">{s}</option>)}
+                          </select>
+                        </div>
+                      </div>
 
-          <div className="flex items-center justify-between mt-8 gap-4">
-            {stage > 1 ? (
-              <button onClick={() => setStage(s => s - 1)} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-zinc-400 hover:text-white text-sm font-medium transition-colors">
-                <ArrowLeft className="w-4 h-4" /> Back
+                      <AnimatePresence>
+                        {minor && (
+                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                            <div className="space-y-1.5">
+                              <Label className={LABEL_CLS}>Guardian phone *</Label>
+                              <Input type="tel" value={form.guardianPhone} onChange={e => update('guardianPhone', e.target.value)} placeholder="+91 98765 43210"
+                                className={FIELD_CLS} />
+                              <div className="flex items-start gap-2 p-3 rounded-[10px] border-[color:var(--card-border)] border bg-[rgba(255,138,30,0.08)]">
+                                <AlertCircle className="w-3.5 h-3.5 text-[color:var(--accent-bright)] mt-0.5 shrink-0" />
+                                <p className="text-[11px] text-white/70">
+                                  Required for players under 18 (DPDP Act compliance). Your guardian will also complete a separate Aadhaar verification and consent in the next stages.
+                                </p>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <div className="space-y-1.5">
+                        <Label className={LABEL_CLS}>CricHeroes handle</Label>
+                        <Input value={form.cricheroes_handle} onChange={e => update('cricheroes_handle', e.target.value)} placeholder="@arjun_sharma"
+                          className={FIELD_CLS} />
+                      </div>
+
+                      <div className="pt-2 border-t border-[color:var(--card-border)] space-y-2">
+                        <Label className={LABEL_CLS}>Playing role *</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {playingRoles.map(role => (
+                            <button key={role} type="button" onClick={() => update('playingRole', role)}
+                              className={cn('px-3 py-2.5 text-sm font-medium', OPTCARD_CLS(form.playingRole === role))}>
+                              {role}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className={LABEL_CLS}>Batting style</Label>
+                        <div className="flex gap-2">
+                          {battingStyles.map(s => (
+                            <button key={s} type="button" onClick={() => update('battingStyle', s)}
+                              className={cn('flex-1 py-2 text-sm font-medium', OPTCARD_CLS(form.battingStyle === s))}>
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className={LABEL_CLS}>Bowling style</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {bowlingStyles.map(s => (
+                            <button key={s} type="button" onClick={() => update('bowlingStyle', s)}
+                              className={cn('px-2 py-2 text-xs font-medium text-left', OPTCARD_CLS(form.bowlingStyle === s))}>
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className={LABEL_CLS}>Preferred formats</Label>
+                        <div className="flex gap-2">
+                          {formats.map(f => (
+                            <button key={f} type="button" onClick={() => toggleFormat(f)}
+                              className={cn('flex-1 py-2 text-sm font-medium', OPTCARD_CLS(form.selectedFormats.includes(f)))}>
+                              {f}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label className={LABEL_CLS}>Academy</Label>
+                          <Input value={form.academy} onChange={e => update('academy', e.target.value)} placeholder="Tara Cricket Academy"
+                            className={FIELD_CLS} />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className={LABEL_CLS}>Years of cricket</Label>
+                          <Input type="number" value={form.yearsExperience} onChange={e => update('yearsExperience', e.target.value)} placeholder="5" min="0" max="25"
+                            className={FIELD_CLS} />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* ── Stage 2: Aadhaar verification ── */}
+                {stage === 2 && (
+                  <>
+                    <div>
+                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Verify your identity</h2>
+                      <p className="text-white/50 text-sm">
+                        Aadhaar OTP verification. We never store your raw Aadhaar number — only the last 4 digits and your verified status.
+                      </p>
+                    </div>
+                    <AadhaarBlock label="Your Aadhaar" subject="player" state={aadhaar} setState={setAadhaar}
+                      onSend={() => sendAadhaarOtp('player')} onVerify={() => verifyAadhaarOtp('player')} />
+
+                    {minor && (
+                      <div className="pt-4 border-t border-[color:var(--card-border)]">
+                        <p className="text-sm font-bold text-white mb-1">Parent / guardian verification</p>
+                        <p className="text-xs text-white/50 mb-3">Required in addition to the guardian phone number already provided — this independently verifies your guardian&apos;s own identity.</p>
+                        <AadhaarBlock label="Guardian's Aadhaar" subject="guardian" state={guardianAadhaar} setState={setGuardianAadhaar}
+                          onSend={() => sendAadhaarOtp('guardian')} onVerify={() => verifyAadhaarOtp('guardian')} />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* ── Stage 3: Footage, bio, review, consent ── */}
+                {stage === 3 && (
+                  <>
+                    <div>
+                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-3xl text-white mb-1">Footage, review & consent</h2>
+                      <p className="text-white/50 text-sm">Last step — add footage, review your details, and accept the required consents.</p>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 p-4 rounded-[14px] border border-[color:var(--card-border)] bg-white/[0.02]">
+                      <Upload className="w-4 h-4 text-white/50 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-bold text-white/80">Why add footage?</p>
+                        <p className="text-xs text-white/50 mt-0.5">
+                          Batting and bowling are scored from verified scorecard data. Fielding and wicket-keeping cannot be — footage lets selectors assess those directly.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {[
+                        { key: 'batting_url', label: 'Batting clip URL', placeholder: 'YouTube / Google Drive link' },
+                        { key: 'bowling_url', label: 'Bowling clip URL', placeholder: 'YouTube / Google Drive link' },
+                        { key: 'keeping_url', label: 'Keeping clip URL', placeholder: 'Optional · YouTube / Google Drive link' },
+                        { key: 'youtube_channel', label: 'YouTube channel', placeholder: 'youtube.com/@handle (optional)' },
+                      ].map(f => (
+                        <div key={f.key} className="space-y-1.5">
+                          <Label className={LABEL_CLS}>{f.label}</Label>
+                          <div className="relative">
+                            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40" />
+                            <Input value={(form as unknown as Record<string, string>)[f.key]} onChange={e => update(f.key, e.target.value)} placeholder={f.placeholder}
+                              className={cn(FIELD_CLS, 'pl-8')} />
+                          </div>
+                        </div>
+                      ))}
+
+                      <div className="space-y-1.5">
+                        <Label className={LABEL_CLS}>Bio</Label>
+                        <textarea value={form.bio} onChange={e => update('bio', e.target.value)} placeholder="Your cricket journey, strengths, goals…" maxLength={400} rows={3}
+                          className="w-full bg-[color:var(--field-bg)] border border-[color:var(--card-border)] rounded-[9px] px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] resize-none" />
+                        <p className="text-[10px] text-white/40 text-right">{form.bio.length}/400</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <h3 className="font-[family-name:var(--font-barlow-semi)] text-base font-bold uppercase tracking-wide text-white">Review</h3>
+                      {[
+                        { label: 'Name', value: form.fullName || '—' },
+                        { label: 'Email', value: form.email || '—' },
+                        { label: 'DOB', value: form.dob || '—' },
+                        { label: 'District', value: form.district || '—' },
+                        { label: 'State', value: form.state || '—' },
+                        { label: 'Role', value: form.playingRole || '—' },
+                        { label: 'Batting', value: form.battingStyle || '—' },
+                        { label: 'Aadhaar', value: aadhaar.last4 ? `Verified · ••••${aadhaar.last4}` : 'Not verified' },
+                        ...(minor ? [{ label: 'Guardian Aadhaar', value: guardianAadhaar.last4 ? `Verified · ••••${guardianAadhaar.last4}` : 'Not verified' }] : []),
+                        { label: 'Footage', value: [form.batting_url, form.bowling_url].filter(Boolean).length + ' clips added' },
+                      ].map(row => (
+                        <div key={row.label} className="flex justify-between text-sm py-2 border-b border-[color:var(--card-border)]">
+                          <span className="text-white/50">{row.label}</span>
+                          <span className="text-white font-semibold truncate max-w-[220px] text-right">{row.value}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="space-y-3">
+                      <h3 className="font-[family-name:var(--font-barlow-semi)] text-base font-bold uppercase tracking-wide text-white">Required consents</h3>
+                      {CONSENTS.filter(c => !c.minorOnly || minor).map(c => (
+                        <ConsentPanel
+                          key={c.key}
+                          title={c.title}
+                          body={c.body}
+                          accepted={consents[c.key]}
+                          reachedEnd={scrolledEnd[c.key]}
+                          onReachEnd={() => setScrolledEnd(s => ({ ...s, [c.key]: true }))}
+                          onAccept={(v) => setConsents(s => ({ ...s, [c.key]: v }))}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="flex items-center justify-between mt-8 gap-4">
+              {stage > 1 ? (
+                <button onClick={() => setStage(s => s - 1)}
+                  className="font-[family-name:var(--font-barlow-semi)] flex items-center gap-2 px-4 py-2.5 rounded-[9px] bg-transparent border-[1.5px] border-[color:var(--card-border)] text-white/70 hover:text-white hover:border-white/40 text-sm font-bold uppercase tracking-wide transition-colors">
+                  <ArrowLeft className="w-4 h-4" /> Back
+                </button>
+              ) : <div />}
+
+              <button
+                onClick={() => handleNextFromStage(stage)}
+                disabled={!canProceed || loading}
+                className={cn(
+                  'font-[family-name:var(--font-barlow-semi)] flex items-center gap-2 px-6 py-2.5 rounded-[9px] text-sm font-bold uppercase tracking-wide transition-all',
+                  canProceed && !loading
+                    ? 'bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_8px_22px_-8px_rgba(255,138,30,0.7)] hover:bg-[color:var(--accent-bright)]'
+                    : 'bg-white/[0.04] border border-[color:var(--card-border)] text-white/40 cursor-not-allowed',
+                )}
+              >
+                {loading ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>)
+                  : stage === TOTAL_STAGES ? (<><CheckCircle2 className="w-4 h-4" /> Create Profile</>)
+                  : (<>Continue <ArrowRight className="w-4 h-4" /></>)}
               </button>
-            ) : <div />}
-
-            <button
-              onClick={() => handleNextFromStage(stage)}
-              disabled={!canProceed || loading}
-              className={cn('flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all',
-                canProceed && !loading ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-white/[0.04] border border-white/[0.08] text-zinc-600 cursor-not-allowed')}
-            >
-              {loading ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>)
-                : stage === TOTAL_STAGES ? (<><CheckCircle2 className="w-4 h-4" /> Create Profile</>)
-                : (<>Continue <ArrowRight className="w-4 h-4" /></>)}
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -589,7 +625,7 @@ function AadhaarBlock({ label, state, setState, onSend, onVerify }: {
 }) {
   if (state.status === 'verified') {
     return (
-      <div className="flex items-center gap-2.5 p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
+      <div className="flex items-center gap-2.5 p-3.5 rounded-[9px] border border-[color:var(--ok)]/40 bg-[color:var(--ok)]/10 text-[color:var(--ok)]">
         <ShieldCheck className="w-4 h-4 shrink-0" />
         <span className="text-sm font-semibold">{label} verified — ••••{state.last4}</span>
       </div>
@@ -599,16 +635,16 @@ function AadhaarBlock({ label, state, setState, onSend, onVerify }: {
     <div className="space-y-3">
       {state.status === 'unverified' && (
         <div className="space-y-1.5">
-          <Label className="text-zinc-400 text-sm">{label} number *</Label>
+          <Label className={LABEL_CLS}>{label} number *</Label>
           <Input
             value={state.number}
             onChange={e => setState(s => ({ ...s, number: e.target.value.replace(/\D/g, '').slice(0, 12), error: '' }))}
             placeholder="XXXX XXXX XXXX" inputMode="numeric" maxLength={12}
-            className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50"
+            className={FIELD_CLS}
           />
-          <p className="text-[10px] text-zinc-700">12 digits. Only the last 4 are ever stored — the full number is never saved or sent again after this step.</p>
+          <p className="text-[10px] text-white/40">12 digits. Only the last 4 are ever stored — the full number is never saved or sent again after this step.</p>
           <button type="button" onClick={onSend} disabled={state.sending}
-            className="text-xs font-bold px-4 py-2 rounded-lg bg-white/[0.06] border border-white/10 text-white hover:bg-white/[0.1] disabled:opacity-50">
+            className="font-[family-name:var(--font-barlow-semi)] text-xs font-bold uppercase tracking-wide px-4 py-2 rounded-[9px] border-[1.5px] border-[color:var(--card-border)] text-white hover:border-white/50 transition-colors disabled:opacity-50">
             {state.sending ? 'Sending…' : 'Send OTP'}
           </button>
         </div>
@@ -616,24 +652,24 @@ function AadhaarBlock({ label, state, setState, onSend, onVerify }: {
 
       {state.status === 'sent' && (
         <div className="space-y-2">
-          <div className="p-2.5 rounded-lg border border-amber-500/25 bg-amber-500/[0.08]">
-            <p className="text-[11px] font-bold text-amber-400">Dev mode — no eKYC vendor connected</p>
-            <p className="text-xs text-amber-300/90 mt-0.5">Your test code is <span className="font-mono font-bold">{state.devCode}</span> (last 4 of number: ••••{state.last4})</p>
+          <div className="p-2.5 rounded-[9px] border border-[color:var(--card-border)] bg-[rgba(255,138,30,0.08)]">
+            <p className="text-[11px] font-bold text-[color:var(--accent-bright)]">Dev mode — no eKYC vendor connected</p>
+            <p className="text-xs text-white/70 mt-0.5">Your test code is <span className="font-mono font-bold text-white">{state.devCode}</span> (last 4 of number: ••••{state.last4})</p>
           </div>
-          <Label className="text-zinc-400 text-sm">Enter OTP</Label>
+          <Label className={LABEL_CLS}>Enter OTP</Label>
           <div className="flex gap-2">
             <Input value={state.otp} onChange={e => setState(s => ({ ...s, otp: e.target.value.replace(/\D/g, '').slice(0, 6), error: '' }))}
               placeholder="6-digit code" inputMode="numeric" maxLength={6}
-              className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
+              className={FIELD_CLS} />
             <button type="button" onClick={onVerify} disabled={state.verifying}
-              className="shrink-0 text-xs font-bold px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white disabled:opacity-50">
+              className="font-[family-name:var(--font-barlow-semi)] shrink-0 text-xs font-bold uppercase tracking-wide px-4 py-2 rounded-[9px] bg-[color:var(--accent)] text-[#1a0e02] hover:bg-[color:var(--accent-bright)] transition-colors disabled:opacity-50">
               {state.verifying ? 'Verifying…' : 'Verify'}
             </button>
           </div>
         </div>
       )}
 
-      {state.error && <p className="text-xs text-red-400">{state.error}</p>}
+      {state.error && <p className="text-xs text-[color:var(--bad)]">{state.error}</p>}
     </div>
   )
 }
@@ -655,16 +691,16 @@ function ConsentPanel({ title, body, accepted, reachedEnd, onReachEnd, onAccept 
   }
 
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
-      <div className="px-4 py-3 border-b border-white/[0.06]">
-        <p className="text-sm font-bold text-white">{title}</p>
+    <div className="rounded-[14px] border border-[color:var(--card-border)] bg-white/[0.02] overflow-hidden">
+      <div className="px-4 py-3 border-b border-[color:var(--card-border)]">
+        <p className="font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-wide text-white">{title}</p>
       </div>
-      <div ref={scrollRef} onScroll={handleScroll} className="px-4 py-3 max-h-40 overflow-y-auto text-xs text-zinc-400 leading-relaxed whitespace-pre-line">
+      <div ref={scrollRef} onScroll={handleScroll} className="px-4 py-3 max-h-40 overflow-y-auto text-xs text-white/60 leading-relaxed whitespace-pre-line">
         {body}
       </div>
-      <label className={cn('flex items-center gap-2.5 px-4 py-3 border-t border-white/[0.06] cursor-pointer', !reachedEnd && 'cursor-not-allowed opacity-60')}>
-        <input type="checkbox" checked={accepted} disabled={!reachedEnd} onChange={e => onAccept(e.target.checked)} className="w-4 h-4 accent-green-500" />
-        <span className="text-xs font-semibold text-zinc-300">
+      <label className={cn('flex items-center gap-2.5 px-4 py-3 border-t border-[color:var(--card-border)] cursor-pointer', !reachedEnd && 'cursor-not-allowed opacity-60')}>
+        <input type="checkbox" checked={accepted} disabled={!reachedEnd} onChange={e => onAccept(e.target.checked)} className="w-4 h-4 accent-[color:var(--accent)]" />
+        <span className="text-xs font-semibold text-white/80">
           {reachedEnd ? 'I have read and accept this consent' : 'Scroll to the end to accept'}
         </span>
       </label>
