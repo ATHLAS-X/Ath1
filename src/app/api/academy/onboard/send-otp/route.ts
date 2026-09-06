@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendAcademyOtp } from '@/lib/academy-onboarding-otp'
 import { rateLimit } from '@/lib/rate-limit'
+import { academyGate } from '@/lib/academy/gate'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
+  const gate = academyGate()
+  if (gate) return gate
+
   const { mobile } = await req.json().catch(() => ({}))
   const digits = typeof mobile === 'string' ? mobile.replace(/\D/g, '') : ''
   if (digits.length !== 10) {

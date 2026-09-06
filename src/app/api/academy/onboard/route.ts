@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { hashPassword } from '@/lib/password'
 import { verifyAcademyOtp } from '@/lib/academy-onboarding-otp'
+import { academyGate } from '@/lib/academy/gate'
 
 // Creates a new Academy row + its first academy_admin User in one action —
 // no existing route did this (src/app/api/academy/** — batches/join-requests/
@@ -16,6 +17,9 @@ import { verifyAcademyOtp } from '@/lib/academy-onboarding-otp'
 // on the Academy model today. Collected in the UI for fidelity to the
 // mockup's step structure and copy, but intentionally not sent here.
 export async function POST(req: NextRequest) {
+  const gate = academyGate()
+  if (gate) return gate
+
   let body: Record<string, unknown>
   try {
     body = await req.json()
