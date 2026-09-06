@@ -3,8 +3,26 @@
 @tailwind utilities;
 
 :root {
-  --ax-bg: #050505;
-  --ax-green: #22c55e;
+  /* Orange/black design system — design/import/AthlasX Onboarding.html's
+   * :root, the same palette already live on / and /auth (commit 0d19f74).
+   * Registered globally here so future pages consume shared tokens
+   * instead of redefining them inline; existing pages keep working
+   * unchanged since --ax-bg/--ax-green already existed as names. */
+  --ax-bg: #0D0D0D;
+  --ax-bg-soft: #141312;
+  --ax-text: #F5F5F0;
+  --ax-text-dim: rgba(245, 245, 240, 0.62);
+  --ax-text-faint: rgba(245, 245, 240, 0.4);
+  --ax-accent: #FF8A1E;
+  --ax-accent-bright: #FFA64D;
+  --ax-card-bg: rgba(13, 13, 13, 0.55);
+  --ax-card-border: rgba(245, 245, 240, 0.14);
+  --ax-field-bg: rgba(245, 245, 240, 0.06);
+  --ax-ok: #38d39f;
+  --ax-bad: #ff5a4d;
+  /* Back-compat: .live-dot already read var(--ax-green) before this pass.
+   * It now points at the accent rather than a separate green hue. */
+  --ax-green: #FF8A1E;
 }
 
 html,
