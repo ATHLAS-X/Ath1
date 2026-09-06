@@ -1,19 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { AssociationType } from '@prisma/client'
 import { db } from '@/lib/db'
-import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { hashPassword } from '@/lib/password'
+import { requireRole } from '@/lib/require-auth'
 
 const ASSOCIATION_TYPES = new Set<AssociationType>(['state', 'district'])
 
-// Self-serve association onboarding — the first real path to creating an
-// Association row and its first AssociationStaff member. Previously
-// associations existed only as seeded rows (prisma/seed.ts) with staff
-// membership inserted directly — there was no application-level way to
-// create either. Signs the new staff member in the same way
-// claim/verify and player/onboard already do (encodeSessionToken +
-// applySessionCookie), not a third session-minting mechanism.
+// Was public self-serve association onboarding — removed 2026-09-06
+// (docs/AthlasX_Pivot_Compliance_Audit_and_Role_Prompts.md's Prompt A-1,
+// decision: path (a)). It let anyone self-attest a "data-sharing consent"
+// checkbox and immediately receive a real AssociationStaff row with the
+// same privileges every association-scope.ts chokepoint trusts — inverting
+// the pivot doc's W1 workflow, where AthlasX Ops verifies a signed
+// data-sharing agreement first.
+//
+// Now an AthlasX-Ops-only internal tool (src/app/(dashboard)/ops/associations/new)
+// hits this same endpoint after that verification happens offline — gated
+// on requireRole(["athlasx_ops"]) rather than public. The new staff member
+// is NOT signed in as themselves here (unlike the old self-serve flow,
+// where the creator and the new staff account were the same person) — Ops
+// creates the account, the association's own nominated staff member signs
+// in separately with credentials Ops hands them.
 export async function POST(req: NextRequest) {
+  const auth = await requireRole(req, ['athlasx_ops'])
+  if (auth instanceof NextResponse) return auth
+
   let body: Record<string, unknown>
   try {
     body = await req.json()
@@ -35,6 +46,10 @@ export async function POST(req: NextRequest) {
   const email = String(body.email ?? '').trim().toLowerCase()
   const password = String(body.password ?? '')
 
+  // Renamed in spirit, not in wire shape: this now attests that the calling
+  // Ops user has verified a real, offline-signed data-sharing agreement —
+  // not that the association self-attested one. Still required explicitly,
+  // still not defaulted to true.
   const dataSharingSigned = body.dataSharingSigned === true
 
   if (!name || !type || !state || !email || !password) {
@@ -92,9 +107,11 @@ export async function POST(req: NextRequest) {
       return { user: createdUser, association: createdAssociation }
     })
 
-    const res = NextResponse.json({ associationId: association.id })
-    const token = await encodeSessionToken({ id: user.id, email: user.email, role: user.role })
-    return applySessionCookie(res, token)
+    // Does NOT sign in as the new staff account (unlike the old self-serve
+    // flow) — the calling user is an Ops staffer, not the association's own
+    // nominated staff member. Ops hands the new staff member their
+    // credentials out of band; they sign in themselves at /auth.
+    return NextResponse.json({ associationId: association.id, staffUserId: user.id })
   } catch (err) {
     if (isUniqueViolation(err)) {
       return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 })

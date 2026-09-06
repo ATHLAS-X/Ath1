@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { Anton, Barlow, Barlow_Semi_Condensed } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { ACADEMY_SELF_SERVE_ENABLED } from '@/lib/feature-flags'
 
 /*
  * New front door for sign-in and role-based sign-up. Does not replace
@@ -82,12 +83,15 @@ export default function AuthPage() {
   function handleRoleSelect(next: Role) {
     setRole(next)
     if (next === 'player') { router.push('/onboarding'); return }
-    if (next === 'academy') { router.push('/onboarding/academy'); return }
+    if (next === 'academy' && ACADEMY_SELF_SERVE_ENABLED) { router.push('/onboarding/academy'); return }
     if (next === 'coach') { router.push('/onboarding/coach'); return }
-    if (next === 'association') { router.push('/onboarding/association'); return }
+    // Association is no longer self-serve — AthlasX Ops verifies a
+    // data-sharing agreement offline and creates the account directly
+    // (pivot doc W1; decision made 2026-09-06 after this was found to
+    // invert that trust model). Falls through to the unavailable notice.
   }
 
-  const roleUnavailable = role === 'scout'
+  const roleUnavailable = role === 'scout' || role === 'association' || (role === 'academy' && !ACADEMY_SELF_SERVE_ENABLED)
 
   return (
     <div className={cn(anton.variable, barlow.variable, barlowSemi.variable)} style={AUTH_VARS}>
@@ -223,7 +227,9 @@ export default function AuthPage() {
                   <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/[0.08]">
                     <p className="text-xs font-bold text-amber-400">Not yet available</p>
                     <p className="text-[11px] text-white/60 mt-1">
-                      Scout accounts are not yet supported on AthlasX — there is no scout-facing role or workflow in the current platform.
+                      {role === 'scout' && 'Scout accounts are not yet supported on AthlasX — there is no scout-facing role or workflow in the current platform.'}
+                      {role === 'association' && 'Association accounts aren’t self-serve. AthlasX Ops sets these up directly after your data-sharing agreement is verified — reach out to get started.'}
+                      {role === 'academy' && 'Academy sign-up isn’t available yet. If your academy’s data is already tracked through a district or state association, it will show up automatically.'}
                     </p>
                   </div>
                 )}
