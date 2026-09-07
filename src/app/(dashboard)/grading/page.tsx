@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Shield, ChevronRight, CheckCircle2, Clock,
   AlertCircle, Info, Send, EyeOff, Loader2,
-  Lock,
+  Lock, MessageSquareText, TrendingDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { PlayingRole, TournamentLevel } from '@/types'
@@ -32,6 +32,14 @@ function topLevelOf(performances: VerifiedPerformanceRow[]): TournamentLevel {
    server enforces the blind boundary (a selector's own grades only, until
    the chair unlocks convergence). This page no longer decides that itself.
 ───────────────────────────────────────────────────────────────────────────── */
+// Read-only coach/trend context, fetched alongside the session but never
+// passed to calculateAthlasXScore or the grade submission — see
+// athlasx-score.ts's DEFECT 1 header comment on why that wall exists.
+interface AdvisoryContext {
+  latest_note: { note: string | null; fitness_rating: number | null; behaviour_rating: number | null; created_at: string } | null
+  trend_flag: string
+}
+
 interface PlayerQV {
   id: string
   name: string
@@ -42,6 +50,7 @@ interface PlayerQV {
   match_count: number
   tqi_weighted: number
   top_level: TournamentLevel
+  advisory: AdvisoryContext
 }
 
 interface DbPlayer {
@@ -50,6 +59,7 @@ interface DbPlayer {
   district: string
   playing_role: string | null
   performances: VerifiedPerformanceRow[]
+  advisory: AdvisoryContext
 }
 
 function buildQvPool(players: DbPlayer[]): PlayerQV[] {
@@ -67,6 +77,7 @@ function buildQvPool(players: DbPlayer[]): PlayerQV[] {
       match_count: result.verifiedMatchCount,
       tqi_weighted: result.tqiWeightedMatches,
       top_level: topLevelOf(performances),
+      advisory: p.advisory,
     }
   })
 }
@@ -127,6 +138,39 @@ function QuickViewCard({ player }: { player: PlayerQV }) {
       </div>
 
       <p className="text-[9px] text-zinc-700">{provenance}</p>
+
+      {(player.advisory.trend_flag !== 'none' || player.advisory.latest_note) && (
+        <div className="space-y-1.5 pt-1 border-t border-white/[0.06]">
+          <p className="text-[10px] font-semibold text-amber-500/80 uppercase tracking-widest">Coach input · advisory only</p>
+
+          {player.advisory.trend_flag !== 'none' && (
+            <div className="flex items-center gap-1.5">
+              <TrendingDown className="w-3 h-3 text-red-400 shrink-0" />
+              <span className="text-[10px] font-bold text-red-400">
+                {player.advisory.trend_flag === 'form_drop' ? 'Form drop flagged' : player.advisory.trend_flag}
+              </span>
+            </div>
+          )}
+
+          {player.advisory.latest_note && (
+            <div className="flex items-start gap-1.5">
+              <MessageSquareText className="w-3 h-3 text-zinc-500 mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                {player.advisory.latest_note.note && (
+                  <p className="text-[10px] text-zinc-400 leading-snug">&ldquo;{player.advisory.latest_note.note}&rdquo;</p>
+                )}
+                <p className="text-[9px] text-zinc-700 mt-0.5">
+                  {[
+                    player.advisory.latest_note.fitness_rating != null ? `Fitness ${player.advisory.latest_note.fitness_rating}/5` : null,
+                    player.advisory.latest_note.behaviour_rating != null ? `Behaviour ${player.advisory.latest_note.behaviour_rating}/5` : null,
+                  ].filter(Boolean).join(' · ') || 'From a coach advisory note'}
+                  {' · does not affect the score above'}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

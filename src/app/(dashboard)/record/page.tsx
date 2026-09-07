@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 interface RecordData {
   player: { id: string; full_name: string; playing_role: string }
   score: { total: number; tier: string; batting: number; bowling: number; fitness: number; fitnessAssessed: boolean }
+  percentile: { value: number | null; cohortSize: number; ageCategory: string; district: string }
   summary: { matches: number; runs: number; average: number; strikeRate: number; fifties: number; best: number }
   trend: { label: string; runs: number; sr: number }[]
   matches: { id: string; opponent: string; tournament: string; date: string; level: string; runs?: number; balls?: number; sr?: number }[]
@@ -53,7 +54,7 @@ export default function RecordPage() {
     </div>
   )
 
-  const { player, score, summary, trend, matches } = data
+  const { player, score, percentile, summary, trend, matches } = data
 
   const summaryStats = [
     { label: 'Matches',     value: String(summary.matches), sub: 'Verified',      color: '#22c55e' },
@@ -90,6 +91,13 @@ export default function RecordPage() {
                 <TrendingUp className="w-4 h-4 text-green-400" />
               </div>
             </div>
+            {percentile.value !== null ? (
+              <p className="text-[11px] text-zinc-500 mt-1.5">
+                <span className="text-white font-bold">Top {(100 - percentile.value).toFixed(0)}%</span> of {percentile.ageCategory} {player.playing_role.replace(/_/g, ' ')}s in {percentile.district} <span className="text-zinc-700">({percentile.cohortSize} players)</span>
+              </p>
+            ) : (
+              <p className="text-[11px] text-zinc-700 mt-1.5">Not enough {percentile.ageCategory} {player.playing_role.replace(/_/g, ' ')}s in {percentile.district} yet for a percentile ({percentile.cohortSize} so far)</p>
+            )}
           </div>
           <div className="grid grid-cols-3 gap-3 text-right">
             <div>

@@ -1,0 +1,24 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { sendAcademyOtp } from '@/lib/academy-onboarding-otp'
+import { rateLimit } from '@/lib/rate-limit'
+
+export const dynamic = 'force-dynamic'
+
+// Reuses the same dev-only phone-OTP stub as academy onboarding — it's a
+// generic phone-verification primitive, not academy-specific despite its
+// filename; not duplicated here.
+export async function POST(req: NextRequest) {
+  const { mobile } = await req.json().catch(() => ({}))
+  const digits = typeof mobile === 'string' ? mobile.replace(/\D/g, '') : ''
+  if (digits.length !== 10) {
+    return NextResponse.json({ error: 'mobile must be a 10-digit number' }, { status: 400 })
+  }
+
+  const limit = rateLimit('coach-onboard-otp-send', digits, 5, 3600)
+  if (!limit.success) {
+    return NextResponse.json({ error: 'Too many OTP requests. Try again later.' }, { status: 429 })
+  }
+
+  const { requestId, devCode } = await sendAcademyOtp(digits)
+  return NextResponse.json({ requestId, devCode, devNotice: 'Dev mode — no SMS gateway connected' })
+}

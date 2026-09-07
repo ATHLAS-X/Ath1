@@ -8,11 +8,25 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { getSessionUser } from '@/lib/require-auth'
+import { resolveAadhaarProvider } from '@/lib/aadhaar-verification'
 import {
   testDb,
   resetDb,
   assertIsTestSchema,
 } from '../helpers/test-db'
+
+/** Runs the real dev_stub initiate→verify round trip and returns a
+ *  requestId /api/player/onboard will accept — same provider the actual
+ *  Aadhaar API routes use, just called in-process instead of over HTTP. */
+async function verifiedAadhaarRequestId(): Promise<string> {
+  const provider = resolveAadhaarProvider()
+  const { requestId, devCode } = await provider.initiate('123456789012')
+  const ok = await provider.verify(requestId, devCode!)
+  if (!ok) throw new Error('test setup: dev_stub verification unexpectedly failed')
+  return requestId
+}
+
+const REQUIRED_CONSENTS = { consentDataUse: true, consentVisibility: true, consentTerms: true }
 
 vi.mock('@/lib/db', async () => ({
   db: (await import('../helpers/test-db')).testDb,
@@ -57,7 +71,7 @@ afterAll(async () => {
 
 describe('POST /api/player/onboard', () => {
   it('creates a self-registered player and signs them in so my-record returns the profile', async () => {
-    const res = await onboard(post(adultBody))
+    const res = await onboard(post({ ...adultBody, ...REQUIRED_CONSENTS, aadhaarRequestId: await verifiedAadhaarRequestId() }))
     expect(res.status).toBe(200)
 
     const setCookie = res.headers.get('set-cookie') ?? ''
@@ -105,21 +119,28 @@ describe('POST /api/player/onboard', () => {
   })
 
   it('grants consent for an adult and records guardian phone for a minor', async () => {
-    const adult = await onboard(post({ ...adultBody, email: 'adult-consent@test.local' }))
+    const adult = await onboard(post({
+      ...adultBody, ...REQUIRED_CONSENTS, email: 'adult-consent@test.local',
+      aadhaarRequestId: await verifiedAadhaarRequestId(),
+    }))
     expect(adult.status).toBe(200)
     const adultId = (await adult.json()).playerId as string
     const adultProfile = await testDb.playerProfile.findUnique({ where: { id: adultId } })
     expect(adultProfile?.profile_source).toBe('self_registered')
     expect(adultProfile?.claim_status).toBe('claimed')
     expect(adultProfile?.consent_status).toBe('granted')
+    expect(adultProfile?.aadhaar_verification_status).toBe('verified')
 
     const minorRes = await onboard(
       post({
-        ...adultBody,
+        ...adultBody, ...REQUIRED_CONSENTS,
         email: 'minor-ok@test.local',
         fullName: 'Rohan Sharma',
         dob: '2012-06-01',
         guardianPhone: '+91 99988 87776',
+        consentDpdpGuardian: true,
+        aadhaarRequestId: await verifiedAadhaarRequestId(),
+        guardianAadhaarRequestId: await verifiedAadhaarRequestId(),
       }),
     )
     expect(minorRes.status).toBe(200)
@@ -129,12 +150,16 @@ describe('POST /api/player/onboard', () => {
     expect(minorProfile?.profile_source).toBe('self_registered')
     expect(minorProfile?.claim_status).toBe('claimed')
     expect(minorProfile?.consent_status).toBe('pending')
+    expect(minorProfile?.guardian_aadhaar_verification_status).toBe('verified')
   })
 
   it('rejects a second account with the same email', async () => {
-    const first = await onboard(post(adultBody))
+    const first = await onboard(post({ ...adultBody, ...REQUIRED_CONSENTS, aadhaarRequestId: await verifiedAadhaarRequestId() }))
     expect(first.status).toBe(200)
-    const again = await onboard(post({ ...adultBody, fullName: 'Duplicate Arjun' }))
+    const again = await onboard(post({
+      ...adultBody, ...REQUIRED_CONSENTS, fullName: 'Duplicate Arjun',
+      aadhaarRequestId: await verifiedAadhaarRequestId(),
+    }))
     expect(again.status).toBe(409)
   })
 })

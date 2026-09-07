@@ -16,3 +16,16 @@
 // canViewPlayerProfile (src/lib/player-visibility.ts) re-checks this flag
 // even if a row somehow already has the tier set.
 export const FRANCHISE_SCOUT_ENABLED = false
+
+// Self-serve academy administration (onboarding, admin dashboard, add-players,
+// join-request approval, the public guardian join link) directly contradicts
+// Pivot_Document_Finalized.pdf §4.4 ("We do not sell to individual academies
+// in phase 1") and its §5 Platform Roles table, which has no academy_admin
+// role. Per an explicit decision on this exact question (2026-09-06), this
+// was NOT a deliberate scope change — it happened as a side effect of
+// implementing the design-import mockups literally. Every code path that
+// creates or serves this surface is gated on this flag, defaulting to off,
+// same enforcement discipline as FRANCHISE_SCOUT_ENABLED above. Code stays;
+// nothing is deleted. Flip to true only once a real phase decision is made
+// (and update Pivot_Document_Finalized.pdf's §4.4/§5 to match).
+export const ACADEMY_SELF_SERVE_ENABLED = false

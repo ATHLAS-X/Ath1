@@ -37,6 +37,7 @@ enum UserRole {
   coach
   association
   athlasx_ops
+  academy_admin
 
   @@schema("athlasx")
 }
@@ -49,14 +50,14 @@ enum BattingStyle {
 }
 
 enum BowlingStyleEnum {
-  Right_arm_Fast       @map("Right-arm Fast")
-  Right_arm_Medium     @map("Right-arm Medium")
-  Right_arm_Off_spin   @map("Right-arm Off-spin")
-  Right_arm_Leg_spin   @map("Right-arm Leg-spin")
-  Left_arm_Fast        @map("Left-arm Fast")
-  Left_arm_Medium      @map("Left-arm Medium")
-  Left_arm_Orthodox    @map("Left-arm Orthodox")
-  Left_arm_Unorthodox  @map("Left-arm Unorthodox")
+  Right_arm_Fast      @map("Right-arm Fast")
+  Right_arm_Medium    @map("Right-arm Medium")
+  Right_arm_Off_spin  @map("Right-arm Off-spin")
+  Right_arm_Leg_spin  @map("Right-arm Leg-spin")
+  Left_arm_Fast       @map("Left-arm Fast")
+  Left_arm_Medium     @map("Left-arm Medium")
+  Left_arm_Orthodox   @map("Left-arm Orthodox")
+  Left_arm_Unorthodox @map("Left-arm Unorthodox")
   None
 
   @@schema("athlasx")
@@ -65,8 +66,8 @@ enum BowlingStyleEnum {
 enum PlayingRoleEnum {
   Batsman
   Bowler
-  All_rounder             @map("All-rounder")
-  Wicket_keeper_Batsman   @map("Wicket-keeper Batsman")
+  All_rounder           @map("All-rounder")
+  Wicket_keeper_Batsman @map("Wicket-keeper Batsman")
 
   @@schema("athlasx")
 }
@@ -193,29 +194,31 @@ enum FeeStatus {
 enum ProfileSource {
   ingest
   self_registered
+  academy_join_request
 
   @@schema("athlasx")
 }
 
 // ─── User account (optional — most players never have one) ─────────────────
 model User {
-  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email            String    @unique
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email            String   @unique
   password_hash    String?
-  phone            String?   @unique
+  phone            String?  @unique
   role             UserRole
-  linked_player_id String?   @db.Uuid
-  linked_staff_id  String?   @db.Uuid
-  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  linked_player_id String?  @db.Uuid
+  linked_staff_id  String?  @db.Uuid
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
 
-  player_profile    PlayerProfile?
-  coach_profile     CoachProfile?
-  selector_profile  SelectorProfile?
-  grades_given      Grade[]
-  association_staff AssociationStaff[]
+  player_profile               PlayerProfile?
+  coach_profile                CoachProfile?
+  selector_profile             SelectorProfile?
+  grades_given                 Grade[]
+  association_staff            AssociationStaff[]
   identity_exceptions_resolved IdentityException[]
-  squad_coach_memberships  SquadCoach[]
-  advisory_notes_given     CoachAdvisoryNote[]
+  squad_coach_memberships      SquadCoach[]
+  advisory_notes_given         CoachAdvisoryNote[]
+  academy                      Academy?
 
   @@map("users")
   @@schema("athlasx")
@@ -223,25 +226,25 @@ model User {
 
 // ─── Association ──────────────────────────────────────────────────────────
 model Association {
-  id                         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                       String
-  type                       AssociationType
-  parent_id                  String?          @db.Uuid
-  parent                     Association?     @relation("AssociationHierarchy", fields: [parent_id], references: [id])
-  children                   Association[]    @relation("AssociationHierarchy")
-  state                      String
-  cricheroes_association_id  String?
-  data_sharing_signed        Boolean          @default(false)
-  created_at                 DateTime         @default(now()) @db.Timestamptz(6)
+  id                        String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                      String
+  type                      AssociationType
+  parent_id                 String?         @db.Uuid
+  parent                    Association?    @relation("AssociationHierarchy", fields: [parent_id], references: [id])
+  children                  Association[]   @relation("AssociationHierarchy")
+  state                     String
+  cricheroes_association_id String?
+  data_sharing_signed       Boolean         @default(false)
+  created_at                DateTime        @default(now()) @db.Timestamptz(6)
 
-  players       PlayerProfile[]
-  tournaments   Tournament[]
-  trial_cycles  TrialCycle[]
-  selection_sessions SelectionSession[]
-  staff         AssociationStaff[]
+  players             PlayerProfile[]
+  tournaments         Tournament[]
+  trial_cycles        TrialCycle[]
+  selection_sessions  SelectionSession[]
+  staff               AssociationStaff[]
   identity_exceptions IdentityException[]
-  ingest_jobs   IngestJob[]
-  squads        Squad[]
+  ingest_jobs         IngestJob[]
+  squads              Squad[]
 
   @@index([type])
   @@map("associations")
@@ -294,27 +297,27 @@ enum IdentityExceptionStatus {
 // the reference branch's separate players/player_profiles split — no need
 // to reintroduce that split just to port this table). ────────────────────
 model IdentityException {
-  id                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  association_id      String                  @db.Uuid
-  association         Association             @relation(fields: [association_id], references: [id], onDelete: Cascade)
+  id                   String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id       String                  @db.Uuid
+  association          Association             @relation(fields: [association_id], references: [id], onDelete: Cascade)
   // The Match created on ingest approve — kept so confirm/split/merge can
   // write the skipped Performance onto a resolved player later.
-  match_id            String?                 @db.Uuid
-  match               Match?                  @relation(fields: [match_id], references: [id])
-  raw_name            String
-  raw_dob             DateTime?               @db.Date
+  match_id             String?                 @db.Uuid
+  match                Match?                  @relation(fields: [match_id], references: [id])
+  raw_name             String
+  raw_dob              DateTime?               @db.Date
   raw_district         String?
-  reason              IdentityExceptionReason
-  candidate_player_ids String[]               @default([])
+  reason               IdentityExceptionReason
+  candidate_player_ids String[]                @default([])
   // NormalizedPerformanceRow from the ingest payload — batting/bowling
   // figures plus raw identity. Confirm/split/merge write this as a
   // Performance; it must not be dropped when the row is ambiguous.
   performance_snapshot Json?
-  status              IdentityExceptionStatus @default(OPEN)
-  resolved_by_user_id String?                 @db.Uuid
-  resolved_by         User?                   @relation(fields: [resolved_by_user_id], references: [id])
-  resolved_at         DateTime?
-  created_at          DateTime                @default(now()) @db.Timestamptz(6)
+  status               IdentityExceptionStatus @default(OPEN)
+  resolved_by_user_id  String?                 @db.Uuid
+  resolved_by          User?                   @relation(fields: [resolved_by_user_id], references: [id])
+  resolved_at          DateTime?
+  created_at           DateTime                @default(now()) @db.Timestamptz(6)
 
   @@index([association_id])
   @@index([status])
@@ -324,46 +327,67 @@ model IdentityException {
 
 // ─── Player — exists independently of any User account ─────────────────────
 model PlayerProfile {
-  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id           String?        @unique @db.Uuid
-  user              User?          @relation(fields: [user_id], references: [id])
-  full_name         String
-  dob               DateTime       @db.Date
-  district          String
-  state             String
-  claim_status      ClaimStatus    @default(unclaimed)
-  consent_status    ConsentStatus  @default(not_required)
-  guardian_phone    String?
-  playing_role      PlayingRoleEnum?
-  batting_style     BattingStyle?
-  bowling_style     BowlingStyleEnum?
-  preferred_formats Format[]
-  academy           String?
-  avatar_url        String?
-  footage_urls      String[]
-  bio               String?
-  athlasx_score     Float?
-  profile_source    ProfileSource
-  association_id    String?        @db.Uuid
-  association       Association?   @relation(fields: [association_id], references: [id])
-  visibility_tier   VisibilityTier @default(association_only)
-  created_at        DateTime       @default(now()) @db.Timestamptz(6)
-  updated_at        DateTime       @updatedAt @db.Timestamptz(6)
+  id                                   String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                              String?                   @unique @db.Uuid
+  user                                 User?                     @relation(fields: [user_id], references: [id])
+  full_name                            String
+  dob                                  DateTime                  @db.Date
+  district                             String
+  state                                String
+  claim_status                         ClaimStatus               @default(unclaimed)
+  consent_status                       ConsentStatus             @default(not_required)
+  guardian_phone                       String?
+  playing_role                         PlayingRoleEnum?
+  batting_style                        BattingStyle?
+  bowling_style                        BowlingStyleEnum?
+  preferred_formats                    Format[]
+  academy                              String?
+  avatar_url                           String?
+  footage_urls                         String[]
+  bio                                  String?
+  athlasx_score                        Float?
+  profile_source                       ProfileSource
+  association_id                       String?                   @db.Uuid
+  association                          Association?              @relation(fields: [association_id], references: [id])
+  visibility_tier                      VisibilityTier            @default(association_only)
+  // W2 — Aadhaar identity verification (stubbed, see src/lib/aadhaar-verification.ts).
+  // Never store the raw Aadhaar number — only the last 4 digits and a
+  // verification-status enum, the same minimal-PII pattern PhoneOtp/PlayerClaim
+  // already follow for phone OTPs. guardian_aadhaar_* is populated only when
+  // the player is a minor at signup (a second, independent verification of
+  // the guardian's own identity, in addition to guardian_phone above).
+  aadhaar_last4                        String?
+  aadhaar_verification_status          AadhaarVerificationStatus @default(unverified)
+  guardian_aadhaar_last4               String?
+  guardian_aadhaar_verification_status AadhaarVerificationStatus @default(unverified)
+  created_at                           DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at                           DateTime                  @updatedAt @db.Timestamptz(6)
 
-  performances   Performance[]
-  registrations  Registration[]
-  dossiers       Dossier[]
-  grades         Grade[]
-  weeks          PlayerWeek[]
-  trend_alerts   TrendAlert[]
-  claim          PlayerClaim?
-  squad_memberships   SquadPlayer[]
-  advisory_notes      CoachAdvisoryNote[]
-  session_attendance  SessionAttendance[]
+  performances             Performance[]
+  registrations            Registration[]
+  dossiers                 Dossier[]
+  grades                   Grade[]
+  weeks                    PlayerWeek[]
+  trend_alerts             TrendAlert[]
+  claim                    PlayerClaim?
+  squad_memberships        SquadPlayer[]
+  advisory_notes           CoachAdvisoryNote[]
+  session_attendance       SessionAttendance[]
+  batch_memberships        AcademyBatchMembership[]
+  academy_join_requests    AcademyJoinRequest[]
+  academy_attendance_flags AcademyAttendanceFlag[]
 
   @@index([claim_status])
   @@index([association_id])
   @@map("player_profiles")
+  @@schema("athlasx")
+}
+
+enum AadhaarVerificationStatus {
+  unverified
+  pending
+  verified
+
   @@schema("athlasx")
 }
 
@@ -376,39 +400,39 @@ enum ClaimVerificationMethod {
 }
 
 model PlayerClaim {
-  id                    String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  player_id             String                    @unique @db.Uuid
-  player                PlayerProfile             @relation(fields: [player_id], references: [id], onDelete: Cascade)
-  claiming_user_id      String?                   @db.Uuid
-  method                ClaimVerificationMethod
-  phone                 String
-  is_minor              Boolean                   @default(false)
-  guardian_name         String?
-  guardian_phone        String?
-  guardian_relation     String?
-  consent_status        ConsentStatus             @default(pending)
-  consent_granted_at    DateTime?                 @db.Timestamptz(6)
-  consent_withdrawn_at  DateTime?                 @db.Timestamptz(6)
-  verified_at           DateTime?                 @db.Timestamptz(6)
-  created_at            DateTime                  @default(now()) @db.Timestamptz(6)
+  id                   String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  player_id            String                  @unique @db.Uuid
+  player               PlayerProfile           @relation(fields: [player_id], references: [id], onDelete: Cascade)
+  claiming_user_id     String?                 @db.Uuid
+  method               ClaimVerificationMethod
+  phone                String
+  is_minor             Boolean                 @default(false)
+  guardian_name        String?
+  guardian_phone       String?
+  guardian_relation    String?
+  consent_status       ConsentStatus           @default(pending)
+  consent_granted_at   DateTime?               @db.Timestamptz(6)
+  consent_withdrawn_at DateTime?               @db.Timestamptz(6)
+  verified_at          DateTime?               @db.Timestamptz(6)
+  created_at           DateTime                @default(now()) @db.Timestamptz(6)
 
-  otps  PhoneOtp[]
+  otps PhoneOtp[]
 
   @@map("player_claims")
   @@schema("athlasx")
 }
 
 model PhoneOtp {
-  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  claim_id     String       @db.Uuid
-  claim        PlayerClaim  @relation(fields: [claim_id], references: [id], onDelete: Cascade)
-  phone        String
-  code_hash    String
-  purpose      ClaimVerificationMethod
-  attempts     Int          @default(0)
-  expires_at   DateTime     @db.Timestamptz(6)
-  consumed_at  DateTime?    @db.Timestamptz(6)
-  created_at   DateTime     @default(now()) @db.Timestamptz(6)
+  id          String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  claim_id    String                  @db.Uuid
+  claim       PlayerClaim             @relation(fields: [claim_id], references: [id], onDelete: Cascade)
+  phone       String
+  code_hash   String
+  purpose     ClaimVerificationMethod
+  attempts    Int                     @default(0)
+  expires_at  DateTime                @db.Timestamptz(6)
+  consumed_at DateTime?               @db.Timestamptz(6)
+  created_at  DateTime                @default(now()) @db.Timestamptz(6)
 
   @@index([claim_id])
   @@index([expires_at])
@@ -418,18 +442,135 @@ model PhoneOtp {
 
 // ─── Academy registry (W8) ───────────────────────────────────────────────
 model Academy {
-  id                          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                        String
-  name_variants               String[]
-  district                    String
-  state                       String
-  verified                    Boolean  @default(false)
-  players_at_district_plus    Int      @default(0)
-  created_at                  DateTime @default(now()) @db.Timestamptz(6)
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                     String
+  name_variants            String[]
+  district                 String
+  state                    String
+  verified                 Boolean  @default(false)
+  players_at_district_plus Int      @default(0)
+  // Owning academy_admin user (W-Academy: batches/attendance/join-requests
+  // subsystem ported from origin/v1-features-sparsh). Nullable because
+  // registry academies created purely from ingest matching have no admin.
+  admin_user_id            String?  @unique @db.Uuid
+  admin                    User?    @relation(fields: [admin_user_id], references: [id])
+  created_at               DateTime @default(now()) @db.Timestamptz(6)
 
   match_candidates AcademyMatchCandidate[]
+  batches          AcademyBatch[]
+  join_requests    AcademyJoinRequest[]
+  attendance_flags AcademyAttendanceFlag[]
 
   @@map("academies")
+  @@schema("athlasx")
+}
+
+// ─── Academy batches / attendance / join-requests (ported from
+// origin/v1-features-sparsh, graduated onto the Prisma/src shape) ─────────
+enum AcademyBatchStatus {
+  ACTIVE
+  ARCHIVED
+
+  @@schema("athlasx")
+}
+
+model AcademyBatch {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  academy_id         String             @db.Uuid
+  academy            Academy            @relation(fields: [academy_id], references: [id], onDelete: Cascade)
+  batch_name         String
+  age_group          String?
+  schedule_days      String[]
+  schedule_time      String?
+  batch_status       AcademyBatchStatus @default(ACTIVE)
+  max_players        Int?
+  created_by_user_id String             @db.Uuid
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime           @updatedAt @db.Timestamptz(6)
+
+  memberships AcademyBatchMembership[]
+
+  @@index([academy_id])
+  @@map("academy_batches")
+  @@schema("athlasx")
+}
+
+enum AcademyBatchMembershipStatus {
+  active
+  removed
+
+  @@schema("athlasx")
+}
+
+model AcademyBatchMembership {
+  id        String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  batch_id  String                       @db.Uuid
+  batch     AcademyBatch                 @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  player_id String                       @db.Uuid
+  player    PlayerProfile                @relation(fields: [player_id], references: [id], onDelete: Cascade)
+  joined_at DateTime                     @default(now()) @db.Timestamptz(6)
+  status    AcademyBatchMembershipStatus @default(active)
+
+  @@unique([batch_id, player_id])
+  @@index([player_id])
+  @@map("academy_batch_memberships")
+  @@schema("athlasx")
+}
+
+enum AcademyJoinRequestStatus {
+  pending
+  approved
+  rejected
+
+  @@schema("athlasx")
+}
+
+model AcademyJoinRequest {
+  id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  academy_id      String                   @db.Uuid
+  academy         Academy                  @relation(fields: [academy_id], references: [id], onDelete: Cascade)
+  candidate_name  String
+  candidate_phone String?
+  candidate_dob   DateTime?                @db.Date
+  player_id       String?                  @db.Uuid
+  player          PlayerProfile?           @relation(fields: [player_id], references: [id])
+  status          AcademyJoinRequestStatus @default(pending)
+  reviewed_by     String?                  @db.Uuid
+  reviewed_at     DateTime?                @db.Timestamptz(6)
+  created_at      DateTime                 @default(now()) @db.Timestamptz(6)
+
+  @@index([academy_id, status])
+  @@map("academy_join_requests")
+  @@schema("athlasx")
+}
+
+// Academy-scoped attendance-flag *state overlay* (distinct from the
+// Squad-scoped SessionAttendance model): a coach can dismiss or snooze the
+// "N absences in a row" flag computed for a player at request time — this
+// table stores only that dismiss/snooze decision, not the computed flag
+// itself (which is derived from AcademyBatchMembership/attendance history —
+// see src/lib/academy/attendance-flags.ts).
+enum AcademyAttendanceFlagStatus {
+  dismissed
+  snoozed
+
+  @@schema("athlasx")
+}
+
+model AcademyAttendanceFlag {
+  id            String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  academy_id    String                      @db.Uuid
+  academy       Academy                     @relation(fields: [academy_id], references: [id], onDelete: Cascade)
+  player_id     String                      @db.Uuid
+  player        PlayerProfile               @relation(fields: [player_id], references: [id], onDelete: Cascade)
+  status        AcademyAttendanceFlagStatus
+  snoozed_until DateTime?                   @db.Timestamptz(6)
+  duration_days Int?
+  created_at    DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime                    @updatedAt @db.Timestamptz(6)
+
+  @@unique([academy_id, player_id])
+  @@map("academy_attendance_flags")
   @@schema("athlasx")
 }
 
@@ -445,16 +586,16 @@ enum AcademyMatchStatus {
 }
 
 model AcademyMatchCandidate {
-  id                     String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  raw_string             String
-  source                 String
-  suggested_academy_id   String?             @db.Uuid
-  suggested_academy      Academy?            @relation(fields: [suggested_academy_id], references: [id])
-  similarity_score       Float?
-  status                 AcademyMatchStatus  @default(unmatched)
-  reviewed_by            String?             @db.Uuid
-  reviewed_at            DateTime?           @db.Timestamptz(6)
-  created_at             DateTime            @default(now()) @db.Timestamptz(6)
+  id                   String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  raw_string           String
+  source               String
+  suggested_academy_id String?            @db.Uuid
+  suggested_academy    Academy?           @relation(fields: [suggested_academy_id], references: [id])
+  similarity_score     Float?
+  status               AcademyMatchStatus @default(unmatched)
+  reviewed_by          String?            @db.Uuid
+  reviewed_at          DateTime?          @db.Timestamptz(6)
+  created_at           DateTime           @default(now()) @db.Timestamptz(6)
 
   @@index([status])
   @@map("academy_match_candidates")
@@ -463,16 +604,16 @@ model AcademyMatchCandidate {
 
 // ─── Tournament / Match / Performance — provenance on every row ────────────
 model Tournament {
-  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  association_id  String           @db.Uuid
-  association     Association      @relation(fields: [association_id], references: [id])
-  name            String
-  season          String
-  format          Format
-  age_category    String
-  level           TournamentLevel
-  start_date      DateTime         @db.Date
-  end_date        DateTime?        @db.Date
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id String          @db.Uuid
+  association    Association     @relation(fields: [association_id], references: [id])
+  name           String
+  season         String
+  format         Format
+  age_category   String
+  level          TournamentLevel
+  start_date     DateTime        @db.Date
+  end_date       DateTime?       @db.Date
 
   matches Match[]
 
@@ -481,19 +622,19 @@ model Tournament {
 }
 
 model Match {
-  id                            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tournament_id                 String          @db.Uuid
-  tournament                    Tournament      @relation(fields: [tournament_id], references: [id])
-  date                          DateTime        @db.Date
-  home_team                     String
-  away_team                     String
-  venue                         String
-  source                        String
-  confidence                    Float
-  ingest_method                 IngestMethod
-  association_approval_status   ApprovalStatus  @default(pending)
+  id                          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tournament_id               String         @db.Uuid
+  tournament                  Tournament     @relation(fields: [tournament_id], references: [id])
+  date                        DateTime       @db.Date
+  home_team                   String
+  away_team                   String
+  venue                       String
+  source                      String
+  confidence                  Float
+  ingest_method               IngestMethod
+  association_approval_status ApprovalStatus @default(pending)
 
-  performances Performance[]
+  performances        Performance[]
   identity_exceptions IdentityException[]
 
   @@map("matches")
@@ -501,27 +642,27 @@ model Match {
 }
 
 model Performance {
-  id                            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  match_id                      String          @db.Uuid
-  match                         Match           @relation(fields: [match_id], references: [id])
-  player_id                     String          @db.Uuid
-  player                        PlayerProfile   @relation(fields: [player_id], references: [id])
-  batting_runs                  Int?
-  batting_balls                 Int?
-  batting_fours                 Int?
-  batting_sixes                 Int?
-  batting_dismissed             Boolean?
-  bowling_overs                 Float?
-  bowling_wickets                Int?
-  bowling_runs_conceded          Int?
-  bowling_maidens                Int?
-  catches                       Int?
-  stumpings                     Int?
-  run_outs                      Int?
-  source                        String
-  ingest_method                 IngestMethod
-  confidence_score               Float
-  association_approval_status   ApprovalStatus  @default(pending)
+  id                          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  match_id                    String         @db.Uuid
+  match                       Match          @relation(fields: [match_id], references: [id])
+  player_id                   String         @db.Uuid
+  player                      PlayerProfile  @relation(fields: [player_id], references: [id])
+  batting_runs                Int?
+  batting_balls               Int?
+  batting_fours               Int?
+  batting_sixes               Int?
+  batting_dismissed           Boolean?
+  bowling_overs               Float?
+  bowling_wickets             Int?
+  bowling_runs_conceded       Int?
+  bowling_maidens             Int?
+  catches                     Int?
+  stumpings                   Int?
+  run_outs                    Int?
+  source                      String
+  ingest_method               IngestMethod
+  confidence_score            Float
+  association_approval_status ApprovalStatus @default(pending)
 
   @@index([player_id])
   @@map("performances")
@@ -530,34 +671,34 @@ model Performance {
 
 // ─── Trial cycle ────────────────────────────────────────────────────────
 model TrialCycle {
-  id                   String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  association_id       String            @db.Uuid
-  association          Association       @relation(fields: [association_id], references: [id])
-  age_category         String
-  dob_window_start     DateTime          @db.Date
-  dob_window_end       DateTime          @db.Date
-  fee_amount           Int
-  registration_opens   DateTime          @db.Timestamptz(6)
-  registration_closes  DateTime          @db.Timestamptz(6)
-  status               TrialCycleStatus  @default(upcoming)
-  created_at           DateTime          @default(now()) @db.Timestamptz(6)
+  id                  String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id      String           @db.Uuid
+  association         Association      @relation(fields: [association_id], references: [id])
+  age_category        String
+  dob_window_start    DateTime         @db.Date
+  dob_window_end      DateTime         @db.Date
+  fee_amount          Int
+  registration_opens  DateTime         @db.Timestamptz(6)
+  registration_closes DateTime         @db.Timestamptz(6)
+  status              TrialCycleStatus @default(upcoming)
+  created_at          DateTime         @default(now()) @db.Timestamptz(6)
 
-  venues              TrialVenue[]
-  registrations       Registration[]
-  selection_sessions  SelectionSession[]
-  squads              Squad[]
+  venues             TrialVenue[]
+  registrations      Registration[]
+  selection_sessions SelectionSession[]
+  squads             Squad[]
 
   @@map("trial_cycles")
   @@schema("athlasx")
 }
 
 model TrialVenue {
-  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  trial_cycle_id String      @db.Uuid
-  trial_cycle    TrialCycle  @relation(fields: [trial_cycle_id], references: [id], onDelete: Cascade)
+  id             String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trial_cycle_id String     @db.Uuid
+  trial_cycle    TrialCycle @relation(fields: [trial_cycle_id], references: [id], onDelete: Cascade)
   name           String
   district       String
-  date           DateTime    @db.Date
+  date           DateTime   @db.Date
   mandal         String?
 
   registrations Registration[]
@@ -568,18 +709,18 @@ model TrialVenue {
 
 // ─── Registration (player → trial cycle) ───────────────────────────────
 model Registration {
-  id                  String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  trial_cycle_id      String        @db.Uuid
-  trial_cycle         TrialCycle    @relation(fields: [trial_cycle_id], references: [id])
-  player_id           String        @db.Uuid
-  player              PlayerProfile @relation(fields: [player_id], references: [id])
-  venue_id            String        @db.Uuid
-  venue               TrialVenue    @relation(fields: [venue_id], references: [id])
-  fee_status          FeeStatus     @default(pending)
-  documents_uploaded  Boolean       @default(false)
-  footage_attached    Boolean       @default(false)
-  checked_in          Boolean       @default(false)
-  created_at          DateTime      @default(now()) @db.Timestamptz(6)
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trial_cycle_id     String        @db.Uuid
+  trial_cycle        TrialCycle    @relation(fields: [trial_cycle_id], references: [id])
+  player_id          String        @db.Uuid
+  player             PlayerProfile @relation(fields: [player_id], references: [id])
+  venue_id           String        @db.Uuid
+  venue              TrialVenue    @relation(fields: [venue_id], references: [id])
+  fee_status         FeeStatus     @default(pending)
+  documents_uploaded Boolean       @default(false)
+  footage_attached   Boolean       @default(false)
+  checked_in         Boolean       @default(false)
+  created_at         DateTime      @default(now()) @db.Timestamptz(6)
 
   dossier Dossier?
 
@@ -590,16 +731,16 @@ model Registration {
 
 // ─── Dossier ────────────────────────────────────────────────────────────
 model Dossier {
-  id                    String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  registration_id       String        @unique @db.Uuid
-  registration          Registration  @relation(fields: [registration_id], references: [id])
-  player_id             String        @db.Uuid
-  player                PlayerProfile @relation(fields: [player_id], references: [id])
-  trial_cycle_id        String        @db.Uuid
-  generated_at          DateTime      @db.Timestamptz(6)
-  has_match_history     Boolean
-  percentile_vs_cohort  Float?
-  contents_snapshot     Json          // DossierContents — batting/bowling 0-10, match_count, data_sources, cohort_size, recent_form
+  id                   String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  registration_id      String        @unique @db.Uuid
+  registration         Registration  @relation(fields: [registration_id], references: [id])
+  player_id            String        @db.Uuid
+  player               PlayerProfile @relation(fields: [player_id], references: [id])
+  trial_cycle_id       String        @db.Uuid
+  generated_at         DateTime      @db.Timestamptz(6)
+  has_match_history    Boolean
+  percentile_vs_cohort Float?
+  contents_snapshot    Json // DossierContents — batting/bowling 0-10, match_count, data_sources, cohort_size, recent_form
 
   @@map("dossiers")
   @@schema("athlasx")
@@ -607,17 +748,17 @@ model Dossier {
 
 // ─── Selection committee (W4) ─────────────────────────────────────────────
 model SelectionSession {
-  id                       String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  trial_cycle_id           String           @db.Uuid
-  trial_cycle              TrialCycle       @relation(fields: [trial_cycle_id], references: [id])
-  association_id           String           @db.Uuid
-  association              Association      @relation(fields: [association_id], references: [id])
-  status                   SelectionStatus  @default(open)
-  chair_id                 String           @db.Uuid
-  squad_size_target        Int
-  convergence_unlocked_at  DateTime?        @db.Timestamptz(6)
-  squad_locked_at          DateTime?        @db.Timestamptz(6)
-  created_at               DateTime         @default(now()) @db.Timestamptz(6)
+  id                      String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trial_cycle_id          String          @db.Uuid
+  trial_cycle             TrialCycle      @relation(fields: [trial_cycle_id], references: [id])
+  association_id          String          @db.Uuid
+  association             Association     @relation(fields: [association_id], references: [id])
+  status                  SelectionStatus @default(open)
+  chair_id                String          @db.Uuid
+  squad_size_target       Int
+  convergence_unlocked_at DateTime?       @db.Timestamptz(6)
+  squad_locked_at         DateTime?       @db.Timestamptz(6)
+  created_at              DateTime        @default(now()) @db.Timestamptz(6)
 
   grades              Grade[]
   selections          Selection[]
@@ -630,17 +771,17 @@ model SelectionSession {
 // Blind until convergence_unlocked_at is set — enforced server-side in the
 // API routes under src/app/api/grading/, not client state.
 model Grade {
-  id                     String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  selection_session_id   String            @db.Uuid
-  selection_session      SelectionSession  @relation(fields: [selection_session_id], references: [id], onDelete: Cascade)
-  selector_id            String            @db.Uuid
-  selector               User              @relation(fields: [selector_id], references: [id])
-  player_id              String            @db.Uuid
-  player                 PlayerProfile     @relation(fields: [player_id], references: [id])
-  overall_grade           Int
-  notes                  String?
-  status                  GradeStatus      @default(submitted)
-  submitted_at             DateTime?        @db.Timestamptz(6)
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  selection_session_id String           @db.Uuid
+  selection_session    SelectionSession @relation(fields: [selection_session_id], references: [id], onDelete: Cascade)
+  selector_id          String           @db.Uuid
+  selector             User             @relation(fields: [selector_id], references: [id])
+  player_id            String           @db.Uuid
+  player               PlayerProfile    @relation(fields: [player_id], references: [id])
+  overall_grade        Int
+  notes                String?
+  status               GradeStatus      @default(submitted)
+  submitted_at         DateTime?        @db.Timestamptz(6)
 
   @@unique([selection_session_id, selector_id, player_id])
   @@index([selection_session_id])
@@ -649,25 +790,25 @@ model Grade {
 }
 
 model Selection {
-  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  selection_session_id  String            @db.Uuid
-  selection_session     SelectionSession  @relation(fields: [selection_session_id], references: [id])
-  player_id             String            @db.Uuid
-  rationale             String
-  decided_at            DateTime          @db.Timestamptz(6)
-  decided_by            String[]
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  selection_session_id String           @db.Uuid
+  selection_session    SelectionSession @relation(fields: [selection_session_id], references: [id])
+  player_id            String           @db.Uuid
+  rationale            String
+  decided_at           DateTime         @db.Timestamptz(6)
+  decided_by           String[]
 
   @@map("selections")
   @@schema("athlasx")
 }
 
 model OmissionRationale {
-  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  selection_session_id  String            @db.Uuid
-  selection_session     SelectionSession  @relation(fields: [selection_session_id], references: [id])
-  player_id             String            @db.Uuid
-  rationale             String
-  decided_at            DateTime          @db.Timestamptz(6)
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  selection_session_id String           @db.Uuid
+  selection_session    SelectionSession @relation(fields: [selection_session_id], references: [id])
+  player_id            String           @db.Uuid
+  rationale            String
+  decided_at           DateTime         @db.Timestamptz(6)
 
   @@map("omission_rationales")
   @@schema("athlasx")
@@ -675,20 +816,20 @@ model OmissionRationale {
 
 // ─── In-season weekly tracking (W5) ────────────────────────────────────
 model PlayerWeek {
-  id                     String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  player_id              String        @db.Uuid
-  player                 PlayerProfile @relation(fields: [player_id], references: [id])
-  week_start             DateTime      @db.Date
-  matches_played         Int
-  runs_this_week         Int?
-  wickets_this_week      Int?
-  rolling_4week_average  Float?
-  score_delta            Float?
-  flag_type              FlagType      @default(none)
-  coach_note             String?       // 200 char max, enforced at the API boundary
-  coach_note_at          DateTime?     @db.Timestamptz(6)
-  fitness_rating         Int?          // 1-5, coach-supervised only — never self-reported
-  behaviour_rating       Int?          // 1-5, coach-supervised only
+  id                    String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  player_id             String        @db.Uuid
+  player                PlayerProfile @relation(fields: [player_id], references: [id])
+  week_start            DateTime      @db.Date
+  matches_played        Int
+  runs_this_week        Int?
+  wickets_this_week     Int?
+  rolling_4week_average Float?
+  score_delta           Float?
+  flag_type             FlagType      @default(none)
+  coach_note            String? // 200 char max, enforced at the API boundary
+  coach_note_at         DateTime?     @db.Timestamptz(6)
+  fitness_rating        Int? // 1-5, coach-supervised only — never self-reported
+  behaviour_rating      Int? // 1-5, coach-supervised only
 
   @@unique([player_id, week_start])
   @@index([flag_type])
@@ -697,15 +838,15 @@ model PlayerWeek {
 }
 
 model TrendAlert {
-  id                            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  player_id                     String        @db.Uuid
-  player                        PlayerProfile @relation(fields: [player_id], references: [id])
-  triggered_at                  DateTime      @db.Timestamptz(6)
-  flag_type                     FlagType
-  consecutive_declining_weeks   Int?
-  skill_dimension                String?
-  notified_coach                 Boolean       @default(false)
-  notified_selector               Boolean       @default(false)
+  id                          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  player_id                   String        @db.Uuid
+  player                      PlayerProfile @relation(fields: [player_id], references: [id])
+  triggered_at                DateTime      @db.Timestamptz(6)
+  flag_type                   FlagType
+  consecutive_declining_weeks Int?
+  skill_dimension             String?
+  notified_coach              Boolean       @default(false)
+  notified_selector           Boolean       @default(false)
 
   @@index([player_id])
   @@map("trend_alerts")
@@ -714,17 +855,17 @@ model TrendAlert {
 
 // ─── Coach / Selector staff profiles ─────────────────────────────────────
 model CoachProfile {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id         String    @unique @db.Uuid
-  user            User      @relation(fields: [user_id], references: [id])
-  full_name       String
-  association_id  String    @db.Uuid
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String   @unique @db.Uuid
+  user           User     @relation(fields: [user_id], references: [id])
+  full_name      String
+  association_id String   @db.Uuid
   // Pre-existing, unused placeholder (confirmed via repo-wide grep — no
   // route or component reads or writes this) — superseded by the real
   // SquadCoach join table below. Left in place, not removed; out of scope.
-  squad_ids       String[]
-  avatar_url      String?
-  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  squad_ids      String[]
+  avatar_url     String?
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
 
   @@map("coach_profiles")
   @@schema("athlasx")
@@ -747,22 +888,22 @@ enum SquadStatus {
 }
 
 model Squad {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  association_id  String        @db.Uuid
-  association     Association   @relation(fields: [association_id], references: [id])
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id String      @db.Uuid
+  association    Association @relation(fields: [association_id], references: [id])
   // Soft link only — a squad outlives the selection session that built it,
   // and not every squad need trace back to one (e.g. one assembled by hand).
-  trial_cycle_id  String?       @db.Uuid
-  trial_cycle     TrialCycle?   @relation(fields: [trial_cycle_id], references: [id])
-  name            String
-  season          String
-  status          SquadStatus   @default(draft)
-  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  trial_cycle_id String?     @db.Uuid
+  trial_cycle    TrialCycle? @relation(fields: [trial_cycle_id], references: [id])
+  name           String
+  season         String
+  status         SquadStatus @default(draft)
+  created_at     DateTime    @default(now()) @db.Timestamptz(6)
 
-  coaches   SquadCoach[]
-  players   SquadPlayer[]
-  sessions  TrainingSession[]
-  advisory_notes  CoachAdvisoryNote[]
+  coaches        SquadCoach[]
+  players        SquadPlayer[]
+  sessions       TrainingSession[]
+  advisory_notes CoachAdvisoryNote[]
 
   @@index([association_id])
   @@map("squads")
@@ -774,13 +915,13 @@ model Squad {
 // source of access" discipline, just scoped one level down to a squad
 // instead of a whole association.
 model SquadCoach {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  squad_id    String    @db.Uuid
-  squad       Squad     @relation(fields: [squad_id], references: [id], onDelete: Cascade)
-  user_id     String    @db.Uuid
-  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  is_lead     Boolean   @default(false)
-  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squad_id   String   @db.Uuid
+  squad      Squad    @relation(fields: [squad_id], references: [id], onDelete: Cascade)
+  user_id    String   @db.Uuid
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  is_lead    Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
 
   @@unique([squad_id, user_id])
   @@map("squad_coaches")
@@ -788,12 +929,12 @@ model SquadCoach {
 }
 
 model SquadPlayer {
-  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  squad_id    String        @db.Uuid
-  squad       Squad         @relation(fields: [squad_id], references: [id], onDelete: Cascade)
-  player_id   String        @db.Uuid
-  player      PlayerProfile @relation(fields: [player_id], references: [id])
-  added_at    DateTime      @default(now()) @db.Timestamptz(6)
+  id        String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squad_id  String        @db.Uuid
+  squad     Squad         @relation(fields: [squad_id], references: [id], onDelete: Cascade)
+  player_id String        @db.Uuid
+  player    PlayerProfile @relation(fields: [player_id], references: [id])
+  added_at  DateTime      @default(now()) @db.Timestamptz(6)
 
   @@unique([squad_id, player_id])
   @@index([player_id])
@@ -808,17 +949,17 @@ model SquadPlayer {
 // (src/lib/athlasx-score.ts) never reads this table — it is pure selector
 // context, not a scoring input.
 model CoachAdvisoryNote {
-  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  squad_id           String    @db.Uuid
-  squad              Squad     @relation(fields: [squad_id], references: [id], onDelete: Cascade)
-  player_id          String    @db.Uuid
-  player             PlayerProfile @relation(fields: [player_id], references: [id])
-  coach_user_id      String    @db.Uuid
-  coach              User      @relation(fields: [coach_user_id], references: [id])
-  fitness_rating     Int?      // 1-5, advisory only
-  behaviour_rating   Int?      // 1-5, advisory only
-  note               String?
-  created_at         DateTime  @default(now()) @db.Timestamptz(6)
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squad_id         String        @db.Uuid
+  squad            Squad         @relation(fields: [squad_id], references: [id], onDelete: Cascade)
+  player_id        String        @db.Uuid
+  player           PlayerProfile @relation(fields: [player_id], references: [id])
+  coach_user_id    String        @db.Uuid
+  coach            User          @relation(fields: [coach_user_id], references: [id])
+  fitness_rating   Int? // 1-5, advisory only
+  behaviour_rating Int? // 1-5, advisory only
+  note             String?
+  created_at       DateTime      @default(now()) @db.Timestamptz(6)
 
   @@index([squad_id, player_id])
   @@map("coach_advisory_notes")
@@ -826,15 +967,15 @@ model CoachAdvisoryNote {
 }
 
 model TrainingSession {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  squad_id      String   @db.Uuid
-  squad         Squad    @relation(fields: [squad_id], references: [id], onDelete: Cascade)
-  session_date  DateTime @db.Date
-  notes         String?
-  created_by    String   @db.Uuid
-  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  squad_id     String   @db.Uuid
+  squad        Squad    @relation(fields: [squad_id], references: [id], onDelete: Cascade)
+  session_date DateTime @db.Date
+  notes        String?
+  created_by   String   @db.Uuid
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
 
-  attendance  SessionAttendance[]
+  attendance SessionAttendance[]
 
   @@index([squad_id])
   @@map("training_sessions")
@@ -866,38 +1007,38 @@ enum IngestJobStatus {
 }
 
 model IngestJob {
-  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  association_id String?          @db.Uuid
-  association    Association?     @relation(fields: [association_id], references: [id])
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id String?         @db.Uuid
+  association    Association?    @relation(fields: [association_id], references: [id])
   source         String
   method         IngestMethod
   tournament     String
   match_count    Int
   player_rows    Int
-  status         IngestJobStatus  @default(pending_review)
+  status         IngestJobStatus @default(pending_review)
   confidence     Float
-  conflicts      Int              @default(0)
+  conflicts      Int             @default(0)
   // Normalized adapter output pending approval — a NormalizedIngestPayload
   // (src/lib/ingest/types.ts). Nullable so the 4 pre-existing seed rows
   // (prisma/seed.ts, no payload) don't need a backfill; the real approve
   // write path requires it and fails loudly if absent (see decide/route.ts).
   raw_payload    Json?
-  reviewed_by    String?          @db.Uuid
-  reviewed_at    DateTime?        @db.Timestamptz(6)
-  created_at     DateTime         @default(now()) @db.Timestamptz(6)
+  reviewed_by    String?         @db.Uuid
+  reviewed_at    DateTime?       @db.Timestamptz(6)
+  created_at     DateTime        @default(now()) @db.Timestamptz(6)
 
   @@map("ingest_jobs")
   @@schema("athlasx")
 }
 
 model SelectorProfile {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id         String    @unique @db.Uuid
-  user            User      @relation(fields: [user_id], references: [id])
-  full_name       String
-  association_id  String    @db.Uuid
-  avatar_url      String?
-  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String   @unique @db.Uuid
+  user           User     @relation(fields: [user_id], references: [id])
+  full_name      String
+  association_id String   @db.Uuid
+  avatar_url     String?
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
 
   @@map("selector_profiles")
   @@schema("athlasx")

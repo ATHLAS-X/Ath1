@@ -8,7 +8,7 @@ import {
   LayoutDashboard, User, Users, ClipboardList,
   Shield, BarChart3, Bell, Settings, Zap,
   ChevronRight, LogOut, Activity, BookOpen,
-  Database, GitMerge, Building2,
+  Database, GitMerge, Building2, UserPlus, Inbox, UserCog,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { chromeIdentity, navSectionsForRole } from '@/lib/chrome'
@@ -27,6 +27,12 @@ const ICONS: Record<string, React.ElementType> = {
   '/record': BarChart3,
   '/notifications': Bell,
   '/settings': Settings,
+  '/academy': LayoutDashboard,
+  '/academy/players': Users,
+  '/academy/add-players': UserPlus,
+  '/academy/join-requests': Inbox,
+  '/ops/associations/new': UserCog,
+  '/coach-signups': BookOpen,
 }
 
 interface NavItemProps {

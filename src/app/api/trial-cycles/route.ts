@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { requireAuth } from '@/lib/require-auth'
+import { requireAuth, getSessionUser } from '@/lib/require-auth'
 import { resolveRequestedAssociationScope } from '@/lib/association-scope'
 
 export const dynamic = 'force-dynamic'
@@ -8,8 +8,12 @@ export const dynamic = 'force-dynamic'
 // GET is deliberately NOT auth-gated — prospective registrants need to
 // browse open trial cycles before they have any account, same reasoning as
 // the claim/* routes below. No PII in this response, only cycle/venue
-// metadata.
-export async function GET() {
+// metadata — EXCEPT that if the caller happens to have a session with a
+// linked player profile, each cycle also carries that player's own
+// registration status (for the notifications feed's "status updates on
+// registrations you've made"). This is the caller's own data, resolved the
+// same self-only way as /api/my-record — never another player's.
+export async function GET(req: NextRequest) {
   const cycles = await db.trialCycle.findMany({
     include: {
       venues: true,
@@ -18,6 +22,18 @@ export async function GET() {
     },
     orderBy: { created_at: 'desc' },
   })
+
+  const sessionUser = await getSessionUser(req)
+  const me = sessionUser
+    ? await db.user.findUnique({ where: { id: sessionUser.id }, select: { linked_player_id: true } })
+    : null
+  const myRegistrations = me?.linked_player_id
+    ? await db.registration.findMany({
+        where: { player_id: me.linked_player_id },
+        select: { id: true, trial_cycle_id: true, fee_status: true, checked_in: true },
+      })
+    : []
+  const myRegistrationByCycle = new Map(myRegistrations.map((r) => [r.trial_cycle_id, r]))
 
   return NextResponse.json({
     cycles: cycles.map(c => ({
@@ -37,6 +53,7 @@ export async function GET() {
       // viewed at least once", not "all eligible have been pre-generated" —
       // there is no background job to pre-generate every dossier up front.
       dossiers_ready: c.registrations.filter(r => r.dossier !== null).length,
+      myRegistration: myRegistrationByCycle.get(c.id) ?? null,
     })),
   })
 }

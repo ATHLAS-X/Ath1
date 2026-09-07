@@ -1,4 +1,5 @@
 import type { UserRole } from '@/types'
+import { ACADEMY_SELF_SERVE_ENABLED } from '@/lib/feature-flags'
 
 export type ChromeNavItem = {
   label: string
@@ -21,7 +22,9 @@ export const NAV_SECTIONS: ChromeNavSection[] = [
       { label: 'Overview', href: '/dashboard' },
       { label: 'Trial Cycles', href: '/trial-cycles', badge: '1 open' },
       { label: 'Ingest & Data', href: '/ingest', badge: '2' },
+      { label: 'Identity Exceptions', href: '/identity-exceptions' },
       { label: 'Academy Matching', href: '/academy-matching' },
+      { label: 'Coach Signups', href: '/coach-signups' },
     ],
   },
   {
@@ -50,8 +53,25 @@ export const NAV_SECTIONS: ChromeNavSection[] = [
     ],
   },
   {
+    label: 'Ops Tools',
+    roles: ['athlasx_ops'],
+    items: [
+      { label: 'Create Association', href: '/ops/associations/new' },
+    ],
+  },
+  {
+    label: 'Academy',
+    roles: ['academy_admin', 'athlasx_ops'],
+    items: [
+      { label: 'Dashboard', href: '/academy' },
+      { label: 'Players', href: '/academy/players' },
+      { label: 'Add Players', href: '/academy/add-players' },
+      { label: 'Join Requests', href: '/academy/join-requests' },
+    ],
+  },
+  {
     label: 'Account',
-    roles: ['player', 'selection_panel', 'coach', 'association', 'athlasx_ops'],
+    roles: ['player', 'selection_panel', 'coach', 'association', 'athlasx_ops', 'academy_admin'],
     items: [
       { label: 'Notifications', href: '/notifications', badge: '3' },
       { label: 'Settings', href: '/settings' },
@@ -61,15 +81,28 @@ export const NAV_SECTIONS: ChromeNavSection[] = [
 
 export function navSectionsForRole(role: string): ChromeNavSection[] {
   return NAV_SECTIONS.filter((section) => section.roles.includes(role as UserRole))
+    // The Academy nav section is part of the self-serve academy-admin
+    // surface flagged off by default — see feature-flags.ts.
+    .filter((section) => section.label !== 'Academy' || ACADEMY_SELF_SERVE_ENABLED)
 }
 
 export function navHrefsForRole(role: string): string[] {
   return navSectionsForRole(role).flatMap((section) => section.items.map((item) => item.href))
 }
 
-export function rootDestination(session: { user?: { id?: string } } | null): string {
-  if (session?.user?.id) return '/dashboard'
-  return '/api/auth/signin?callbackUrl=/dashboard'
+/** Each role's own home page — where a signed-in visit to / should land. */
+const ROLE_HOME: Record<string, string> = {
+  player: '/record',
+  coach: '/coach',
+  association: '/dashboard',
+  athlasx_ops: '/dashboard',
+  selection_panel: '/selection',
+  academy_admin: '/academy',
+}
+
+export function rootDestination(session: { user?: { id?: string; role?: string } } | null): string {
+  if (!session?.user?.id) return '/api/auth/signin?callbackUrl=/dashboard'
+  return ROLE_HOME[session.user.role ?? ''] ?? '/dashboard'
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -78,6 +111,7 @@ const ROLE_LABELS: Record<string, string> = {
   coach: 'Coach',
   association: 'Association',
   athlasx_ops: 'AthlasX Ops',
+  academy_admin: 'Academy Admin',
 }
 
 export function chromeIdentity(user?: { email?: string | null; role?: string } | null): {

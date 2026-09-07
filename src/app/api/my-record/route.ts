@@ -4,6 +4,7 @@ import { calculateAthlasXScore, getScoreTier } from '@/lib/athlasx-score'
 import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { requireAuth } from '@/lib/require-auth'
 import { verifiedMatchHistoryForPlayer } from '@/lib/verified-performances'
+import { computeCohortPercentile } from '@/lib/player-cohort'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
   }))
   const result = calculateAthlasXScore({ playingRole: role, performances, yearsExperience: 3 })
   const tier = getScoreTier(result.total)
+  const cohort = await computeCohortPercentile(player.id, player.district, player.playing_role, player.dob, result.total)
 
   const battingMatches = matches.filter(m => m.batting_runs !== undefined)
   const totalRuns = battingMatches.reduce((s, m) => s + (m.batting_runs ?? 0), 0)
@@ -61,8 +63,14 @@ export async function GET(req: NextRequest) {
   }))
 
   return NextResponse.json({
-    player: { id: player.id, full_name: player.full_name, playing_role: role },
+    player: { id: player.id, full_name: player.full_name, playing_role: role, dob: player.dob },
     score: { total: result.total, tier: tier.label, batting: result.batting, bowling: result.bowling, fitness: result.fitness, fitnessAssessed: result.fitnessAssessed },
+    percentile: {
+      value: cohort.percentile,
+      cohortSize: cohort.cohortSize,
+      ageCategory: cohort.ageCategory,
+      district: player.district,
+    },
     summary: {
       matches: matches.length,
       runs: totalRuns,

@@ -3,6 +3,7 @@ import type { BattingStyle, BowlingStyleEnum, Format, PlayingRoleEnum } from '@p
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { hashPassword } from '@/lib/password'
+import { consumeVerifiedAadhaar } from '@/lib/aadhaar-verification'
 
 const PLAYING_ROLE: Record<string, PlayingRoleEnum> = {
   Batsman: 'Batsman',
@@ -102,6 +103,39 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Aadhaar verification (Stage 2 of the onboarding wizard) — the client
+  // never sends a raw Aadhaar number here, only the requestId its own
+  // /api/onboarding/aadhaar/verify call already confirmed. Re-checking
+  // server-side via consumeVerifiedAadhaar rather than trusting a
+  // client-supplied "verified: true" boolean outright, and consuming it
+  // (one-time use) so the same verification can't be replayed onto a
+  // second account.
+  const aadhaarRequestId = String(body.aadhaarRequestId ?? '')
+  const aadhaarLast4 = aadhaarRequestId ? consumeVerifiedAadhaar(aadhaarRequestId) : null
+  if (!aadhaarLast4) {
+    return NextResponse.json({ error: 'Aadhaar verification is required and must be completed just before submitting' }, { status: 400 })
+  }
+
+  let guardianAadhaarLast4: string | null = null
+  if (minor) {
+    const guardianRequestId = String(body.guardianAadhaarRequestId ?? '')
+    guardianAadhaarLast4 = guardianRequestId ? consumeVerifiedAadhaar(guardianRequestId) : null
+    if (!guardianAadhaarLast4) {
+      return NextResponse.json({ error: "Guardian Aadhaar verification is required for players under 18" }, { status: 400 })
+    }
+  }
+
+  // Consent gate — Stage 3's four panels. Same DPDP-only-when-minor
+  // pattern as guardianPhone/guardian Aadhaar above; the other three are
+  // required regardless of age.
+  const consentDataUse = body.consentDataUse === true
+  const consentVisibility = body.consentVisibility === true
+  const consentTerms = body.consentTerms === true
+  const consentDpdpGuardian = body.consentDpdpGuardian === true
+  if (!consentDataUse || !consentVisibility || !consentTerms || (minor && !consentDpdpGuardian)) {
+    return NextResponse.json({ error: 'All required consents must be accepted before submitting' }, { status: 400 })
+  }
+
   // Product note (not enforced here): creating this account lets the player
   // use the app. It does not mean they are verified talent for selectors.
   // Under-18 claim still proves guardian OTP; this wizard only stores the
@@ -134,6 +168,10 @@ export async function POST(req: NextRequest) {
               profile_source: 'self_registered',
               claim_status: 'claimed',
               consent_status: minor ? 'pending' : 'granted',
+              aadhaar_last4: aadhaarLast4,
+              aadhaar_verification_status: 'verified',
+              guardian_aadhaar_last4: guardianAadhaarLast4 ?? undefined,
+              guardian_aadhaar_verification_status: guardianAadhaarLast4 ? 'verified' : undefined,
             },
           },
         },

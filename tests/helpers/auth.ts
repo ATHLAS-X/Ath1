@@ -40,3 +40,14 @@ export async function postAsUser(url: string, userId: string, role: string, body
     },
   })
 }
+
+export async function patchAsUser(url: string, userId: string, role: string, body: unknown): Promise<NextRequest> {
+  return new NextRequest(url, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+    headers: {
+      'content-type': 'application/json',
+      cookie: await sessionCookieFor(userId, role),
+    },
+  })
+}
