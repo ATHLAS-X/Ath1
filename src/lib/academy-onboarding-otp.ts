@@ -22,7 +22,14 @@ interface PendingOtp {
   expiresAt: Date
 }
 
-const pending = new Map<string, PendingOtp>()
+// globalThis-backed — see src/lib/rate-limit.ts's identical comment. A
+// plain module-level Map here was getting silently reset by Next.js dev's
+// route-module recompilation between the send-otp and final-submit calls,
+// producing intermittent "Incorrect or expired OTP" failures that had
+// nothing to do with the actual 10-minute TTL.
+const globalForAcademyOtp = globalThis as unknown as { __athlasxAcademyOtpPending?: Map<string, PendingOtp> }
+const pending = globalForAcademyOtp.__athlasxAcademyOtpPending ?? new Map<string, PendingOtp>()
+globalForAcademyOtp.__athlasxAcademyOtpPending = pending
 
 export async function sendAcademyOtp(mobile: string): Promise<{ requestId: string; devCode: string }> {
   const requestId = randomInt(1e9, 2e9).toString(36) + Date.now().toString(36)

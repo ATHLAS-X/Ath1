@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { AcademyType, PlayerCountRange } from '@prisma/client'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { hashPassword } from '@/lib/password'
 import { verifyAcademyOtp } from '@/lib/academy-onboarding-otp'
 import { academyGate } from '@/lib/academy/gate'
+import { rateLimit } from '@/lib/rate-limit'
 
 // Creates a new Academy row + its first academy_admin User in one action —
 // no existing route did this (src/app/api/academy/** — batches/join-requests/
@@ -11,11 +13,35 @@ import { academyGate } from '@/lib/academy/gate'
 // getOwnedAcademy()). Follows the same encodeSessionToken/applySessionCookie
 // session-minting pattern as player/onboard and associations/onboard.
 //
-// Only name/district/state/email/password/mobile persist anywhere — the
-// mockup's Facilities/Staff/Programs steps (ground type, coach certs, age
-// groups, fees, BCCI/state-association affiliation) have no matching column
-// on the Academy model today. Collected in the UI for fidelity to the
-// mockup's step structure and copy, but intentionally not sent here.
+// docs/AthlasX_Master_Data_Points.docx Phase 1 (HIGH) — Step 2's identity
+// fields (year/type/contact/BCCI/state-association/head-coach) now persist;
+// they used to be collected in the wizard's own React state and silently
+// discarded here. Facilities/Programs (ground type, coach certs, age
+// groups, fees) are still Phase 2/3 — not touched in this pass.
+//
+// active_player_count_range (docs Phase 1, HIGH) has no corresponding
+// wizard field anywhere in this codebase today — nothing to wire through
+// yet. Left null on every row until a Step 2/3 field for it exists.
+const ACADEMY_TYPE_MAP: Record<string, AcademyType> = {
+  'Private': 'private',
+  'Government': 'government',
+  'Sports Club': 'sports_club',
+  // The wizard's ACADEMY_TYPES option list combines Trust and NGO into one
+  // "Trust / NGO" choice, but the enum (correctly) keeps them distinct per
+  // the source doc. There's no way to know which the admin meant from a
+  // single combined option — left unmapped (falls through to undefined)
+  // rather than guessing one and silently losing the other.
+}
+
+function toIntOrUndefined(v: unknown): number | undefined {
+  const n = Number(v)
+  return Number.isFinite(n) && String(v).trim() !== '' ? n : undefined
+}
+
+function toBool(v: unknown): boolean {
+  return v === 'Yes' || v === true
+}
+
 export async function POST(req: NextRequest) {
   const gate = academyGate()
   if (gate) return gate
@@ -33,6 +59,11 @@ export async function POST(req: NextRequest) {
   if (mobile.length !== 10 || !requestId || !otp) {
     return NextResponse.json({ error: 'Phone verification is required' }, { status: 400 })
   }
+  // Final-submit OTP re-check had no guess-rate bound — send-otp does.
+  const otpVerifyLimit = rateLimit('academy-onboard-otp-verify', mobile, 10, 3600)
+  if (!otpVerifyLimit.success) {
+    return NextResponse.json({ error: 'Too many verification attempts. Try again later.' }, { status: 429 })
+  }
   const otpOk = await verifyAcademyOtp(requestId, mobile, otp)
   if (!otpOk) {
     return NextResponse.json({ error: 'Incorrect or expired OTP' }, { status: 400 })
@@ -47,6 +78,26 @@ export async function POST(req: NextRequest) {
   if (!email || !password || !academyName || !district || !state) {
     return NextResponse.json({ error: 'Account and academy identity fields are required' }, { status: 400 })
   }
+
+  // docs/AthlasX_Master_Data_Points.docx Phase 1 (HIGH) fields — all
+  // optional here even though several are required client-side (the
+  // wizard's own canProceed() already gates Step 2 on city/contactName),
+  // so a malformed/omitted value degrades to "not recorded" instead of a
+  // second server-side 400 duplicating client validation.
+  const city = String(body.city ?? '').trim() || undefined
+  const yearEstablished = toIntOrUndefined(body.year_established)
+  const academyType = ACADEMY_TYPE_MAP[String(body.academy_type ?? '')]
+  const contactName = String(body.contact_name ?? '').trim() || undefined
+  const contactDesignation = String(body.contact_designation ?? '').trim() || undefined
+  const bcciAffiliated = toBool(body.bcci_affiliated)
+  const bcciAffiliationId = String(body.bcci_affiliation_id ?? '').trim() || undefined
+  const stateAssocAffiliated = toBool(body.state_assoc_affiliated)
+  const stateAssocNames = Array.isArray(body.state_assoc_names)
+    ? body.state_assoc_names.map(String).filter(Boolean)
+    : []
+  const headCoachName = String(body.head_coach_name ?? '').trim() || undefined
+  // No wizard field produces this yet — see the header comment.
+  const activePlayerCountRange: PlayerCountRange | undefined = undefined
 
   const passwordHash = await hashPassword(password)
 
@@ -63,8 +114,19 @@ export async function POST(req: NextRequest) {
       const createdAcademy = await tx.academy.create({
         data: {
           name: academyName,
+          city,
           district,
           state,
+          year_established: yearEstablished,
+          academy_type: academyType,
+          contact_name: contactName,
+          contact_designation: contactDesignation,
+          bcci_affiliated: bcciAffiliated,
+          bcci_affiliation_id: bcciAffiliationId,
+          state_assoc_affiliated: stateAssocAffiliated,
+          state_assoc_names: stateAssocNames,
+          head_coach_name: headCoachName,
+          active_player_count_range: activePlayerCountRange,
           admin_user_id: createdUser.id,
         },
       })

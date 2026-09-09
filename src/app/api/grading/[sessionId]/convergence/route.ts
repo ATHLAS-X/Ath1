@@ -8,7 +8,7 @@ import { resolveAssociationScope } from '@/lib/association-scope'
 // unlocked convergence — the server-side half of the blind-grading
 // guarantee (grade.ts enforces the write side).
 export async function GET(req: NextRequest, { params }: { params: { sessionId: string } }) {
-  const auth = await requireRole(req, ['selection_panel'])
+  const auth = await requireRole(req, ['selection_panel', 'association', 'athlasx_ops'])
   if (auth instanceof NextResponse) return auth
 
   const session = await db.selectionSession.findUnique({ where: { id: params.sessionId } })
@@ -21,12 +21,12 @@ export async function GET(req: NextRequest, { params }: { params: { sessionId: s
   // relationship to this specific session.
   //
   // Association-staff membership (resolveAssociationScope) is the right
-  // check for ops/staff routes, but the real callers of THIS route are
-  // selection-panel chairs and selectors (role 'selection_panel') — a
-  // distinct identity concept in this schema that has no AssociationStaff
-  // row of its own (see the same caveat already flagged on coach/squad).
-  // Requiring AssociationStaff membership here would lock out every
-  // legitimate chair/selector, so the check accepts either: staff/ops
+  // check for ops/staff/association-role callers, but selection-panel
+  // chairs and selectors (role 'selection_panel') are a distinct identity
+  // concept in this schema that has no AssociationStaff row of its own
+  // (see the same caveat already flagged on coach/squad). Requiring
+  // AssociationStaff membership here would lock out every legitimate
+  // chair/selector, so the check accepts either: staff/ops/association
   // scoped to this association, OR the caller is this session's chair, OR
   // the caller has actually submitted a grade in this session (proving
   // they were a real participant on this panel, not just any authenticated

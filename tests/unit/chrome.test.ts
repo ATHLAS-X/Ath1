@@ -28,7 +28,10 @@ describe('navHrefsForRole', () => {
   it('shows association ingest to association staff, not selection or player items', () => {
     const hrefs = navHrefsForRole('association')
     expect(hrefs).toContain('/ingest')
-    expect(hrefs).toContain('/dashboard')
+    // Overview now points at the dedicated read-only Association dashboard
+    // (docs/AthlasX_Master_Data_Points_Phase1_Prompts.md L-5) rather than
+    // the shared /dashboard every role used to land on.
+    expect(hrefs).toContain('/association')
     expect(hrefs).not.toContain('/grading')
     expect(hrefs).not.toContain('/record')
   })
@@ -74,8 +77,8 @@ describe('rootDestination', () => {
     expect(rootDestination({ user: { id: 's1', role: 'selection_panel' } })).toBe('/selection')
   })
 
-  it('routes association staff and ops to the dashboard', () => {
-    expect(rootDestination({ user: { id: 'a1', role: 'association' } })).toBe('/dashboard')
+  it('routes association staff to their own dashboard, ops to the shared one', () => {
+    expect(rootDestination({ user: { id: 'a1', role: 'association' } })).toBe('/association')
     expect(rootDestination({ user: { id: 'o1', role: 'athlasx_ops' } })).toBe('/dashboard')
   })
 })

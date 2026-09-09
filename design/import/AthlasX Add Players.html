@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AthlasX — Add Players</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --canvas:#0D1B2A; --canvas-soft:#122436; --panel:#0F2033; --panel-2:#152C42;
+    --line:#1E3245; --text:#F5F5F0; --text-dim:rgba(245,245,240,0.62); --text-faint:rgba(245,245,240,0.4);
+    --accent:#FF8A1E; --accent-rgb:255,138,30; --accent-bright:#FFA64D;
+    --bad:#FF5A4D; --bad-rgb:255,90,77; --ok:#22C55E; --wa:#25D366;
+    --mono:"JetBrains Mono", ui-monospace, monospace; --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;background:var(--canvas);color:var(--text);font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-bright);text-decoration:none;} a:hover{color:var(--accent);}
+
+  .page{max-width:1080px;margin:0 auto;padding:2.2rem 1.5rem 4rem;}
+  .pagehead{margin-bottom:1.6rem;}
+  .brandmark{font-size:0.78rem;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--text-faint);margin:0 0 0.5rem;}
+  .brandmark span{color:var(--accent);}
+  .pagetitle{font-size:1.7rem;font-weight:800;margin:0;letter-spacing:-0.01em;}
+
+  /* TABS */
+  .tabs{display:flex;gap:0.5rem;margin:1.6rem 0 1.8rem;flex-wrap:wrap;}
+  .tab{padding:0.65rem 1.2rem;border-radius:999px;font-size:0.84rem;font-weight:700;color:var(--text-dim);border:1.5px solid var(--line);cursor:pointer;transition:all 0.18s var(--ease);background:var(--panel);white-space:nowrap;}
+  .tab:hover{border-color:#3a4f63;color:var(--text);}
+  .tab.active{background:var(--accent);border-color:var(--accent);color:#1a0e02;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1.8rem;display:none;}
+  .panel.show{display:block;}
+
+  /* ── TAB 1: CSV ── */
+  .dropzone{border:2px dashed var(--accent);border-radius:12px;padding:2.6rem 1.5rem;text-align:center;cursor:pointer;background:rgba(var(--accent-rgb),0.05);transition:background 0.18s var(--ease);position:relative;overflow:hidden;}
+  .dropzone:hover{background:rgba(var(--accent-rgb),0.09);}
+  .dropzone svg{width:52px;height:52px;color:var(--accent);margin-bottom:0.8rem;}
+  .dropzone .dztitle{font-size:1rem;font-weight:700;color:var(--text);}
+  .dropzone .dzsub{font-size:0.82rem;color:var(--text-dim);margin-top:0.3rem;}
+  .dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+  .progress-track{height:4px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:1.2rem;display:none;}
+  .progress-track.show{display:block;}
+  .progress-track i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-bright));transition:width 0.25s linear;}
+
+  .template-row{display:flex;justify-content:center;margin-top:1rem;}
+  .template-link{font-size:0.84rem;font-weight:700;color:var(--accent-bright);display:inline-flex;align-items:center;gap:0.4rem;cursor:pointer;}
+  .template-link svg{width:14px;height:14px;}
+
+  .preview-wrap{margin-top:1.7rem;display:none;}
+  .preview-wrap.show{display:block;}
+  .err-banner{display:flex;align-items:center;gap:0.6rem;padding:0.7rem 1rem;border-radius:8px;background:rgba(var(--bad-rgb),0.1);border:1px solid rgba(var(--bad-rgb),0.4);color:#ff8a7e;font-size:0.84rem;font-weight:600;margin-bottom:1rem;}
+  .err-banner svg{width:16px;height:16px;flex:0 0 auto;}
+  .csv-table{width:100%;border-collapse:collapse;font-size:0.82rem;}
+  .csv-table th{text-align:left;padding:0.55rem 0.7rem;color:var(--text-faint);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--line);}
+  .csv-table td{padding:0.6rem 0.7rem;border-bottom:1px solid var(--line);color:var(--text-dim);}
+  .csv-table tr.row-valid{border-left:3px solid var(--ok);}
+  .csv-table tr.row-error{border-left:3px solid var(--bad);}
+  .csv-table td.cell-bad{background:rgba(var(--bad-rgb),0.1);color:#ff8a7e;font-weight:600;}
+  .csv-actions{display:flex;gap:0.7rem;margin-top:1.3rem;}
+
+  /* ── TAB 2: MANUAL ── */
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem 1.2rem;}
+  .full{grid-column:1/-1;}
+  .field{margin-bottom:0.2rem;}
+  .field label{display:block;font-size:0.78rem;font-weight:700;color:var(--text);margin:0 0 0.42rem;}
+  .field label .req{color:var(--accent);margin-left:0.15rem;}
+  .control{width:100%;padding:0.72rem 0.9rem;font-family:inherit;font-size:0.9rem;color:var(--text);background:var(--canvas);border:1px solid var(--line);border-radius:8px;outline:none;transition:border-color 0.18s var(--ease),box-shadow 0.18s var(--ease);}
+  .control::placeholder{color:var(--text-faint);}
+  .control:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.2);}
+  select.control{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23FFA64D' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 0.8rem center;padding-right:2.2rem;}
+
+  .radio-row{display:flex;gap:0.6rem;flex-wrap:wrap;}
+  .radio-pill{padding:0.55rem 1rem;border-radius:999px;border:1.5px solid var(--line);font-size:0.83rem;font-weight:600;color:var(--text-dim);cursor:pointer;transition:all 0.16s var(--ease);}
+  .radio-pill:hover{border-color:#3a4f63;}
+  .radio-pill.active{border-color:var(--accent);background:rgba(var(--accent-rgb),0.14);color:var(--accent-bright);}
+
+  .minor-alert{grid-column:1/-1;display:none;align-items:flex-start;gap:0.7rem;padding:0.9rem 1.1rem;border-radius:9px;background:rgba(var(--accent-rgb),0.1);border:1px solid var(--accent);margin:0.2rem 0 0.4rem;}
+  .minor-alert.show{display:flex;}
+  .minor-alert svg{width:18px;height:18px;color:var(--accent);flex:0 0 auto;margin-top:0.1rem;}
+  .minor-alert b{color:var(--accent-bright);}
+  .minor-alert p{margin:0;font-size:0.85rem;color:var(--text);}
+  .guardian-fields{grid-column:1/-1;display:none;grid-template-columns:1fr 1fr;gap:1rem;}
+  .guardian-fields.show{display:grid;}
+  .phone-row{display:flex;gap:0.5rem;}
+  .btn-amber-sm{flex:0 0 auto;padding:0 1rem;border:0;border-radius:8px;background:var(--accent);color:#1a0e02;font-weight:700;font-size:0.82rem;cursor:pointer;}
+  .btn-amber-sm:hover{background:var(--accent-bright);}
+
+  .collapsible{grid-column:1/-1;margin-top:0.6rem;border-top:1px solid var(--line);padding-top:1rem;}
+  .collapse-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:0.86rem;font-weight:700;color:var(--text);}
+  .collapse-head svg{width:16px;height:16px;color:var(--accent);transition:transform 0.2s var(--ease);}
+  .collapse-head.open svg{transform:rotate(180deg);}
+  .collapse-body{display:none;grid-template-columns:1fr 1fr;gap:1rem 1.2rem;margin-top:1rem;}
+  .collapse-body.show{display:grid;}
+
+  .btn-full-amber{grid-column:1/-1;padding:0.9rem;border:0;border-radius:9px;background:var(--accent);color:#1a0e02;font-weight:700;font-size:0.95rem;cursor:pointer;margin-top:0.6rem;transition:background 0.18s var(--ease);box-shadow:0 8px 20px -8px rgba(var(--accent-rgb),0.6);}
+  .btn-full-amber:hover{background:var(--accent-bright);}
+  .continue-row{grid-column:1/-1;display:flex;align-items:center;gap:0.55rem;margin-top:0.7rem;font-size:0.83rem;color:var(--text-dim);}
+  .continue-row input{width:15px;height:15px;accent-color:var(--accent);}
+
+  /* ── TAB 3: QR / WA ── */
+  .invite-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+  .invite-card{background:var(--canvas);border:1px solid var(--line);border-radius:10px;padding:1.4rem;display:flex;flex-direction:column;gap:0.9rem;}
+  .invite-card h3{margin:0;font-size:1rem;font-weight:800;}
+  .invite-card .desc{font-size:0.83rem;color:var(--text-dim);margin:0;}
+  .link-box{padding:0.75rem 0.9rem;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;font-family:var(--mono);font-size:0.82rem;color:var(--accent-bright);word-break:break-all;}
+  .invite-btn-row{display:flex;gap:0.6rem;flex-wrap:wrap;}
+  .btn-amber{padding:0.7rem 1.1rem;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#1a0e02;font-weight:700;font-size:0.84rem;cursor:pointer;}
+  .btn-amber:hover{background:var(--accent-bright);}
+  .btn-wa{padding:0.7rem 1.1rem;border-radius:8px;border:1.5px solid var(--wa);background:var(--wa);color:#04140c;font-weight:700;font-size:0.84rem;cursor:pointer;display:inline-flex;align-items:center;gap:0.4rem;}
+  .btn-wa:hover{filter:brightness(1.08);}
+  .btn-wa svg{width:15px;height:15px;}
+  .msg-preview{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:0.85rem 1rem;font-size:0.82rem;color:var(--text-dim);line-height:1.5;}
+  .msg-preview b{color:var(--text);}
+
+  .qr-wrap{display:flex;flex-direction:column;align-items:center;gap:0.7rem;}
+  .qr-box{width:190px;height:190px;background:var(--canvas);border:1px solid var(--line);border-radius:10px;display:grid;place-items:center;padding:14px;}
+  .qr-label{font-size:0.85rem;font-weight:700;text-align:center;}
+  .qr-actions{display:flex;gap:1.1rem;font-size:0.82rem;font-weight:700;}
+
+  .note-strip{display:flex;gap:0.6rem;align-items:flex-start;margin-top:1.4rem;padding:0.85rem 1.1rem;background:rgba(var(--accent-rgb),0.08);border:1px solid rgba(var(--accent-rgb),0.3);border-radius:9px;}
+  .note-strip svg{width:16px;height:16px;color:var(--accent-bright);flex:0 0 auto;margin-top:0.1rem;}
+  .note-strip p{margin:0;font-size:0.82rem;color:var(--text-dim);line-height:1.5;}
+
+  @media (max-width:760px){ .form-grid,.collapse-body,.guardian-fields,.invite-grid{grid-template-columns:1fr;} }
+  @media (prefers-reduced-motion:reduce){ *,*::before,*::after{transition-duration:0.001ms !important;animation-duration:0.001ms !important;} }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pagehead">
+    <p class="brandmark">Athlas<span>X</span> · Academy Admin</p>
+    <h1 class="pagetitle">Add Players to <span id="acName">Karnataka Cricket Academy</span></h1>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="csv">1. CSV Upload</div>
+    <div class="tab" data-tab="manual">2. Manual Entry</div>
+    <div class="tab" data-tab="invite">3. QR / WhatsApp Invite</div>
+  </div>
+
+  <!-- TAB 1: CSV -->
+  <div class="panel show" id="panel-csv">
+    <div class="dropzone" id="dropzone">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5M16 4v5M7 14h2M7 17h6"/></svg>
+      <div class="dztitle">Drop your CSV here or click to browse</div>
+      <div class="dzsub">.csv up to 5MB — one row per player</div>
+      <input type="file" id="csvInput" accept=".csv" />
+      <div class="progress-track" id="csvProgress"><i id="csvProgressBar"></i></div>
+    </div>
+    <div class="template-row">
+      <span class="template-link" id="templateLink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Download CSV Template</span>
+    </div>
+
+    <div class="preview-wrap" id="csvPreview">
+      <div class="err-banner"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/><circle cx="12" cy="12" r="10"/></svg><span id="errCount">2 errors found</span> — fix and re-upload, or skip errors.</div>
+      <table class="csv-table">
+        <thead><tr><th>Name</th><th>DOB</th><th>Gender</th><th>Role</th><th>Batting Style</th><th>State</th><th>Batch</th><th>Errors</th></tr></thead>
+        <tbody id="csvTbody"></tbody>
+      </table>
+      <div class="csv-actions">
+        <button class="btn-amber" type="button">Upload all valid rows</button>
+        <button class="btn-o-outline" type="button" style="padding:0.7rem 1.1rem;border-radius:8px;border:1.5px solid var(--line);background:transparent;color:var(--text-dim);font-weight:700;font-size:0.84rem;cursor:pointer;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: MANUAL -->
+  <div class="panel" id="panel-manual">
+    <form class="form-grid" id="manualForm">
+      <div class="field"><label>Full Name<span class="req">*</span></label><input class="control" type="text" placeholder="e.g. Rohan Sharma" /></div>
+      <div class="field"><label>Date of Birth<span class="req">*</span></label><input class="control" type="date" id="dobInput" /></div>
+
+      <div class="field"><label>Gender</label><div class="radio-row" id="genderRow">
+        <div class="radio-pill active">Male</div><div class="radio-pill">Female</div><div class="radio-pill">Other</div>
+      </div></div>
+      <div class="field"><label>Primary Playing Role</label><select class="control" id="roleSelect">
+        <option>Batsman</option><option>Bowler</option><option>All-Rounder</option><option>WK</option>
+      </select></div>
+
+      <div class="field"><label>Batting Style</label><div class="radio-row" id="battingRow">
+        <div class="radio-pill active">Right-hand</div><div class="radio-pill">Left-hand</div>
+      </div></div>
+      <div class="field" id="bowlingField"><label>Bowling Style</label><select class="control">
+        <option>Right-arm fast</option><option>Right-arm medium</option><option>Right-arm off-spin</option><option>Right-arm leg-spin</option><option>Left-arm fast</option><option>Left-arm orthodox</option><option>Left-arm chinaman</option>
+      </select></div>
+
+      <div class="field"><label>State</label><select class="control">
+        <option>Karnataka</option><option>Maharashtra</option><option>Tamil Nadu</option><option>Delhi</option><option>Punjab</option><option>Kerala</option>
+      </select></div>
+      <div class="field"><label>City / District</label><input class="control" type="text" placeholder="e.g. Bengaluru Urban" /></div>
+
+      <div class="field full"><label>Batch Assignment<span class="req">*</span></label><select class="control">
+        <option value="">Select a batch…</option><option>U-10 Evening</option><option>U-14 Morning</option><option>U-16 Evening</option><option>U-19 Morning</option><option>Senior Squad</option>
+      </select></div>
+
+      <div class="minor-alert" id="minorAlert">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/></svg>
+        <p>This player is a <b>minor</b>. Guardian details required.</p>
+      </div>
+      <div class="guardian-fields" id="guardianFields">
+        <div class="field"><label>Guardian Name<span class="req">*</span></label><input class="control" type="text" placeholder="Full name" /></div>
+        <div class="field"><label>Guardian Phone<span class="req">*</span></label><div class="phone-row"><input class="control" type="tel" placeholder="+91…" /><button class="btn-amber-sm" type="button">Send OTP</button></div></div>
+      </div>
+
+      <div class="collapsible">
+        <div class="collapse-head" id="collapseHead"><span>Optional details</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+        <div class="collapse-body" id="collapseBody">
+          <div class="field"><label>School Name</label><input class="control" type="text" placeholder="Optional" /></div>
+          <div class="field"><label>Playing Since (year)</label><input class="control" type="number" placeholder="e.g. 2019" /></div>
+          <div class="field"><label>Highest Level Represented</label><select class="control">
+            <option value="">Select…</option><option>School team</option><option>Club team</option><option>District team</option><option>State team</option><option>National team</option>
+          </select></div>
+          <div class="field"><label>Personal Phone (15+)</label><input class="control" type="tel" placeholder="Optional" /></div>
+        </div>
+      </div>
+
+      <button type="button" class="btn-full-amber">Add Player</button>
+      <label class="continue-row"><input type="checkbox" id="continueAdding" checked /> Continue adding — clear form and stay on this page instead of going to the roster</label>
+    </form>
+  </div>
+
+  <!-- TAB 3: INVITE -->
+  <div class="panel" id="panel-invite">
+    <div class="invite-grid">
+      <div class="invite-card">
+        <h3>WhatsApp Invite</h3>
+        <p class="desc">Share this link in your academy's WhatsApp group.</p>
+        <div class="link-box" id="inviteLink">https://athlasx.app/join/kca-8f21x</div>
+        <div class="invite-btn-row">
+          <button class="btn-amber" type="button" id="copyLinkBtn">Copy Link</button>
+          <button class="btn-wa" type="button"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.87 9.87 0 0 0 12.04 2z"/></svg>Share via WhatsApp</button>
+        </div>
+        <div class="msg-preview"><b>AthlasX:</b> Join Karnataka Cricket Academy on AthlasX 🏏 — complete your player profile here: https://athlasx.app/join/kca-8f21x</div>
+      </div>
+      <div class="invite-card" style="align-items:center;">
+        <h3 style="align-self:flex-start;">QR Code</h3>
+        <div class="qr-wrap">
+          <div class="qr-box" id="qrBox"></div>
+          <div class="qr-label">Scan to join <span id="acNameQr">Karnataka Cricket Academy</span></div>
+          <div class="qr-actions">
+            <a href="#" id="downloadPng">Download PNG</a>
+            <a href="#" id="printQr">Print</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note-strip">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      <p>Players who join via this link will enter an approval queue. You'll receive a notification to approve them.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $=(s,r)=>(r||document).querySelector(s);
+
+  // ── TABS ──
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.addEventListener("click",()=>{
+      document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach(x=>x.classList.remove("show"));
+      t.classList.add("active");
+      $("#panel-"+t.getAttribute("data-tab")).classList.add("show");
+    });
+  });
+
+  // ── CSV UPLOAD ──
+  const dropzone=$("#dropzone"), csvInput=$("#csvInput"), progress=$("#csvProgress"), bar=$("#csvProgressBar"), preview=$("#csvPreview");
+  const ROWS = [
+    { name:"Rohan Sharma", dob:"2010-04-12", gender:"Male", role:"BAT", bat:"Right", state:"Karnataka", batch:"U-16 Evening", err:null },
+    { name:"Aarav Patel", dob:"invalid", gender:"Male", role:"BOWL", bat:"Right", state:"Karnataka", batch:"U-14 Morning", err:"Invalid DOB" },
+    { name:"Kabir Singh", dob:"2006-08-02", gender:"Male", role:"AR", bat:"Left", state:"Punjab", batch:"", err:"Batch missing" },
+    { name:"Vivaan Rao", dob:"2015-01-20", gender:"Male", role:"WK", bat:"Right", state:"Karnataka", batch:"U-10 Evening", err:null },
+    { name:"Ishaan Menon", dob:"2008-11-05", gender:"Male", role:"BAT", bat:"Right", state:"Kerala", batch:"U-16 Evening", err:null }
+  ];
+  function triggerUpload(){
+    progress.classList.add("show"); bar.style.width="0%";
+    let p=0; const iv=setInterval(()=>{
+      p+=14; bar.style.width=Math.min(p,100)+"%";
+      if(p>=100){ clearInterval(iv); setTimeout(renderCsvPreview,250); }
+    },90);
+  }
+  dropzone.addEventListener("click",(e)=>{ if(e.target!==csvInput) csvInput.click(); });
+  csvInput.addEventListener("change",()=>{ if(csvInput.files.length) triggerUpload(); });
+  dropzone.addEventListener("dragover",(e)=>{ e.preventDefault(); dropzone.style.background="rgba(255,138,30,0.14)"; });
+  dropzone.addEventListener("dragleave",()=>{ dropzone.style.background=""; });
+  dropzone.addEventListener("drop",(e)=>{ e.preventDefault(); dropzone.style.background=""; triggerUpload(); });
+
+  function renderCsvPreview(){
+    const tbody=$("#csvTbody"); tbody.innerHTML="";
+    let errCount=0;
+    ROWS.forEach(r=>{
+      const bad = !!r.err;
+      if(bad) errCount++;
+      const tr=document.createElement("tr");
+      tr.className = bad ? "row-error" : "row-valid";
+      tr.innerHTML =
+        '<td>'+r.name+'</td>'+
+        '<td class="'+(r.err==="Invalid DOB"?"cell-bad":"")+'">'+r.dob+'</td>'+
+        '<td>'+r.gender+'</td><td>'+r.role+'</td><td>'+r.bat+'-hand</td><td>'+r.state+'</td>'+
+        '<td class="'+(r.err==="Batch missing"?"cell-bad":"")+'">'+(r.batch||"—")+'</td>'+
+        '<td>'+(r.err?'<span style="color:var(--bad);font-weight:700;">'+r.err+'</span>':'<span style="color:var(--ok);font-weight:700;">Valid</span>')+'</td>';
+      tbody.appendChild(tr);
+    });
+    $("#errCount").textContent = errCount+" error"+(errCount===1?"":"s")+" found";
+    preview.classList.add("show");
+  }
+  $("#templateLink").addEventListener("click",()=>{
+    const csv="name,dob,gender,role,batting_style,state,batch\\n";
+    const blob=new Blob([csv],{type:"text/csv"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="athlasx_player_template.csv"; a.click();
+  });
+
+  // ── MANUAL ENTRY ──
+  document.querySelectorAll(".radio-row").forEach(row=>{
+    row.querySelectorAll(".radio-pill").forEach(p=>{
+      p.addEventListener("click",()=>{ row.querySelectorAll(".radio-pill").forEach(x=>x.classList.remove("active")); p.classList.add("active"); });
+    });
+  });
+  const roleSelect=$("#roleSelect"), bowlingField=$("#bowlingField");
+  roleSelect.addEventListener("change",()=>{ bowlingField.style.display = roleSelect.value==="WK" ? "none" : ""; });
+
+  const dobInput=$("#dobInput"), minorAlert=$("#minorAlert"), guardianFields=$("#guardianFields");
+  dobInput.addEventListener("change",()=>{
+    const d=new Date(dobInput.value); if(isNaN(d)) return;
+    const now=new Date(); let age=now.getFullYear()-d.getFullYear();
+    const m=now.getMonth()-d.getMonth(); if(m<0||(m===0&&now.getDate()<d.getDate())) age--;
+    const minor = age<18;
+    minorAlert.classList.toggle("show",minor);
+    guardianFields.classList.toggle("show",minor);
+  });
+
+  const collapseHead=$("#collapseHead"), collapseBody=$("#collapseBody");
+  collapseHead.addEventListener("click",()=>{ collapseHead.classList.toggle("open"); collapseBody.classList.toggle("show"); });
+
+  // ── INVITE ──
+  $("#copyLinkBtn").addEventListener("click",function(){
+    const txt=$("#inviteLink").textContent;
+    navigator.clipboard && navigator.clipboard.writeText(txt).catch(()=>{});
+    const b=this; const orig=b.textContent; b.textContent="Copied ✓"; setTimeout(()=>{b.textContent=orig;},1300);
+  });
+
+  // simple QR-like placeholder pattern (amber-on-dark grid) — no external deps
+  function drawQr(){
+    const box=$("#qrBox");
+    const size=15, cell=10;
+    const svgNS="http://www.w3.org/2000/svg";
+    const svg=document.createElementNS(svgNS,"svg");
+    svg.setAttribute("viewBox","0 0 "+(size*cell)+" "+(size*cell));
+    svg.setAttribute("width","160"); svg.setAttribute("height","160");
+    let seed=42;
+    function rand(){ seed=(seed*1103515245+12345)%2147483648; return (seed/2147483648); }
+    for(let y=0;y<size;y++){
+      for(let x=0;x<size;x++){
+        const isFinder = (x<4&&y<4)||(x>size-5&&y<4)||(x<4&&y>size-5);
+        const on = isFinder ? ((x%3!==2)&&(y%3!==2)) : rand()>0.55;
+        if(on){
+          const r=document.createElementNS(svgNS,"rect");
+          r.setAttribute("x",x*cell); r.setAttribute("y",y*cell); r.setAttribute("width",cell-1.5); r.setAttribute("height",cell-1.5);
+          r.setAttribute("fill","#FF8A1E"); r.setAttribute("rx","1.5");
+          svg.appendChild(r);
+        }
+      }
+    }
+    box.appendChild(svg);
+  }
+  drawQr();
+  $("#downloadPng").addEventListener("click",(e)=>{ e.preventDefault(); });
+  $("#printQr").addEventListener("click",(e)=>{ e.preventDefault(); window.print(); });
+})();
+</script>
+</body>
+</html>

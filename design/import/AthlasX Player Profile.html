@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AthlasX — Player Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --canvas:#0D1B2A; --panel:#14202E; --panel-2:#152C42; --card:#101E2C;
+    --line:#1E3245; --text:#F5F5F0; --text-dim:rgba(245,245,240,0.62); --text-faint:rgba(245,245,240,0.4);
+    --accent:#FF8A1E; --accent-rgb:255,138,30; --accent-bright:#FFA64D;
+    --bad:#FF5A4D; --bad-rgb:255,90,77; --ok:#22C55E; --ok-rgb:34,197,94;
+    --blue:#4C8DFF; --purple:#B57BFF; --teal:#2DD4BF; --grey:#5B6B7A;
+    --mono:"JetBrains Mono", ui-monospace, monospace; --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;background:var(--canvas);color:var(--text);font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-bright);text-decoration:none;} a:hover{color:var(--accent);}
+
+  .page{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-bottom:70px;}
+
+  /* ── HEADER ── */
+  .header{background:var(--panel);border-bottom:1px solid var(--line);padding:1.6rem 2rem;}
+  .head-row{display:flex;align-items:flex-start;gap:1.3rem;flex-wrap:wrap;}
+  .avatar{width:72px;height:72px;border-radius:50%;background:rgba(var(--accent-rgb),0.16);border:2.5px solid var(--accent);display:grid;place-items:center;font-size:1.6rem;font-weight:800;color:var(--accent-bright);flex:0 0 auto;}
+  .head-mid{flex:1;min-width:220px;}
+  .name-row{display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;}
+  .pname{font-size:24px;font-weight:800;color:var(--text);}
+  .role-chip{font-size:0.66rem;font-weight:800;letter-spacing:0.03em;padding:0.15rem 0.55rem;border-radius:5px;text-transform:uppercase;}
+  .role-chip.bat{background:rgba(76,141,255,0.16);color:var(--blue);}
+  .role-chip.bowl{background:rgba(var(--accent-rgb),0.18);color:var(--accent-bright);}
+  .role-chip.ar{background:rgba(181,123,255,0.18);color:var(--purple);}
+  .role-chip.wk{background:rgba(45,212,191,0.18);color:var(--teal);}
+  .minor-badge{font-size:0.64rem;font-weight:800;letter-spacing:0.05em;padding:0.15rem 0.55rem;border-radius:5px;background:var(--accent);color:#1a0e02;}
+  .subline{margin-top:0.35rem;font-size:0.85rem;color:var(--text-dim);}
+
+  .head-actions{display:flex;flex-direction:column;gap:0.5rem;flex:0 0 auto;align-items:flex-end;}
+  .actions-row{display:flex;gap:0.6rem;}
+  .btn-amber{padding:0.6rem 1.05rem;border-radius:8px;border:1.5px solid var(--accent);background:var(--accent);color:#1a0e02;font-weight:700;font-size:0.82rem;cursor:pointer;}
+  .btn-amber:hover{background:var(--accent-bright);}
+  .btn-grey{padding:0.6rem 1.05rem;border-radius:8px;border:1.5px solid var(--line);background:transparent;color:var(--text-dim);font-weight:700;font-size:0.82rem;cursor:pointer;}
+  .btn-grey:hover{background:rgba(245,245,240,0.05);color:var(--text);}
+
+  .chip-row{display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:1.1rem;}
+  .info-chip{padding:0.4rem 0.85rem;border-radius:999px;border:1px solid var(--line);font-size:0.76rem;color:var(--text-dim);background:var(--card);}
+  .info-chip b{color:var(--text);font-weight:700;}
+
+  /* ── CONTENT GRID ── */
+  .content{flex:1;display:grid;grid-template-columns:40% 35% 25%;gap:0;max-width:1440px;margin:0 auto;width:100%;}
+  .col{padding:1.6rem 1.5rem;border-right:1px solid var(--line);min-width:0;}
+  .col:last-child{border-right:0;}
+
+  .section{margin-bottom:1.8rem;}
+  .section h2{font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin:0 0 0.9rem;padding-bottom:0.6rem;border-bottom:1px solid var(--line);}
+
+  .icon-row{display:flex;align-items:center;gap:0.6rem;padding:0.48rem 0;font-size:0.86rem;color:var(--text);}
+  .icon-row svg{width:16px;height:16px;color:var(--accent);flex:0 0 auto;}
+  .icon-row .lbl{color:var(--text-faint);font-size:0.68rem;text-transform:uppercase;letter-spacing:0.04em;min-width:7.5rem;}
+  .icon-row .age{color:var(--text-dim);font-weight:500;}
+
+  .badge-pill{display:inline-flex;align-items:center;gap:0.35rem;font-size:0.72rem;font-weight:700;padding:0.22rem 0.65rem;border-radius:999px;}
+  .badge-pill.amber{background:rgba(var(--accent-rgb),0.14);border:1px solid var(--accent);color:var(--accent-bright);}
+  .badge-pill.green{background:rgba(var(--ok-rgb),0.14);border:1px solid var(--ok);color:var(--ok);}
+  .badge-pill.red{background:rgba(var(--bad-rgb),0.14);border:1px solid var(--bad);color:#ff8a7e;}
+
+  .row-between{display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0;font-size:0.85rem;color:var(--text-dim);}
+
+  .chips{display:flex;gap:0.5rem;flex-wrap:wrap;}
+  .fmt-chip{padding:0.35rem 0.8rem;border-radius:999px;font-size:0.76rem;font-weight:700;border:1.5px solid var(--line);color:var(--text-faint);}
+  .fmt-chip.exp{border-color:var(--accent);background:rgba(var(--accent-rgb),0.14);color:var(--accent-bright);}
+
+  /* attendance arc */
+  .arc-wrap{display:flex;justify-content:center;padding:0.6rem 0 0.9rem;}
+  .arc-center{font-family:var(--mono);font-size:1.4rem;font-weight:700;fill:var(--text);}
+  .arc-sub{text-align:center;font-size:0.78rem;color:var(--text-dim);margin-top:-0.3rem;}
+
+  .stat-row{display:flex;justify-content:space-between;align-items:center;padding:0.42rem 0;font-size:0.85rem;color:var(--text-dim);border-bottom:1px solid var(--line);}
+  .stat-row:last-child{border-bottom:0;}
+  .stat-row .sval{font-family:var(--mono);font-weight:700;color:var(--text);}
+
+  .form-squares-lg{display:flex;gap:8px;justify-content:space-between;}
+  .fsq-wrap{display:flex;flex-direction:column;align-items:center;gap:0.35rem;flex:1;}
+  .fsq-lg{width:100%;aspect-ratio:1;max-width:34px;border-radius:6px;}
+  .fsq-lg.g{background:var(--accent);} .fsq-lg.a{background:var(--grey);} .fsq-lg.r{background:var(--bad);}
+  .fsq-date{font-size:0.62rem;color:var(--text-faint);}
+
+  .fitness-row{display:flex;justify-content:space-between;padding:0.4rem 0;font-size:0.85rem;}
+  .fitness-row .fval{color:var(--text);font-weight:700;font-family:var(--mono);}
+  .fitness-row .fval.empty{color:var(--text-faint);font-family:inherit;font-weight:500;font-style:italic;}
+
+  /* col 3 */
+  .note-card{background:var(--card);border-left:3px solid var(--accent);border-radius:0 7px 7px 0;padding:0.65rem 0.8rem;margin-bottom:0.6rem;}
+  .note-date{font-family:var(--mono);font-size:0.7rem;color:var(--accent-bright);font-weight:700;}
+  .note-text{font-size:0.82rem;color:var(--text-dim);margin:0.3rem 0;line-height:1.45;}
+  .note-coach{font-size:0.68rem;color:var(--text-faint);}
+  .viewall{display:inline-block;margin-top:0.2rem;font-size:0.8rem;font-weight:700;}
+
+  .vid-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem;}
+  .vid-count{font-size:0.72rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--text-dim);}
+  .vid-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;}
+  .vid-thumb{position:relative;aspect-ratio:16/10;border-radius:7px;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.22),#0A141F);display:grid;place-items:center;}
+  .vid-thumb svg{width:22px;height:22px;color:#fff;opacity:0.9;}
+
+  .aspiration-box{border-left:3px solid var(--accent);background:var(--card);border-radius:0 7px 7px 0;padding:0.75rem 0.9rem;font-size:0.85rem;font-style:italic;color:var(--text);line-height:1.5;margin-bottom:0.9rem;}
+  .own-words-row{margin-bottom:0.7rem;}
+  .own-words-row .lbl2{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);margin-bottom:0.4rem;}
+
+  /* footer */
+  .footbar{position:fixed;bottom:0;left:0;right:0;background:rgba(15,32,51,0.92);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;justify-content:center;gap:0.8rem;padding:0.85rem 1rem;z-index:10;}
+  .footbar button{padding:0.6rem 1.1rem;border-radius:8px;border:1.5px solid var(--line);background:transparent;color:var(--text-dim);font-weight:700;font-size:0.82rem;cursor:pointer;}
+  .footbar button:hover{background:rgba(245,245,240,0.06);color:var(--text);}
+
+  @media (max-width:1100px){ .content{grid-template-columns:1fr;} .col{border-right:0;border-bottom:1px solid var(--line);} }
+  @media (max-width:640px){ .header{padding:1.2rem 1.1rem;} .head-actions{align-items:flex-start;width:100%;} .footbar{flex-wrap:wrap;} }
+  @media (prefers-reduced-motion:reduce){ *,*::before,*::after{transition-duration:0.001ms !important;animation-duration:0.001ms !important;} }
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="head-row">
+      <div class="avatar">AP</div>
+      <div class="head-mid">
+        <div class="name-row">
+          <span class="pname">Aarav Patel</span>
+          <span class="role-chip bowl">BOWL</span>
+          <span class="minor-badge">MINOR</span>
+        </div>
+        <div class="subline">Karnataka · Mysuru · St. Joseph's Boys School</div>
+        <div class="chip-row">
+          <span class="info-chip">Highest Level: <b>District Team</b></span>
+          <span class="info-chip">Member Since: <b>6 months</b></span>
+          <span class="info-chip">Playing Since: <b>2021</b></span>
+          <span class="info-chip">Batch: <b>U-14 Morning</b></span>
+          <span class="info-chip">Coach: <b>Coach Iyer</b></span>
+        </div>
+      </div>
+      <div class="head-actions">
+        <div class="actions-row">
+          <button class="btn-amber" type="button">Add Note</button>
+          <button class="btn-amber" type="button">Edit Profile</button>
+        </div>
+        <button class="btn-grey" type="button" style="width:100%">Message Parent</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="content">
+    <!-- COLUMN 1 -->
+    <div class="col">
+      <div class="section">
+        <h2>Cricket Identity</h2>
+        <div class="icon-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 3.5 21 10l-9.5 9.5-3-3z"/><path d="M8 16 3 21"/></svg><span class="lbl">Batting</span>Right-hand bat</div>
+        <div class="icon-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3c3 3 3 15 0 18M3 12c3-3 15-3 18 0"/></svg><span class="lbl">Bowling</span>RA Fast</div>
+        <div class="icon-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.2"/><path d="M5 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg><span class="lbl">Role</span>Bowler</div>
+        <div class="icon-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><span class="lbl">Gender</span>Male</div>
+        <div class="icon-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 3v3M16 3v3"/></svg><span class="lbl">Date of Birth</span>12 Apr 2010 <span class="age">&nbsp;(14 yrs)</span></div>
+        <div class="icon-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .7 3a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.5c1 .4 2 .6 3 .7a2 2 0 0 1 1.7 2z"/></svg><span class="lbl">Personal Phone</span>+91 98••• ••210</div>
+        <div class="row-between"><span>Aadhaar Status</span><span class="badge-pill amber">Not verified</span></div>
+      </div>
+
+      <div class="section">
+        <h2>Affiliations</h2>
+        <div class="row-between"><span>Current Batch</span><a href="#">U-14 Morning</a></div>
+        <div class="row-between"><span>Academy</span><span style="color:var(--text)">Karnataka Cricket Academy</span></div>
+        <div class="icon-row" style="margin-top:0.5rem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/></svg><span class="lbl">School Team</span>St. Joseph's Boys U-14</div>
+        <div class="icon-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V7l8-3 8 3v12"/><path d="M9 21v-5h6v5"/></svg><span class="lbl">Club Team</span>Mysuru Colts CC</div>
+        <div class="icon-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/></svg><span class="lbl">District Team</span>Mysuru U-14</div>
+        <p class="own-words-row lbl2" style="margin-top:0.9rem">Playing Format Experience</p>
+        <div class="chips">
+          <span class="fmt-chip exp">T20</span><span class="fmt-chip">ODI</span><span class="fmt-chip exp">Red-ball</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Guardian</h2>
+        <div class="row-between"><span>Name</span><span style="color:var(--text)">Nilesh Patel</span></div>
+        <div class="row-between"><span>Phone</span><span style="color:var(--text)">+91 90••• ••112</span></div>
+        <div class="row-between"><span>Relation</span><span style="color:var(--text)">Father</span></div>
+        <div class="row-between"><span>Consent Status</span><span class="badge-pill amber">Consent on file</span></div>
+      </div>
+    </div>
+
+    <!-- COLUMN 2 -->
+    <div class="col">
+      <div class="section">
+        <h2>Attendance This Month</h2>
+        <div class="arc-wrap">
+          <svg width="150" height="150" viewBox="0 0 150 150">
+            <circle cx="75" cy="75" r="62" fill="none" stroke="#1E3245" stroke-width="14"/>
+            <circle cx="75" cy="75" r="62" fill="none" stroke="#FF8A1E" stroke-width="14" stroke-linecap="round"
+              stroke-dasharray="389.6" stroke-dashoffset="97.4" transform="rotate(-90 75 75)"/>
+            <text x="75" y="80" text-anchor="middle" class="arc-center">16/18</text>
+          </svg>
+        </div>
+        <p class="arc-sub" style="text-align:center">This week: 3/3 &nbsp;·&nbsp; This month: 16/18 &nbsp;·&nbsp; All time: 74%</p>
+      </div>
+
+      <div class="section">
+        <h2>Career Stats</h2>
+        <div class="stat-row"><span>Matches Played</span><span class="sval">12</span></div>
+        <div class="stat-row"><span>Runs Scored</span><span class="sval">86</span></div>
+        <div class="stat-row"><span>Wickets Taken</span><span class="sval">21</span></div>
+        <div class="stat-row"><span>Best Figures</span><span class="sval">4/18</span></div>
+      </div>
+
+      <div class="section">
+        <h2>Form</h2>
+        <div class="form-squares-lg">
+          <div class="fsq-wrap"><div class="fsq-lg g"></div><span class="fsq-date">Jun 21</span></div>
+          <div class="fsq-wrap"><div class="fsq-lg a"></div><span class="fsq-date">Jun 28</span></div>
+          <div class="fsq-wrap"><div class="fsq-lg g"></div><span class="fsq-date">Jul 5</span></div>
+          <div class="fsq-wrap"><div class="fsq-lg r"></div><span class="fsq-date">Jul 12</span></div>
+          <div class="fsq-wrap"><div class="fsq-lg g"></div><span class="fsq-date">Jul 17</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Fitness</h2>
+        <div class="fitness-row"><span>Yo-Yo Level</span><span class="fval">17.2</span></div>
+        <div class="fitness-row"><span>30m Sprint</span><span class="fval">4.6 sec</span></div>
+        <div class="fitness-row"><span>2km Run</span><span class="fval empty">Not tested</span></div>
+      </div>
+    </div>
+
+    <!-- COLUMN 3 -->
+    <div class="col">
+      <div class="section">
+        <h2>Coach Notes</h2>
+        <div class="note-card"><div class="note-date">14 Jul 2026</div><p class="note-text">Bowling action looks clean; needs more pace off the wrong foot.</p><div class="note-coach">Coach Iyer</div></div>
+        <div class="note-card"><div class="note-date">2 Jul 2026</div><p class="note-text">Great effort in the nets today — line and length much improved.</p><div class="note-coach">Coach Iyer</div></div>
+        <a class="viewall" href="#">View all notes →</a>
+      </div>
+
+      <div class="section">
+        <div class="vid-head"><h2 style="margin:0;border:0;padding:0">Video Highlights</h2></div>
+        <div class="vid-head" style="margin-top:-0.6rem"><span class="vid-count">4 videos</span><a href="#" style="font-size:0.8rem;font-weight:700">+ Add video</a></div>
+        <div class="vid-grid">
+          <div class="vid-thumb"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg></div>
+          <div class="vid-thumb"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg></div>
+          <div class="vid-thumb"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg></div>
+          <div class="vid-thumb"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Player's Own Words</h2>
+        <div class="aspiration-box">"I want to open the bowling for my state team one day and keep working on my yorkers."</div>
+        <div class="own-words-row"><p class="lbl2">Strengths</p><div class="chips"><span class="fmt-chip exp">Pace</span><span class="fmt-chip exp">Yorkers</span></div></div>
+        <div class="own-words-row"><p class="lbl2">Areas to Improve</p><div class="chips"><span class="fmt-chip">Death overs</span><span class="fmt-chip">Fielding</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footbar">
+    <button type="button">Print Profile</button>
+    <button type="button">Export PDF</button>
+    <button type="button">Add to Selection List</button>
+  </div>
+</div>
+</body>
+</html>

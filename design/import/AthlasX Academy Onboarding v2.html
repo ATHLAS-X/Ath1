@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AthlasX — Academy Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --canvas:#0D1B2A;
+    --canvas-soft:#122436;
+    --card:#FFFFFF;
+    --card-ink:#0D1B2A;
+    --ink-dim:#5B6B7A;
+    --accent:#FF8A1E;
+    --accent-rgb:255,138,30;
+    --accent-bright:#FFA64D;
+    --line:#1E3245;
+    --line-light:#E4E8EC;
+    --field-bg:#F6F8FA;
+    --field-bg-dark:rgba(255,255,255,0.05);
+    --text-onDark:#F5F5F0;
+    --text-onDark-dim:rgba(245,245,240,0.6);
+    --bad:#FF4D4F;
+    --ok:#22C55E;
+    --radius:2px;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;background:var(--canvas);color:var(--card-ink);font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-bright);}
+  a:hover{color:var(--accent);}
+
+  .app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;}
+
+  /* ── TOP BAR: brand + step dots ───────────────────────── */
+  .topbar{
+    display:flex;flex-direction:column;align-items:center;gap:1.1rem;
+    padding:1.6rem 1.5rem 1.3rem;
+  }
+  .brand{font-weight:800;letter-spacing:0.08em;font-size:0.95rem;text-transform:uppercase;color:var(--text-onDark);}
+  .brand span{color:var(--accent);}
+
+  .dots{display:flex;align-items:center;gap:0;width:100%;max-width:640px;}
+  .dotwrap{display:flex;flex-direction:column;align-items:center;gap:0.5rem;flex:0 0 auto;}
+  .dot{
+    width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+    font-weight:700;font-size:0.85rem;color:var(--text-onDark-dim);
+    border:1.5px solid var(--line);background:transparent;
+    transition:all 0.25s var(--ease);
+  }
+  .dotlabel{font-size:0.68rem;color:var(--text-onDark-dim);font-weight:600;white-space:nowrap;}
+  .dotwrap.active .dot{background:var(--accent);border-color:var(--accent);color:#1a0e02;box-shadow:0 0 0 4px rgba(var(--accent-rgb),0.22);}
+  .dotwrap.active .dotlabel{color:var(--text-onDark);}
+  .dotwrap.done .dot{background:var(--accent);border-color:var(--accent);color:#1a0e02;}
+  .dotwrap.done .dotlabel{color:var(--text-onDark-dim);}
+  .dot svg{width:16px;height:16px;display:none;}
+  .dotwrap.done .dot svg{display:block;}
+  .dotwrap.done .dot .n{display:none;}
+  .connector{flex:1;height:2px;background:var(--line);margin:0 -2px;position:relative;top:-13px;}
+  .connector.filled{background:var(--accent);}
+
+  /* ── LAYOUT: rail + main ─────────────────────────────── */
+  .layout{flex:1;display:grid;grid-template-columns:240px 1fr;gap:1.6rem;padding:0 1.6rem 2rem;max-width:1180px;width:100%;margin:0 auto;}
+
+  /* LEFT RAIL */
+  .rail{
+    background:var(--canvas-soft);border:1px solid var(--line);border-radius:10px;
+    padding:1.1rem;display:flex;flex-direction:column;gap:1.1rem;align-self:start;position:sticky;top:1.5rem;
+  }
+  .steplist{display:flex;flex-direction:column;gap:0.15rem;}
+  .steprow{
+    display:flex;align-items:center;gap:0.6rem;padding:0.6rem 0.55rem;border-radius:7px;
+    font-size:0.83rem;font-weight:600;color:var(--text-onDark-dim);transition:all 0.2s var(--ease);cursor:default;
+  }
+  .steprow .idx{flex:0 0 auto;width:20px;text-align:center;font-weight:700;color:var(--text-onDark-dim);}
+  .steprow.active{background:rgba(var(--accent-rgb),0.16);color:var(--text-onDark);}
+  .steprow.active .idx{color:var(--accent-bright);}
+  .steprow.complete{color:var(--text-onDark);}
+  .steprow.complete .idx{color:var(--accent);}
+
+  .preview-label{font-size:0.68rem;text-transform:uppercase;letter-spacing:0.12em;font-weight:700;color:var(--text-onDark-dim);margin:0.2rem 0 0;}
+  .preview-card{
+    background:#0A141F;border:1px solid var(--line);border-radius:9px;padding:0.9rem;
+    display:flex;flex-direction:column;gap:0.5rem;
+  }
+  .preview-logo{
+    width:100%;aspect-ratio:16/9;border-radius:6px;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.18),#0d1b2a);
+    display:grid;place-items:center;color:var(--text-onDark-dim);font-size:0.7rem;border:1px dashed var(--line);
+  }
+  .preview-name{font-size:0.92rem;font-weight:700;color:var(--text-onDark);line-height:1.25;}
+  .preview-meta{font-size:0.72rem;color:var(--text-onDark-dim);line-height:1.5;}
+  .preview-pill{display:inline-flex;align-self:flex-start;font-size:0.66rem;font-weight:700;color:var(--accent-bright);background:rgba(var(--accent-rgb),0.14);border:1px solid var(--accent);border-radius:999px;padding:0.15rem 0.6rem;}
+
+  /* MAIN CARD */
+  .main{background:var(--card);border-radius:12px;padding:2.1rem 2.3rem 1.8rem;box-shadow:0 30px 70px -30px rgba(0,0,0,0.55);}
+  .step-eyebrow{font-size:0.75rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin:0 0 0.35rem;}
+  .step-title{font-size:1.55rem;font-weight:800;margin:0 0 0.3rem;letter-spacing:-0.01em;}
+  .step-sub{font-size:0.9rem;color:var(--ink-dim);margin:0 0 1.7rem;line-height:1.5;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem 1.1rem;}
+  .full{grid-column:1/-1;}
+
+  .field{margin-bottom:0.15rem;}
+  .field label{display:block;font-size:0.78rem;font-weight:700;color:var(--card-ink);margin:0 0 0.4rem;}
+  .field label .opt{color:var(--ink-dim);font-weight:500;margin-left:0.3rem;}
+  .control{
+    width:100%;padding:0.72rem 0.85rem;font-family:inherit;font-size:0.92rem;color:var(--card-ink);
+    background:var(--field-bg);border:1px solid var(--line-light);border-radius:var(--radius);outline:none;
+    transition:border-color 0.18s var(--ease),box-shadow 0.18s var(--ease),background 0.18s var(--ease);
+  }
+  .control::placeholder{color:#9AA7B2;}
+  .control:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.2);}
+  select.control{appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23FF8A1E' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat:no-repeat;background-position:right 0.8rem center;padding-right:2.2rem;}
+  .field.invalid .control{border-color:var(--bad);box-shadow:0 0 0 3px rgba(255,77,79,0.14);}
+  .field .err{display:none;font-size:0.76rem;color:var(--bad);margin:0.4rem 0 0;}
+  .field.invalid .err{display:block;}
+  .field-row{margin-bottom:1.05rem;}
+
+  /* phone + otp */
+  .phone-row{display:flex;gap:0.5rem;}
+  .phone-chip{flex:0 0 auto;display:flex;align-items:center;padding:0 0.85rem;border:1px solid var(--line-light);border-radius:var(--radius);background:var(--field-bg);font-weight:700;font-size:0.92rem;color:var(--card-ink);}
+  .phone-row .control{flex:1;}
+  .btn-amber-sm{flex:0 0 auto;padding:0 1.1rem;border:0;border-radius:var(--radius);background:var(--accent);color:#1a0e02;font-weight:700;font-size:0.86rem;cursor:pointer;transition:background 0.18s var(--ease),transform 0.15s var(--ease);}
+  .btn-amber-sm:hover:not(:disabled){background:var(--accent-bright);}
+  .btn-amber-sm:disabled{opacity:0.5;cursor:default;}
+  .btn-amber-sm:active{transform:translateY(1px);}
+
+  .otp-row{display:flex;gap:0.55rem;margin-top:0.9rem;}
+  .otp-box{
+    width:46px;height:52px;text-align:center;font-size:1.2rem;font-weight:700;
+    border:1.5px solid var(--line-light);border-radius:var(--radius);background:var(--field-bg);color:var(--card-ink);
+    transition:border-color 0.18s var(--ease),box-shadow 0.18s var(--ease);outline:none;
+  }
+  .otp-box:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.2);}
+
+  /* pills (single/multi select) */
+  .pillrow{display:flex;flex-wrap:wrap;gap:0.55rem;}
+  .pill{
+    cursor:pointer;user-select:none;padding:0.5rem 1rem;border-radius:999px;font-size:0.84rem;font-weight:600;
+    color:var(--card-ink);background:var(--field-bg);border:1.5px solid var(--line-light);transition:all 0.16s var(--ease);
+  }
+  .pill:hover{border-color:#C7CFD6;}
+  .pill.active{background:var(--accent);border-color:var(--accent);color:#1a0e02;}
+
+  /* toggle Yes/No */
+  .toggle2{display:inline-flex;border:1.5px solid var(--line-light);border-radius:999px;padding:2px;background:var(--field-bg);}
+  .toggle2 button{border:0;background:transparent;padding:0.4rem 0.95rem;border-radius:999px;font-size:0.82rem;font-weight:700;cursor:pointer;color:var(--ink-dim);transition:all 0.16s var(--ease);}
+  .toggle2 button.active{background:var(--accent);color:#1a0e02;}
+
+  /* stepper number */
+  .stepper-num{display:inline-flex;align-items:center;border:1px solid var(--line-light);border-radius:var(--radius);overflow:hidden;background:var(--field-bg);}
+  .stepper-num button{border:0;background:transparent;width:34px;height:38px;font-size:1.05rem;font-weight:700;color:var(--card-ink);cursor:pointer;}
+  .stepper-num button:hover{background:rgba(var(--accent-rgb),0.14);color:var(--accent);}
+  .stepper-num input{width:52px;text-align:center;border:0;border-left:1px solid var(--line-light);border-right:1px solid var(--line-light);height:38px;font-size:0.95rem;font-weight:700;background:transparent;color:var(--card-ink);}
+
+  .section-h{display:flex;align-items:baseline;gap:0.6rem;margin:1.6rem 0 0.9rem;padding-top:1.3rem;border-top:1px solid var(--line-light);}
+  .section-h:first-of-type{border-top:0;padding-top:0;margin-top:0;}
+  .section-h h3{font-size:1rem;font-weight:800;margin:0;}
+  .section-h span{font-size:0.76rem;color:var(--ink-dim);}
+
+  .upload-zone{
+    border:2px dashed var(--accent);border-radius:8px;padding:1.6rem 1rem;display:flex;flex-direction:column;
+    align-items:center;gap:0.55rem;text-align:center;cursor:pointer;background:rgba(var(--accent-rgb),0.05);
+    transition:background 0.18s var(--ease);
+  }
+  .upload-zone:hover{background:rgba(var(--accent-rgb),0.1);}
+  .upload-zone svg{width:30px;height:30px;color:var(--accent);}
+  .upload-zone b{font-size:0.88rem;color:var(--card-ink);}
+  .upload-zone small{font-size:0.74rem;color:var(--ink-dim);}
+
+  .subfields{margin-top:0.8rem;padding:0.9rem;background:var(--field-bg);border-radius:8px;border:1px solid var(--line-light);}
+
+  .range-pills{display:flex;flex-wrap:wrap;gap:0.55rem;}
+
+  /* invite/create cards step 5 */
+  .twocards{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+  .action-card{border-radius:10px;padding:1.2rem;display:flex;flex-direction:column;gap:0.8rem;}
+  .action-card.outline{border:1.5px solid var(--accent);background:#fff;}
+  .action-card.filled{background:#1a0e02;background:linear-gradient(160deg,#FFF3E7,#FFE7CF);border:1.5px solid var(--accent);}
+  .action-card h4{margin:0;font-size:1rem;font-weight:800;display:flex;align-items:center;gap:0.5rem;}
+  .action-card h4 svg{width:18px;height:18px;color:var(--accent);}
+  .btn-outline-amber{padding:0.7rem 1rem;border:1.5px solid var(--accent);background:transparent;color:var(--accent);border-radius:var(--radius);font-weight:700;font-size:0.88rem;cursor:pointer;transition:all 0.18s var(--ease);}
+  .btn-outline-amber:hover{background:rgba(var(--accent-rgb),0.1);}
+
+  .completion-card{margin-top:1.6rem;border:1px solid var(--line-light);border-radius:12px;padding:1.5rem;background:linear-gradient(160deg,#FFFDF9,#FFF6EC);display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap;}
+  .completion-text{flex:1;min-width:220px;}
+  .completion-text h3{margin:0 0 0.4rem;font-size:1.25rem;font-weight:800;}
+  .completion-text p{margin:0 0 1rem;font-size:0.9rem;color:var(--ink-dim);line-height:1.5;}
+  .completion-ctas{display:flex;gap:0.7rem;flex-wrap:wrap;}
+  .completion-preview{width:220px;flex:0 0 auto;}
+
+  .btn-amber{padding:0.85rem 1.3rem;border:1.5px solid var(--accent);background:var(--accent);color:#1a0e02;border-radius:var(--radius);font-weight:700;font-size:0.92rem;cursor:pointer;transition:all 0.18s var(--ease);box-shadow:0 8px 20px -8px rgba(var(--accent-rgb),0.6);}
+  .btn-amber:hover{background:var(--accent-bright);border-color:var(--accent-bright);}
+
+  /* footer nav */
+  .foot{display:flex;justify-content:space-between;align-items:center;margin-top:2rem;gap:1rem;}
+  .btn-back{padding:0.8rem 1.2rem;border:1.5px solid var(--line-light);background:transparent;color:var(--card-ink);border-radius:var(--radius);font-weight:700;font-size:0.9rem;cursor:pointer;}
+  .btn-back:hover{background:var(--field-bg);}
+  .btn-continue{padding:0.85rem 1.7rem;border:1.5px solid var(--accent);background:var(--accent);color:#1a0e02;border-radius:var(--radius);font-weight:700;font-size:0.92rem;cursor:pointer;transition:all 0.18s var(--ease);box-shadow:0 8px 20px -8px rgba(var(--accent-rgb),0.6);}
+  .btn-continue:hover{background:var(--accent-bright);border-color:var(--accent-bright);}
+  .btn-continue:active,.btn-back:active,.btn-amber:active{transform:translateY(1px);}
+  .full-w{width:100%;}
+
+  @media (max-width:900px){
+    .layout{grid-template-columns:1fr;}
+    .rail{position:static;}
+    .dotlabel{display:none;}
+  }
+  @media (max-width:620px){
+    .grid2,.twocards{grid-template-columns:1fr;}
+    .main{padding:1.5rem 1.2rem 1.4rem;}
+    .otp-row{gap:0.4rem;}
+    .otp-box{width:38px;height:46px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{transition-duration:0.001ms !important;animation-duration:0.001ms !important;}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">Athlas<span>X</span> · Academy Onboarding</div>
+    <div class="dots" id="dots"></div>
+  </div>
+
+  <div class="layout">
+    <!-- LEFT RAIL -->
+    <aside class="rail">
+      <div class="steplist" id="steplist"></div>
+      <p class="preview-label">Live preview</p>
+      <div class="preview-card">
+        <div class="preview-logo" id="pvLogo">Logo</div>
+        <div class="preview-name" id="pvName">Your academy name</div>
+        <div class="preview-meta" id="pvMeta">City, State · Est. —</div>
+        <span class="preview-pill" id="pvType" style="display:none"></span>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div id="stepHost"></div>
+      <div class="foot">
+        <button type="button" class="btn-back" id="backBtn">Back</button>
+        <button type="button" class="btn-continue" id="nextBtn">Continue</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $=(s,r)=>(r||document).querySelector(s);
+  const el=(tag,attrs,html)=>{const n=document.createElement(tag);if(attrs)for(const k in attrs){if(k==="class")n.className=attrs[k];else n.setAttribute(k,attrs[k]);}if(html!=null)n.innerHTML=html;return n;};
+  const checkSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 11"/></svg>';
+  const ballSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3c3 3 3 15 0 18M3 12c3-3 15-3 18 0"/></svg>';
+  const phoneSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .7 3a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.5c1 .4 2 .6 3 .7a2 2 0 0 1 1.7 2z"/></svg>';
+  const plusSvg='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>';
+
+  const STATES=["Andhra Pradesh","Delhi","Gujarat","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Punjab","Rajasthan","Tamil Nadu","Telangana","Uttar Pradesh","West Bengal"];
+  const DISTRICTS_BY_STATE={ "Maharashtra":["Pune","Mumbai Suburban","Nagpur","Nashik"],"Karnataka":["Bengaluru Urban","Mysuru","Belagavi"],"Delhi":["New Delhi","North Delhi","South Delhi"] };
+
+  const STEP_LABELS=["Create Account","Academy Profile","Facilities & Staff","Programs","Invite & Finish"];
+  let step=0;
+  const data={ otp:["","","","","",""], ground_type:"", bccl_head_cert:"", exPro:"no", bcci_aff:"no", scaAff:"no", academy_type:"", age_groups:[], formats:[], batch_timing:"", fee_range:"", nets:4, assistants:1, capacity:"" };
+  let otpSent=false, otpVerified=false;
+
+  // ============ TOP DOTS ============
+  function renderDots(){
+    const wrap=$("#dots"); wrap.innerHTML="";
+    STEP_LABELS.forEach((label,i)=>{
+      if(i>0){ const c=el("div",{class:"connector"+(i<=step?" filled":"")}); wrap.appendChild(c); }
+      const dw=el("div",{class:"dotwrap"+(i===step?" active":"")+(i<step?" done":"")});
+      dw.innerHTML='<div class="dot"><span class="n">'+(i+1)+'</span>'+checkSvg+'</div><div class="dotlabel">'+label+'</div>';
+      wrap.appendChild(dw);
+    });
+  }
+  function renderSteplist(){
+    const wrap=$("#steplist"); wrap.innerHTML="";
+    STEP_LABELS.forEach((label,i)=>{
+      const row=el("div",{class:"steprow"+(i===step?" active":"")+(i<step?" complete":"")});
+      row.innerHTML='<span class="idx">'+(i+1)+'</span><span>'+label+'</span>';
+      wrap.appendChild(row);
+    });
+  }
+  function renderPreview(){
+    $("#pvName").textContent = data.academy_name || "Your academy name";
+    const city=data.city||"City", st=data.state||"State", yr=data.year||"—";
+    $("#pvMeta").textContent = city+", "+st+" · Est. "+yr;
+    const tp=$("#pvType");
+    if(data.academy_type){ tp.style.display="inline-flex"; tp.textContent=data.academy_type; } else tp.style.display="none";
+  }
+
+  // ============ FIELD HELPERS ============
+  function field(labelText,inputNode,opts){
+    opts=opts||{};
+    const wrap=el("div",{class:"field field-row"+(opts.full?" full":"")});
+    const lab=el("label"); lab.innerHTML=labelText+(opts.opt?'<span class="opt">optional</span>':"");
+    wrap.appendChild(lab); wrap.appendChild(inputNode);
+    wrap.appendChild(el("p",{class:"err"},opts.err||"This field is required."));
+    wrap._name=opts.name;
+    return wrap;
+  }
+  function input(type,name,ph,val){
+    const i=el("input",{class:"control",type:type,placeholder:ph||""}); i.value=val||data[name]||"";
+    i.addEventListener("input",()=>{ data[name]=i.value; wrapClear(i); renderPreview(); });
+    return i;
+  }
+  function select(name,opts,ph){
+    const s=el("select",{class:"control"});
+    s.appendChild(el("option",{value:""},ph||"Select…"));
+    opts.forEach(o=>{ const op=el("option",{value:o},o); if(data[name]===o)op.selected=true; s.appendChild(op); });
+    s.addEventListener("change",()=>{ data[name]=s.value; wrapClear(s); renderPreview(); if(name==="state") refreshDistricts(); });
+    return s;
+  }
+  function wrapClear(node){ const w=node.closest(".field"); if(w) w.classList.remove("invalid"); }
+
+  function pillRow(name,options,multi){
+    const wrap=el("div",{class:"pillrow"});
+    const sel = multi ? (Array.isArray(data[name])?data[name]:(data[name]=[])) : null;
+    options.forEach(o=>{
+      const active = multi ? sel.indexOf(o)>=0 : data[name]===o;
+      const p=el("div",{class:"pill"+(active?" active":"")},o);
+      p.addEventListener("click",()=>{
+        if(multi){
+          const arr=data[name]; const k=arr.indexOf(o);
+          if(k>=0) arr.splice(k,1); else arr.push(o);
+          p.classList.toggle("active");
+        } else {
+          data[name]=o;
+          wrap.querySelectorAll(".pill").forEach(x=>x.classList.remove("active"));
+          p.classList.add("active");
+        }
+        wrapClear(p);
+        renderPreview();
+      });
+      wrap.appendChild(p);
+    });
+    return wrap;
+  }
+
+  function toggleYesNo(name,onChange){
+    const wrap=el("div",{class:"toggle2"});
+    const yes=el("button",{type:"button"},"Yes"), no=el("button",{type:"button"},"No");
+    function paint(){ yes.classList.toggle("active",data[name]==="yes"); no.classList.toggle("active",data[name]==="no"); }
+    if(!data[name]) data[name]="no";
+    paint();
+    yes.addEventListener("click",()=>{ data[name]="yes"; paint(); if(onChange) onChange("yes"); });
+    no.addEventListener("click",()=>{ data[name]="no"; paint(); if(onChange) onChange("no"); });
+    wrap.appendChild(yes); wrap.appendChild(no);
+    return wrap;
+  }
+
+  function stepperNum(name,min,max){
+    if(data[name]==null) data[name]=min;
+    const wrap=el("div",{class:"stepper-num"});
+    const minus=el("button",{type:"button"},"−");
+    const inp=el("input",{type:"text",inputmode:"numeric"}); inp.value=data[name];
+    const plus=el("button",{type:"button"},"+");
+    function clamp(v){ v=parseInt(v,10); if(isNaN(v))v=min; return Math.max(min,Math.min(max!=null?max:9999,v)); }
+    minus.addEventListener("click",()=>{ data[name]=clamp(data[name]-1); inp.value=data[name]; });
+    plus.addEventListener("click",()=>{ data[name]=clamp(data[name]+1); inp.value=data[name]; });
+    inp.addEventListener("input",()=>{ data[name]=clamp(inp.value); inp.value=data[name]; });
+    wrap.appendChild(minus); wrap.appendChild(inp); wrap.appendChild(plus);
+    return wrap;
+  }
+
+  // ============ STEP RENDERERS ============
+  function renderStep1(host){
+    host.appendChild(el("p",{class:"step-eyebrow"},"Step 1 of 5"));
+    host.appendChild(el("h1",{class:"step-title"},"Create your account"));
+    host.appendChild(el("p",{class:"step-sub"},"We'll text a one-time code to verify your WhatsApp number."));
+
+    const phField=el("div",{class:"field field-row"});
+    phField.appendChild(el("label",null,"Mobile Number (WhatsApp)"));
+    const row=el("div",{class:"phone-row"});
+    row.appendChild(el("div",{class:"phone-chip"},"+91"));
+    const ph=el("input",{class:"control",type:"tel",inputmode:"numeric",maxlength:"10",placeholder:"98765 43210"}); ph.value=data.mobile||"";
+    row.appendChild(ph);
+    const sendBtn=el("button",{class:"btn-amber-sm",type:"button"},"Send OTP");
+    row.appendChild(sendBtn);
+    phField.appendChild(row);
+    phField.appendChild(el("p",{class:"err"},"Enter a valid 10-digit mobile number."));
+    host.appendChild(phField);
+    ph.addEventListener("input",()=>{ data.mobile=ph.value.replace(/\D/g,"").slice(0,10); ph.value=data.mobile; phField.classList.remove("invalid"); });
+
+    const otpWrap=el("div",{class:"field field-row"});
+    otpWrap.appendChild(el("label",null,"Enter OTP"));
+    const otpRow=el("div",{class:"otp-row"});
+    for(let i=0;i<6;i++){
+      const b=el("input",{class:"otp-box",type:"text",inputmode:"numeric",maxlength:"1"});
+      b.disabled=!otpSent; b.value=data.otp[i]||"";
+      b.addEventListener("input",()=>{
+        data.otp[i]=b.value.replace(/\D/g,"").slice(0,1); b.value=data.otp[i];
+        if(b.value && b.nextElementSibling) b.nextElementSibling.focus();
+        otpWrap.classList.remove("invalid");
+      });
+      b.addEventListener("keydown",(e)=>{ if(e.key==="Backspace" && !b.value && b.previousElementSibling) b.previousElementSibling.focus(); });
+      otpRow.appendChild(b);
+    }
+    otpWrap.appendChild(otpRow);
+    otpWrap.appendChild(el("p",{class:"err"},"Enter the 6-digit code we texted you."));
+    host.appendChild(otpWrap);
+
+    sendBtn.addEventListener("click",()=>{
+      if((data.mobile||"").length!==10){ phField.classList.add("invalid"); ph.focus(); return; }
+      otpSent=true; sendBtn.textContent="Resend OTP";
+      otpRow.querySelectorAll(".otp-box").forEach(b=>b.disabled=false);
+      otpRow.querySelector(".otp-box").focus();
+    });
+  }
+
+  function renderStep2(host){
+    host.appendChild(el("p",{class:"step-eyebrow"},"Step 2 of 5"));
+    host.appendChild(el("h1",{class:"step-title"},"Academy identity"));
+    host.appendChild(el("p",{class:"step-sub"},"Tell us the basics — this becomes your public academy card."));
+
+    const grid=el("div",{class:"grid2"});
+    grid.appendChild(field("Academy Name",input("text","academy_name","e.g. Karnataka Cricket Academy"),{full:true,name:"academy_name"}));
+    grid.appendChild(field("City",input("text","city","e.g. Bengaluru"),{name:"city"}));
+    const distSel=select("district",[],"Select district");
+    grid.appendChild(field("District",distSel,{name:"district",opt:true}));
+    grid.appendChild(field("State",select("state",STATES,"Select state"),{name:"state"}));
+    grid.appendChild(field("Year Established",input("number","year","e.g. 2008"),{name:"year"}));
+    host.appendChild(grid);
+    window._refreshDistricts=()=>{
+      distSel.innerHTML=""; distSel.appendChild(el("option",{value:""},"Select district"));
+      (DISTRICTS_BY_STATE[data.state]||[]).forEach(d=>{ const op=el("option",{value:d},d); if(data.district===d)op.selected=true; distSel.appendChild(op); });
+    };
+    window._refreshDistricts();
+
+    host.appendChild(el("div",{class:"field field-row full"},'<label>Academy Type</label>'));
+    host.lastChild.appendChild(pillRow("academy_type",["Private","Government","Trust","Sports Club"],false));
+
+    const grid2=el("div",{class:"grid2"});
+    grid2.appendChild(field("Primary Contact Name",input("text","contact_name","Full name"),{name:"contact_name"}));
+    grid2.appendChild(field("Designation",input("text","designation","e.g. Director, Admin"),{name:"designation"}));
+    host.appendChild(grid2);
+
+    const uz=el("div",{class:"upload-zone"});
+    uz.innerHTML=ballSvg+"<b>Upload logo or letterhead</b><small>PNG, JPG or PDF — up to 5MB</small>";
+    uz.addEventListener("click",()=>{ data.logo="uploaded"; $("#pvLogo").textContent="Logo ✓"; $("#pvLogo").style.color="var(--accent-bright)"; });
+    host.appendChild(uz);
+  }
+
+  function refreshDistricts(){ if(window._refreshDistricts) window._refreshDistricts(); }
+
+  function renderStep3(host){
+    host.appendChild(el("p",{class:"step-eyebrow"},"Step 3 of 5"));
+    host.appendChild(el("h1",{class:"step-title"},"Facilities & staff"));
+    host.appendChild(el("p",{class:"step-sub"},"What you offer, and who's coaching."));
+
+    const sh=el("div",{class:"section-h"}); sh.innerHTML="<h3>Facilities</h3><span>What's on the ground</span>"; host.appendChild(sh);
+
+    host.appendChild(el("div",{class:"field field-row full"},"<label>Ground Type</label>"));
+    host.lastChild.appendChild(pillRow("ground_type",["Turf","Matting","Both"],false));
+
+    const g1=el("div",{class:"grid2"});
+    const nf=el("div",{class:"field field-row"}); nf.appendChild(el("label",null,"Number of Practice Nets")); nf.appendChild(stepperNum("nets",1,20)); g1.appendChild(nf);
+    const cf=el("div",{class:"field field-row"}); cf.appendChild(el("label",null,"Approx Capacity")); cf.appendChild(input("number","capacity","e.g. 60 players")); g1.appendChild(cf);
+    host.appendChild(g1);
+
+    const g2=el("div",{class:"grid2"});
+    const bm=el("div",{class:"field field-row"}); bm.appendChild(el("label",null,"Bowling Machine")); bm.appendChild(toggleYesNo("bowling_machine")); g2.appendChild(bm);
+    const ind=el("div",{class:"field field-row"}); ind.appendChild(el("label",null,"Indoor Facility")); ind.appendChild(toggleYesNo("indoor")); g2.appendChild(ind);
+    host.appendChild(g2);
+
+    const sh2=el("div",{class:"section-h"}); sh2.innerHTML="<h3>Staff</h3><span>Head coach & team</span>"; host.appendChild(sh2);
+    const g3=el("div",{class:"grid2"});
+    g3.appendChild(field("Head Coach Name",input("text","head_coach_name","Full name"),{name:"head_coach_name"}));
+    g3.appendChild(field("Head Coach Certification",select("head_coach_cert",["BCCI L1","BCCI L2","BCCI L3","NCA","NIS","Other"],"Select certification"),{name:"head_coach_cert"}));
+    const expWrap=el("div",{class:"field field-row"});
+    expWrap.appendChild(el("label",null,"Head Coach Experience"));
+    const expRow=el("div",{style:"display:flex;align-items:center;gap:0.6rem"});
+    const expIn=el("input",{class:"control",type:"number",style:"max-width:8rem"}); expIn.value=data.head_coach_exp||"";
+    expIn.addEventListener("input",()=>{ data.head_coach_exp=expIn.value; wrapClear(expIn); });
+    expRow.appendChild(expIn); expRow.appendChild(el("span",{style:"color:var(--ink-dim);font-size:0.85rem;font-weight:600"},"years"));
+    expWrap.appendChild(expRow); expWrap.appendChild(el("p",{class:"err"},"Required."));
+    g3.appendChild(expWrap);
+    host.appendChild(g3);
+
+    const exWrap=el("div",{class:"field field-row full"});
+    exWrap.appendChild(el("label",null,"Ex-professional on staff?"));
+    const subfields=el("div",{class:"subfields",style:"display:none"});
+    subfields.appendChild(field("Name",input("text","ex_pro_name","Full name"),{name:"ex_pro_name"}));
+    subfields.appendChild(field("Level",input("text","ex_pro_level","e.g. Ranji Trophy, IPL, State"),{name:"ex_pro_level"}));
+    const tgl=toggleYesNo("exPro",(v)=>{ subfields.style.display = v==="yes" ? "block" : "none"; });
+    exWrap.appendChild(tgl); exWrap.appendChild(subfields);
+    host.appendChild(exWrap);
+    if(data.exPro==="yes") subfields.style.display="block";
+
+    const asWrap=el("div",{class:"field field-row"}); asWrap.appendChild(el("label",null,"Number of Assistant Coaches")); asWrap.appendChild(stepperNum("assistants",0,20)); host.appendChild(asWrap);
+  }
+
+  function renderStep4(host){
+    host.appendChild(el("p",{class:"step-eyebrow"},"Step 4 of 5"));
+    host.appendChild(el("h1",{class:"step-title"},"Programs"));
+    host.appendChild(el("p",{class:"step-sub"},"What you run, for whom, and at what price."));
+
+    host.appendChild(el("div",{class:"field field-row full"},"<label>Age Groups</label>"));
+    host.lastChild.appendChild(pillRow("age_groups",["U-10","U-12","U-14","U-16","U-19","U-23","Senior"],true));
+
+    host.appendChild(el("div",{class:"field field-row full"},"<label>Formats</label>"));
+    host.lastChild.appendChild(pillRow("formats",["T20","ODI","Red-ball","All"],true));
+
+    host.appendChild(el("div",{class:"field field-row full"},"<label>Batch Timings</label>"));
+    host.lastChild.appendChild(pillRow("batch_timing",["Morning","Evening","Both"],false));
+
+    host.appendChild(el("div",{class:"field field-row full"},"<label>Monthly Fee Range</label>"));
+    host.lastChild.appendChild(pillRow("fee_range",["Free","< 1K","1K–3K","3K–7K","7K+"],false));
+
+    const bWrap=el("div",{class:"field field-row full"});
+    bWrap.appendChild(el("label",null,"BCCI Affiliated"));
+    const bSub=el("div",{class:"subfields",style:"display:none"});
+    bSub.appendChild(field("Affiliation ID",input("text","bcci_id","e.g. BCCI-KA-0231"),{name:"bcci_id"}));
+    bWrap.appendChild(toggleYesNo("bcci_aff",(v)=>{ bSub.style.display=v==="yes"?"block":"none"; }));
+    bWrap.appendChild(bSub);
+    host.appendChild(bWrap);
+    if(data.bcci_aff==="yes") bSub.style.display="block";
+
+    const sWrap=el("div",{class:"field field-row full"});
+    sWrap.appendChild(el("label",null,"State Cricket Association Affiliated"));
+    const sSub=el("div",{class:"subfields",style:"display:none"});
+    sSub.appendChild(field("Which association?",input("text","sca_name","e.g. Karnataka State Cricket Association"),{name:"sca_name"}));
+    sWrap.appendChild(toggleYesNo("scaAff",(v)=>{ sSub.style.display=v==="yes"?"block":"none"; }));
+    sWrap.appendChild(sSub);
+    host.appendChild(sWrap);
+    if(data.scaAff==="yes") sSub.style.display="block";
+  }
+
+  function renderStep5(host){
+    host.appendChild(el("p",{class:"step-eyebrow"},"Step 5 of 5"));
+    host.appendChild(el("h1",{class:"step-title"},"Invite & finish"));
+    host.appendChild(el("p",{class:"step-sub"},"Bring your team on board, or jump straight to your dashboard."));
+
+    const two=el("div",{class:"twocards"});
+
+    const c1=el("div",{class:"action-card outline"});
+    c1.innerHTML='<h4>'+phoneSvg+'Invite Coaches</h4>';
+    const c1row=el("div",{style:"display:flex;gap:0.5rem"});
+    const c1in=el("input",{class:"control",type:"tel",placeholder:"Coach's mobile number"});
+    const c1btn=el("button",{class:"btn-outline-amber",type:"button"},"Send Invite");
+    c1btn.addEventListener("click",()=>{ if(!c1in.value.trim()) return c1in.focus(); c1btn.textContent="Invite sent ✓"; setTimeout(()=>{c1btn.textContent="Send Invite"; c1in.value="";},1400); });
+    c1row.appendChild(c1in); c1row.appendChild(c1btn);
+    c1.appendChild(c1row);
+    two.appendChild(c1);
+
+    const c2=el("div",{class:"action-card filled"});
+    c2.innerHTML='<h4>'+plusSvg+'Create First Batch</h4>';
+    const c2name=el("input",{class:"control",type:"text",placeholder:"Batch name, e.g. Morning U-14"});
+    const c2age=select("_batch_age",["U-10","U-12","U-14","U-16","U-19","U-23","Senior"],"Age group");
+    const c2time=select("_batch_time",["Morning","Evening"],"Timing");
+    c2.appendChild(c2name); c2.appendChild(c2age); c2.appendChild(c2time);
+    const c2btn=el("button",{class:"btn-amber",type:"button"},"Create Batch");
+    c2btn.addEventListener("click",()=>{ if(!c2name.value.trim()) return c2name.focus(); c2btn.textContent="Batch created ✓"; setTimeout(()=>{c2btn.textContent="Create Batch";},1400); });
+    c2.appendChild(c2btn);
+    two.appendChild(c2);
+
+    host.appendChild(two);
+
+    const comp=el("div",{class:"completion-card"});
+    const compPrev=el("div",{class:"completion-preview"});
+    compPrev.innerHTML='<div class="preview-card" style="background:#fff;border-color:var(--line-light)">'+
+      '<div class="preview-logo" style="border-color:var(--line-light)">'+(data.logo?"Logo ✓":"Logo")+'</div>'+
+      '<div class="preview-name" style="color:var(--card-ink)">'+(data.academy_name||"Your academy name")+'</div>'+
+      '<div class="preview-meta">'+(data.city||"City")+', '+(data.state||"State")+' · Est. '+(data.year||"—")+'</div>'+
+      (data.academy_type?'<span class="preview-pill">'+data.academy_type+'</span>':'')+
+      '</div>';
+    comp.appendChild(compPrev);
+    const compText=el("div",{class:"completion-text"});
+    compText.innerHTML='<h3>Your academy is ready.</h3><p>You can invite more coaches and add players anytime from your dashboard.</p>';
+    const ctas=el("div",{class:"completion-ctas"});
+    ctas.appendChild(el("button",{class:"btn-amber",type:"button"},"Go to Dashboard"));
+    ctas.appendChild(el("button",{class:"btn-outline-amber",type:"button"},"Add Players Now"));
+    compText.appendChild(ctas);
+    comp.appendChild(compText);
+    host.appendChild(comp);
+  }
+
+  const RENDERERS=[renderStep1,renderStep2,renderStep3,renderStep4,renderStep5];
+
+  function validate(){
+    const host=$("#stepHost");
+    let ok=true, firstBad=null;
+    if(step===0){
+      if((data.mobile||"").length!==10){ const w=host.querySelectorAll(".field")[0]; w.classList.add("invalid"); ok=false; firstBad=w; }
+      const code=data.otp.join("");
+      if(code.length!==6){ const w=host.querySelectorAll(".field")[1]; w.classList.add("invalid"); ok=false; firstBad=firstBad||w; }
+    }
+    if(step===1){
+      if(!(data.academy_name||"").trim()){ ok=false; markInvalid(host,"academy_name"); firstBad=firstBad||findField(host,"academy_name"); }
+      if(!(data.city||"").trim()){ ok=false; markInvalid(host,"city"); }
+      if(!data.state){ ok=false; markInvalid(host,"state"); }
+    }
+    if(!ok && firstBad){ try{ firstBad.querySelector("input,select")?.focus({preventScroll:true}); }catch(e){} }
+    return ok;
+  }
+  function findField(host,name){ return [...host.querySelectorAll(".field")].find(w=>w._name===name); }
+  function markInvalid(host,name){ const w=findField(host,name); if(w) w.classList.add("invalid"); }
+
+  function render(){
+    renderDots(); renderSteplist(); renderPreview();
+    const host=$("#stepHost"); host.innerHTML="";
+    RENDERERS[step](host);
+    $("#backBtn").style.display = step===0?"none":"";
+    $("#nextBtn").textContent = step===4?"Go to Dashboard":"Continue";
+    window.scrollTo(0,0);
+  }
+
+  $("#backBtn").addEventListener("click",()=>{ if(step>0){ step--; render(); } });
+  $("#nextBtn").addEventListener("click",()=>{
+    if(step<4){
+      if(!validate()) return;
+      step++; render();
+    } else {
+      $("#nextBtn").textContent="Redirecting…";
+    }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AthlasX — Register Your Child</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#F5F7FA; --card:#FFFFFF; --line:#E4E8EC; --ink:#0D1B2A; --ink-dim:#5B6B7A; --ink-faint:#9AA7B2;
+    --accent:#FF8A1E; --accent-rgb:255,138,30; --accent-bright:#E67812;
+    --wa:#25D366; --bad:#FF4D4F; --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:"Inter",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-bright);text-decoration:none;} a:hover{text-decoration:underline;}
+
+  .wrap{max-width:480px;margin:0 auto;padding:1.6rem 1.1rem 3rem;min-height:100vh;min-height:100dvh;}
+
+  .topbrand{display:flex;align-items:center;gap:0.7rem;margin-bottom:0.9rem;}
+  .axmark{width:38px;height:38px;border-radius:9px;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:0.95rem;flex:0 0 auto;}
+  .topbrand .acname{font-weight:800;font-size:1.02rem;}
+  .subtext{font-size:0.88rem;color:var(--ink-dim);line-height:1.5;margin:0 0 1.4rem;}
+  .subtext b{color:var(--ink);}
+
+  .card{background:var(--card);border-radius:16px;box-shadow:0 12px 32px -14px rgba(13,27,42,0.16);padding:1.4rem 1.2rem;}
+
+  .field{margin-bottom:1.1rem;}
+  .field label{display:block;font-size:0.82rem;font-weight:700;color:var(--ink);margin:0 0 0.45rem;}
+  .field label .req{color:var(--accent);margin-left:0.1rem;}
+  .control{width:100%;padding:0.8rem 0.95rem;font-family:inherit;font-size:0.95rem;color:var(--ink);background:#FAFBFC;border:1.5px solid var(--line);border-radius:10px;outline:none;transition:border-color 0.18s var(--ease),box-shadow 0.18s var(--ease);}
+  .control::placeholder{color:var(--ink-faint);}
+  .control:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.18);}
+  select.control{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23E67812' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 0.85rem center;padding-right:2.3rem;}
+  .field.invalid .control{border-color:var(--bad);box-shadow:0 0 0 3px rgba(255,77,79,0.14);}
+  .field .err{display:none;font-size:0.76rem;color:var(--bad);margin:0.4rem 0 0;}
+  .field.invalid .err{display:block;}
+
+  .pillrow3{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;}
+  .pill{padding:0.65rem 0.5rem;text-align:center;border-radius:10px;border:1.5px solid var(--line);font-size:0.85rem;font-weight:700;color:var(--ink-dim);cursor:pointer;transition:all 0.16s var(--ease);background:#FAFBFC;}
+  .pill.active{border-color:var(--accent);background:rgba(var(--accent-rgb),0.12);color:var(--accent-bright);}
+
+  .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.65rem;}
+  .role-card{border:1.5px solid var(--line);border-radius:12px;padding:1rem 0.6rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem;cursor:pointer;background:#FAFBFC;transition:all 0.16s var(--ease);}
+  .role-card svg{width:26px;height:26px;color:var(--ink-dim);}
+  .role-card span{font-size:0.82rem;font-weight:700;color:var(--ink-dim);}
+  .role-card.active{border-color:var(--accent);background:rgba(var(--accent-rgb),0.1);}
+  .role-card.active svg,.role-card.active span{color:var(--accent-bright);}
+
+  .pillrow2{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;}
+  .pill-lg{padding:0.85rem;text-align:center;border-radius:10px;border:1.5px solid var(--line);font-size:0.9rem;font-weight:700;color:var(--ink-dim);cursor:pointer;transition:all 0.16s var(--ease);background:#FAFBFC;}
+  .pill-lg.active{border-color:var(--accent);background:rgba(var(--accent-rgb),0.1);color:var(--accent-bright);}
+
+  /* consent section */
+  .consent-section{max-height:0;overflow:hidden;transition:max-height 0.4s var(--ease);}
+  .consent-section.show{max-height:900px;}
+  .consent-inner{border-left:3px solid var(--accent);background:#FFF7EE;border-radius:0 12px 12px 0;padding:1.1rem 1rem;margin:0.3rem 0 1.3rem;}
+  .consent-title{font-size:0.88rem;font-weight:700;color:var(--ink);margin:0 0 1rem;line-height:1.4;}
+  .otp-row{display:flex;gap:0.6rem;}
+  .otp-box{width:100%;aspect-ratio:1;text-align:center;font-size:1.15rem;font-weight:700;border:1.5px solid var(--line);border-radius:9px;background:#fff;outline:none;transition:all 0.18s var(--ease);}
+  .otp-box:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.18);}
+  .phone-row{display:flex;gap:0.5rem;}
+  .btn-amber-sm{flex:0 0 auto;padding:0 1rem;border:0;border-radius:9px;background:var(--accent);color:#fff;font-weight:700;font-size:0.84rem;cursor:pointer;}
+  .btn-amber-sm:hover{background:var(--accent-bright);}
+  .btn-amber-sm:disabled{opacity:0.5;}
+
+  .checkrow{display:flex;align-items:flex-start;gap:0.6rem;margin-top:1rem;font-size:0.82rem;color:var(--ink-dim);line-height:1.45;}
+  .checkrow input{margin-top:0.2rem;width:17px;height:17px;accent-color:var(--accent);flex:0 0 auto;}
+
+  .btn-submit{width:100%;padding:0.95rem;border:0;border-radius:11px;background:var(--accent);color:#fff;font-weight:800;font-size:0.98rem;cursor:pointer;margin-top:0.3rem;transition:background 0.18s var(--ease),opacity 0.18s;box-shadow:0 10px 24px -10px rgba(var(--accent-rgb),0.55);display:flex;align-items:center;justify-content:center;gap:0.6rem;}
+  .btn-submit:hover{background:var(--accent-bright);}
+  .btn-submit:disabled{opacity:0.75;cursor:default;}
+  .spinner{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;animation:spin 0.7s linear infinite;display:none;}
+  .btn-submit.loading .spinner{display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* success */
+  .success-card{display:none;text-align:center;padding:0.6rem 0.2rem;}
+  .success-card.show{display:block;}
+  .success-seal{width:70px;height:70px;border-radius:50%;background:rgba(var(--accent-rgb),0.14);border:2px solid var(--accent);display:grid;place-items:center;margin:0 auto 1.1rem;}
+  .success-seal svg{width:34px;height:34px;color:var(--accent);}
+  .success-card h2{font-size:1.2rem;font-weight:800;margin:0 0 0.6rem;}
+  .success-card p{font-size:0.88rem;color:var(--ink-dim);line-height:1.55;margin:0 0 1.4rem;}
+  .success-card p b{color:var(--ink);}
+  .btn-wa{width:100%;padding:0.85rem;border:0;border-radius:11px;background:var(--wa);color:#04140c;font-weight:800;font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.55rem;}
+  .btn-wa svg{width:17px;height:17px;}
+  .btn-wa:hover{filter:brightness(1.06);}
+
+  @media (prefers-reduced-motion:reduce){ *,*::before,*::after{transition-duration:0.001ms !important;animation-duration:0.001ms !important;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbrand"><span class="axmark">AX</span><span class="acname">Karnataka Cricket Academy</span></div>
+  <p class="subtext"><b>Karnataka Cricket Academy</b> has invited you to register your child on AthlasX.</p>
+
+  <div class="card">
+    <form id="regForm">
+      <div class="field" id="f_name"><label>Player Full Name<span class="req">*</span></label><input class="control" type="text" id="playerName" placeholder="e.g. Aarav Patel" /><p class="err">Please enter the player's full name.</p></div>
+
+      <div class="field" id="f_dob"><label>Date of Birth<span class="req">*</span></label><input class="control" type="date" id="dob" /><p class="err">Please select a date of birth.</p></div>
+
+      <div class="field"><label>Gender</label><div class="pillrow3" id="genderRow">
+        <div class="pill active" data-v="Boy">Boy</div><div class="pill" data-v="Girl">Girl</div><div class="pill" data-v="Other">Other</div>
+      </div></div>
+
+      <div class="field"><label>Playing Role</label>
+        <div class="role-grid" id="roleGrid">
+          <div class="role-card active" data-v="BAT"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 3.5 21 10l-9.5 9.5-3-3z"/><path d="M8 16 3 21"/></svg><span>BAT</span></div>
+          <div class="role-card" data-v="BOWL"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3c3 3 3 15 0 18M3 12c3-3 15-3 18 0"/></svg><span>BOWL</span></div>
+          <div class="role-card" data-v="ALL-ROUND"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg><span>ALL-ROUND</span></div>
+          <div class="role-card" data-v="WK"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11V7a5 5 0 0 1 10 0v4"/><path d="M5 11h14v5a7 7 0 0 1-14 0z"/></svg><span>WK</span></div>
+        </div>
+      </div>
+
+      <div class="field"><label>Batting Style</label><div class="pillrow2" id="battingRow">
+        <div class="pill-lg active" data-v="Right-hand">Right-hand</div><div class="pill-lg" data-v="Left-hand">Left-hand</div>
+      </div></div>
+
+      <div class="field"><label>State</label><select class="control" id="stateSelect">
+        <option value="">Select state…</option>
+        <option>Karnataka</option><option>Maharashtra</option><option>Tamil Nadu</option><option>Delhi</option><option>Punjab</option><option>Kerala</option><option>Gujarat</option><option>West Bengal</option>
+      </select></div>
+
+      <!-- CONSENT SECTION -->
+      <div class="consent-section" id="consentSection">
+        <div class="consent-inner">
+          <p class="consent-title">You are registering a minor. Guardian consent is required.</p>
+
+          <div class="field"><label>Parent / Guardian Full Name<span class="req">*</span></label><input class="control" type="text" id="guardianName" placeholder="Full name" /></div>
+
+          <div class="field"><label>Relationship</label><div class="pillrow3" id="relRow">
+            <div class="pill active" data-v="Mother">Mother</div><div class="pill" data-v="Father">Father</div><div class="pill" data-v="Legal Guardian">Guardian</div>
+          </div></div>
+
+          <div class="field"><label>Guardian Mobile Number<span class="req">*</span></label>
+            <div class="phone-row"><input class="control" type="tel" id="guardianPhone" placeholder="+91 98765 43210" /><button class="btn-amber-sm" type="button" id="sendOtpBtn">Send OTP</button></div>
+          </div>
+
+          <div class="field"><label>Enter OTP</label>
+            <div class="otp-row" id="otpRow">
+              <input class="otp-box" type="text" inputmode="numeric" maxlength="1" disabled />
+              <input class="otp-box" type="text" inputmode="numeric" maxlength="1" disabled />
+              <input class="otp-box" type="text" inputmode="numeric" maxlength="1" disabled />
+              <input class="otp-box" type="text" inputmode="numeric" maxlength="1" disabled />
+            </div>
+          </div>
+
+          <label class="checkrow"><input type="checkbox" id="consentCheck" /><span>I consent to AthlasX collecting and storing my child's cricket performance data. <a href="#" id="viewTerms">View terms</a></span></label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn"><span class="spinner"></span><span id="submitLabel">Submit Registration</span></button>
+    </form>
+
+    <!-- SUCCESS -->
+    <div class="success-card" id="successCard">
+      <div class="success-seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 11"/></svg></div>
+      <h2>Your registration is pending approval</h2>
+      <p>The academy admin will review and add <b id="successName">your child</b> to the roster. You'll receive a WhatsApp message when approved.</p>
+      <button class="btn-wa" type="button" id="tellFriendBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.87 9.87 0 0 0 12.04 2z"/></svg>Tell a friend</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $=(s,r)=>(r||document).querySelector(s);
+  function wireSingle(rowSel, cls){
+    document.querySelectorAll(rowSel).forEach(row=>{
+      row.querySelectorAll("."+cls).forEach(p=>{
+        p.addEventListener("click",()=>{ row.querySelectorAll("."+cls).forEach(x=>x.classList.remove("active")); p.classList.add("active"); });
+      });
+    });
+  }
+  wireSingle("#genderRow","pill");
+  wireSingle("#relRow","pill");
+  wireSingle("#roleGrid","role-card");
+  wireSingle("#battingRow","pill-lg");
+
+  const dob=$("#dob"), consentSection=$("#consentSection");
+  let isMinor=false;
+  dob.addEventListener("change",()=>{
+    $("#f_dob").classList.remove("invalid");
+    const d=new Date(dob.value); if(isNaN(d)) return;
+    const now=new Date(); let age=now.getFullYear()-d.getFullYear();
+    const m=now.getMonth()-d.getMonth(); if(m<0||(m===0&&now.getDate()<d.getDate())) age--;
+    isMinor = age<18;
+    consentSection.classList.toggle("show",isMinor);
+  });
+
+  const sendOtpBtn=$("#sendOtpBtn"), otpBoxes=document.querySelectorAll("#otpRow .otp-box");
+  let otpSent=false;
+  sendOtpBtn.addEventListener("click",()=>{
+    const ph=$("#guardianPhone").value.trim();
+    if(!ph){ $("#guardianPhone").focus(); return; }
+    otpSent=true; otpBoxes.forEach(b=>b.disabled=false);
+    sendOtpBtn.textContent="Resend"; otpBoxes[0].focus();
+  });
+  otpBoxes.forEach((b,i)=>{
+    b.addEventListener("input",()=>{ b.value=b.value.replace(/\D/g,"").slice(0,1); if(b.value && otpBoxes[i+1]) otpBoxes[i+1].focus(); });
+    b.addEventListener("keydown",(e)=>{ if(e.key==="Backspace" && !b.value && otpBoxes[i-1]) otpBoxes[i-1].focus(); });
+  });
+
+  $("#playerName").addEventListener("input",()=>{ $("#f_name").classList.remove("invalid"); });
+  $("#viewTerms").addEventListener("click",(e)=>e.preventDefault());
+
+  const form=$("#regForm"), submitBtn=$("#submitBtn"), submitLabel=$("#submitLabel");
+  form.addEventListener("submit",function(e){
+    e.preventDefault();
+    let ok=true;
+    if(!$("#playerName").value.trim()){ $("#f_name").classList.add("invalid"); ok=false; }
+    if(!dob.value){ $("#f_dob").classList.add("invalid"); ok=false; }
+    if(!ok){ return; }
+    if(isMinor){
+      if(!$("#guardianName").value.trim() || !$("#guardianPhone").value.trim()){ $("#guardianName").focus(); return; }
+      const code = Array.from(otpBoxes).map(b=>b.value).join("");
+      if(!otpSent || code.length!==4){ otpBoxes[0].focus(); return; }
+      if(!$("#consentCheck").checked){ $("#consentCheck").focus(); return; }
+    }
+    submitBtn.classList.add("loading"); submitBtn.disabled=true; submitLabel.textContent="Submitting…";
+    setTimeout(()=>{
+      form.style.display="none";
+      $("#successName").textContent = $("#playerName").value.trim() || "your child";
+      $("#successCard").classList.add("show");
+    },1200);
+  });
+
+  $("#tellFriendBtn").addEventListener("click",()=>{
+    const msg=encodeURIComponent("Join us at Karnataka Cricket Academy on AthlasX — register your child here: https://athlasx.app/join/kca-8f21x");
+    window.open("https://wa.me/?text="+msg,"_blank");
+  });
+})();
+</script>
+</body>
+</html>

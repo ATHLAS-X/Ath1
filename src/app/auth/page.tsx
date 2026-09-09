@@ -82,9 +82,9 @@ export default function AuthPage() {
 
   function handleRoleSelect(next: Role) {
     setRole(next)
-    if (next === 'player') { router.push('/onboarding'); return }
-    if (next === 'academy' && ACADEMY_SELF_SERVE_ENABLED) { router.push('/onboarding/academy'); return }
-    if (next === 'coach') { router.push('/onboarding/coach'); return }
+    if (next === 'player') { router.push('/player/onboarding'); return }
+    if (next === 'academy' && ACADEMY_SELF_SERVE_ENABLED) { router.push('/academy/onboarding'); return }
+    if (next === 'coach') { router.push('/coach/onboarding'); return }
     // Association is no longer self-serve — AthlasX Ops verifies a
     // data-sharing agreement offline and creates the account directly
     // (pivot doc W1; decision made 2026-09-06 after this was found to

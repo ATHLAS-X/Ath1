@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AthlasX — Player Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0D0D0D; --bg-soft:#141312;
+    --text:#F5F5F0; --text-dim:rgba(245,245,240,0.62); --text-faint:rgba(245,245,240,0.4);
+    --accent:#FF8A1E; --accent-rgb:255,138,30; --accent-bright:#FFA64D;
+    --ov06:rgba(255,138,30,0.06); --ov08:rgba(255,138,30,0.08); --ov14:rgba(255,138,30,0.14); --ov22:rgba(255,138,30,0.22);
+    --card-border:rgba(245,245,240,0.14); --field-bg:rgba(245,245,240,0.06);
+    --ok:#38d39f; --ok-rgb:56,211,159; --bad:#ff5a4d;
+    --phi2:2.618rem; --ease:cubic-bezier(0.22,1,0.36,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:"Barlow",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-bright);text-decoration:none;} a:hover{color:var(--accent);}
+  ::selection{background:var(--ov22);}
+
+  .ob{display:grid;grid-template-columns:1fr 2fr;min-height:100vh;min-height:100dvh;}
+
+  /* ── LEFT RAIL ── */
+  .rail{position:relative;overflow:hidden;display:flex;flex-direction:column;padding:var(--phi2);background:var(--bg-soft);}
+  .rail::before{content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(110% 70% at 0% 0%, var(--ov14), transparent 55%),
+      radial-gradient(90% 60% at 20% 100%, rgba(255,138,30,0.1), transparent 60%),
+      linear-gradient(158deg, #0d1a08 0%, #0d0d0d 52%, #050505 100%);}
+  .rail>*{position:relative;z-index:1;}
+  .brandmark{font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.22em;font-weight:700;font-size:0.95rem;color:var(--text);}
+  .brandmark span{color:var(--accent);}
+  .lead{margin-top:1.6rem;}
+  .lead .eyebrow{font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.2em;font-size:11px;font-weight:700;color:var(--accent-bright);margin:0 0 0.55rem;}
+  .lead h1{font-family:"Anton",sans-serif;text-transform:uppercase;font-weight:400;line-height:0.92;font-size:42px;margin:0;color:var(--text);}
+  .lead h1 b{color:var(--accent);font-weight:400;}
+  .lead p{margin:0.8rem 0 0;font-size:14px;line-height:1.5;color:var(--text-dim);max-width:22rem;}
+
+  .stepper{margin:2rem 0 0;display:flex;flex-direction:column;gap:0.15rem;}
+  .step{display:flex;align-items:center;gap:0.85rem;padding:0.5rem 0.4rem;border-radius:9px;color:var(--text-dim);}
+  .step .num{flex:0 0 auto;width:27px;height:27px;border-radius:50%;display:grid;place-items:center;font-size:0.78rem;font-weight:700;font-family:"Barlow Semi Condensed",sans-serif;border:1.5px solid var(--card-border);color:var(--text-dim);transition:all 0.25s var(--ease);}
+  .step .lbl{font-size:0.9rem;font-weight:600;}
+  .step .lbl small{display:block;font-size:0.7rem;font-weight:500;color:var(--text-faint);}
+  .step.done{color:var(--text);}
+  .step.done .num{border-color:var(--accent);background:var(--ov14);color:var(--accent-bright);}
+  .step.current{color:var(--text);}
+  .step.current .num{border-color:var(--accent);background:var(--accent);color:#1a0e02;box-shadow:0 0 0 4px var(--ov22);}
+  .rail .foot{margin-top:auto;padding-top:1.5rem;font-size:0.76rem;color:var(--text-faint);display:flex;align-items:center;gap:0.5rem;}
+  .save-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);}
+
+  /* ── RIGHT PANEL ── */
+  .form-side{position:relative;display:flex;flex-direction:column;background:var(--bg);min-width:0;}
+  .form-side::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(110% 50% at 100% 0%, var(--ov08), transparent 55%);}
+  .topbar{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.1rem clamp(1.25rem,3.5vw,3rem);border-bottom:1px solid var(--card-border);}
+  .roleswitch{display:flex;gap:0.3rem;padding:0.28rem;background:var(--field-bg);border:1px solid var(--card-border);border-radius:11px;}
+  .roleswitch button{appearance:none;border:0;cursor:pointer;border-radius:8px;padding:0.46rem 0.95rem;font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.82rem;color:var(--text-dim);background:transparent;transition:background 0.22s var(--ease),color 0.22s var(--ease);}
+  .roleswitch button[aria-selected="true"]{background:var(--accent);color:#1a0e02;}
+  .acct{display:flex;align-items:center;gap:0.7rem;font-size:0.84rem;color:var(--text-dim);}
+  .acct .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--ov14);color:var(--accent-bright);font-weight:700;font-size:0.82rem;font-family:"Barlow Semi Condensed",sans-serif;}
+
+  .progress-line{height:3px;background:var(--card-border);overflow:hidden;position:relative;z-index:2;}
+  .progress-line i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-bright));width:33%;transition:width 0.5s var(--ease);}
+
+  .scroller{position:relative;z-index:1;flex:1;overflow-y:auto;}
+  .form-body{width:100%;max-width:42rem;margin:0 auto;padding:clamp(1.5rem,3.5vw,2.6rem) clamp(1.25rem,3.5vw,3rem) 2rem;}
+
+  .step-kicker{font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.18em;font-size:11px;font-weight:700;color:var(--accent-bright);margin:0 0 0.45rem;}
+  .step-title{font-family:"Anton",sans-serif;text-transform:uppercase;font-weight:400;line-height:0.92;font-size:40px;margin:0 0 0.55rem;color:var(--text);}
+  .step-desc{margin:0 0 1.7rem;font-size:14px;line-height:1.5;color:var(--text-dim);max-width:34rem;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0.95rem 1rem;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.95rem 1rem;}
+  .ffull{grid-column:1/-1;}
+  .field{margin-bottom:1.05rem;}
+  .field>label{display:flex;align-items:center;gap:0.4rem;font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.12em;font-size:10.5px;font-weight:700;color:var(--text-dim);margin:0 0 0.5rem;}
+  .field>label .req{color:var(--accent);margin-left:0.05rem;}
+  .field>label .opt{color:var(--text-faint);font-weight:500;letter-spacing:0.05em;margin-left:0.3rem;text-transform:none;}
+  .field>label .newtag{margin-left:auto;display:inline-flex;align-items:center;gap:0.25rem;color:#1a0e02;background:var(--accent);border-radius:999px;padding:0.08rem 0.45rem;font-size:8.5px;letter-spacing:0.08em;}
+  .field>label .newtag svg{width:9px;height:9px;}
+  .field input,.field select{width:100%;padding:0.78rem 0.95rem;font-family:"Barlow",sans-serif;font-size:0.95rem;color:var(--text);background:var(--field-bg);border:1px solid var(--card-border);border-radius:9px;outline:none;transition:border-color 0.22s var(--ease),background 0.22s var(--ease),box-shadow 0.22s var(--ease);}
+  .field input::placeholder{color:var(--text-faint);}
+  .field input:focus,.field select:focus{border-color:var(--accent);background:rgba(245,245,240,0.09);box-shadow:0 0 0 3px var(--ov22);}
+  .field.invalid input,.field.invalid select{border-color:var(--bad);box-shadow:0 0 0 3px rgba(255,90,77,0.16);}
+  .field .err{display:none;font-size:0.76rem;color:#ff8a7e;margin:0.45rem 0 0;}
+  .field.invalid .err{display:block;}
+  .field.newfield input{box-shadow:0 0 0 1px var(--ov22);}
+  .field select{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23FFA64D' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 0.9rem center;padding-right:2.4rem;}
+
+  .age-pill{display:inline-flex;align-items:center;gap:0.4rem;margin-top:0.6rem;padding:0.4rem 0.8rem;border-radius:999px;background:var(--ov14);border:1px solid var(--accent);color:var(--accent-bright);font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.04em;font-weight:700;font-size:0.74rem;}
+  .age-pill svg{width:13px;height:13px;}
+
+  /* phone + otp */
+  .phone-row{display:flex;gap:0.5rem;}
+  .phone-chip{flex:0 0 auto;display:flex;align-items:center;gap:0.35rem;padding:0 0.85rem;border:1px solid var(--card-border);border-radius:9px;background:var(--field-bg);font-weight:700;font-size:0.92rem;}
+  .inline-amber{flex:0 0 auto;padding:0 1.1rem;border:0;border-radius:9px;background:var(--accent);color:#1a0e02;font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.84rem;cursor:pointer;transition:background 0.18s var(--ease);}
+  .inline-amber:hover{background:var(--accent-bright);}
+  .inline-ghost{flex:0 0 auto;padding:0 1.1rem;border:1.5px solid var(--card-border);border-radius:9px;background:transparent;color:var(--text);font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.84rem;cursor:pointer;transition:all 0.18s var(--ease);}
+  .inline-ghost:hover{border-color:var(--text);}
+  .otp-boxes{display:flex;gap:0.55rem;}
+  .otp-box{width:46px;height:52px;text-align:center;font-size:1.2rem;font-weight:700;border:1.5px solid var(--card-border);border-radius:9px;background:var(--field-bg);color:var(--text);outline:none;transition:all 0.18s var(--ease);font-family:"Barlow",sans-serif;}
+  .otp-box.filled{border-color:var(--accent);}
+  .otp-box:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--ov22);}
+
+  /* guardian block */
+  .guardian{max-height:0;overflow:hidden;transition:max-height 0.5s var(--ease),opacity 0.4s var(--ease);opacity:0;}
+  .guardian.show{max-height:1400px;opacity:1;}
+  .guardian-card{border:1.5px solid var(--accent);border-left-width:4px;border-radius:12px;background:var(--ov06);overflow:hidden;margin:0.4rem 0 0.5rem;}
+  .g-head{display:flex;align-items:flex-start;gap:0.8rem;padding:1rem 1.2rem;background:var(--ov14);border-bottom:1px solid var(--ov22);}
+  .g-head .sh{width:34px;height:34px;flex:0 0 auto;border-radius:9px;display:grid;place-items:center;background:var(--accent);color:#1a0e02;}
+  .g-head .sh svg{width:18px;height:18px;}
+  .g-head h3{margin:0;font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.06em;font-size:0.95rem;font-weight:700;color:var(--accent-bright);}
+  .g-head p{margin:0.2rem 0 0;font-size:0.82rem;color:var(--text-dim);line-height:1.4;}
+  .g-body{padding:1.2rem;}
+
+  .callout{display:flex;gap:0.7rem;padding:0.85rem 1rem;border-radius:10px;margin:0 0 1.2rem;background:var(--ov08);border:1px solid var(--ov22);}
+  .callout svg{width:18px;height:18px;color:var(--accent-bright);flex:0 0 auto;margin-top:0.1rem;}
+  .callout p{margin:0;font-size:0.84rem;line-height:1.5;color:var(--text);}
+  .callout b{color:var(--accent-bright);}
+
+  .callout.ok{background:rgba(var(--ok-rgb),0.1);border-color:rgba(var(--ok-rgb),0.5);margin:1.2rem 0;}
+  .callout.ok svg{color:var(--ok);}
+  .callout.ok b{color:var(--ok);}
+
+  .checkrow{display:flex;align-items:flex-start;gap:0.7rem;font-size:0.83rem;color:var(--text-dim);line-height:1.5;cursor:pointer;margin-top:0.4rem;}
+  .checkrow input{margin-top:0.15rem;width:17px;height:17px;accent-color:var(--accent);flex:0 0 auto;}
+  .checkrow a{color:var(--accent-bright);}
+
+  /* optcards / chips (step 2) */
+  .cardset{display:grid;gap:0.6rem;}
+  .cardset.c2{grid-template-columns:1fr 1fr;}
+  .cardset.c3{grid-template-columns:repeat(3,1fr);}
+  .optcard{cursor:pointer;text-align:left;padding:0.85rem 0.95rem;border-radius:11px;background:var(--field-bg);border:1.5px solid var(--card-border);display:flex;align-items:center;gap:0.7rem;transition:all 0.18s var(--ease);}
+  .optcard:hover{border-color:rgba(245,245,240,0.3);}
+  .optcard[aria-pressed="true"]{border-color:var(--accent);background:var(--ov14);}
+  .optcard .ico{width:30px;height:30px;flex:0 0 auto;border-radius:8px;display:grid;place-items:center;background:rgba(var(--accent-rgb),0.16);color:var(--accent-bright);transition:all 0.18s var(--ease);}
+  .optcard[aria-pressed="true"] .ico{background:var(--accent);color:#1a0e02;}
+  .optcard .ico svg{width:16px;height:16px;}
+  .optcard b{font-size:0.9rem;font-weight:700;color:var(--text);}
+
+  .chips{display:flex;flex-wrap:wrap;gap:0.5rem;}
+  .chip{cursor:pointer;user-select:none;padding:0.5rem 0.9rem;border-radius:999px;font-size:0.86rem;font-weight:600;color:var(--text-dim);background:var(--field-bg);border:1.5px solid var(--card-border);transition:all 0.18s var(--ease);}
+  .chip:hover{border-color:rgba(245,245,240,0.3);color:var(--text);}
+  .chip[aria-pressed="true"]{background:var(--ov14);border-color:var(--accent);color:var(--accent-bright);}
+
+  .opt-stats{border-top:1px solid var(--card-border);margin-top:1.5rem;padding-top:1.3rem;}
+  .opt-stats .oh{display:flex;align-items:baseline;gap:0.6rem;margin-bottom:0.9rem;}
+  .opt-stats .oh h3{font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.08em;font-size:0.92rem;font-weight:700;margin:0;color:var(--text-dim);}
+  .opt-stats .oh span{font-size:0.74rem;color:var(--text-faint);}
+  .opt-stats .field input{opacity:0.75;}
+  .opt-stats .field input:focus{opacity:1;}
+
+  /* academy (step 3) */
+  .academy-item{display:flex;align-items:center;gap:0.85rem;padding:0.8rem 0.95rem;border-radius:11px;background:var(--field-bg);border:1.5px solid var(--card-border);cursor:pointer;margin-bottom:0.55rem;transition:all 0.18s var(--ease);}
+  .academy-item:hover{border-color:rgba(245,245,240,0.3);}
+  .academy-item[aria-pressed="true"]{border-color:var(--accent);background:var(--ov14);}
+  .academy-item .alogo{width:38px;height:38px;flex:0 0 auto;border-radius:9px;background:rgba(var(--accent-rgb),0.16);color:var(--accent-bright);display:grid;place-items:center;font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;font-size:0.86rem;}
+  .academy-item .amid{flex:1;min-width:0;}
+  .academy-item .amid b{display:block;font-size:0.88rem;font-weight:700;color:var(--text);}
+  .academy-item .amid small{font-size:0.74rem;color:var(--text-dim);}
+  .academy-item .pick{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--card-border);flex:0 0 auto;display:grid;place-items:center;color:transparent;}
+  .academy-item[aria-pressed="true"] .pick{border-color:var(--accent);background:var(--accent);color:#1a0e02;}
+  .academy-item .pick svg{width:12px;height:12px;}
+  .or-line{display:flex;align-items:center;gap:0.8rem;margin:1.3rem 0;color:var(--text-faint);font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.14em;font-size:0.74rem;}
+  .or-line::before,.or-line::after{content:"";flex:1;height:1px;background:var(--card-border);}
+
+  /* footer */
+  .form-foot{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem clamp(1.25rem,3.5vw,3rem);border-top:1px solid var(--card-border);background:rgba(13,13,13,0.6);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
+  .form-foot .meta{font-size:0.82rem;color:var(--text-dim);}
+  .form-foot .btns{display:flex;gap:0.6rem;}
+  .btn{padding:0.78rem 1.5rem;cursor:pointer;font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;font-size:0.92rem;border-radius:9px;transition:transform 0.16s var(--ease),background 0.2s var(--ease),border-color 0.2s var(--ease);white-space:nowrap;}
+  .btn:active{transform:translateY(1px);}
+  .btn-fill{background:var(--accent);color:#1a0e02;border:1.5px solid var(--accent);box-shadow:0 8px 22px -8px rgba(var(--accent-rgb),0.7);}
+  .btn-fill:hover{background:var(--accent-bright);border-color:var(--accent-bright);}
+  .btn-ghost{background:transparent;color:var(--text);border:1.5px solid var(--card-border);}
+  .btn-ghost:hover{border-color:var(--text);background:rgba(245,245,240,0.06);}
+
+  .done-screen{text-align:center;padding:2.5rem 0 1rem;}
+  .done-screen .seal{width:84px;height:84px;margin:0 auto 1.4rem;border-radius:50%;display:grid;place-items:center;background:var(--ov14);border:1.5px solid var(--accent);color:var(--accent);}
+  .done-screen .seal svg{width:40px;height:40px;}
+  .done-screen h2{font-family:"Anton",sans-serif;text-transform:uppercase;font-weight:400;line-height:0.92;font-size:clamp(30px,4vw,44px);margin:0 0 0.7rem;}
+  .done-screen h2 b{color:var(--accent);font-weight:400;}
+  .done-screen p{font-size:0.95rem;color:var(--text-dim);max-width:28rem;margin:0 auto;line-height:1.55;}
+
+  @media (max-width:900px){
+    .ob{grid-template-columns:1fr;}
+    .rail{padding:1.4rem;}
+    .lead h1{font-size:32px;}
+    .stepper{flex-direction:row;flex-wrap:wrap;gap:0.4rem;margin-top:1.2rem;}
+    .step{padding:0.35rem 0.6rem 0.35rem 0.35rem;background:rgba(245,245,240,0.04);}
+    .step .lbl{font-size:0.78rem;} .step .lbl small{display:none;}
+    .rail .foot{display:none;}
+  }
+  @media (max-width:560px){
+    .grid2,.grid3,.cardset.c2,.cardset.c3{grid-template-columns:1fr;}
+    .topbar{flex-direction:column;align-items:stretch;}
+    .acct{display:none;}
+    .roleswitch{overflow-x:auto;}
+    .form-foot{flex-direction:column-reverse;align-items:stretch;}
+    .form-foot .btns .btn{flex:1;}
+    .step-title{font-size:32px;}
+    .otp-box{width:40px;height:46px;}
+  }
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:0.001ms !important;animation-duration:0.001ms !important;}}
+</style>
+</head>
+<body>
+<div class="ob">
+  <aside class="rail">
+    <div class="brandmark">ATHLAS<span>X</span></div>
+    <div class="lead">
+      <p class="eyebrow">Player Onboarding</p>
+      <h1>Build your <b>profile.</b></h1>
+      <p>Three steps. Your cricket identity — ready for coaches, scouts, and teams to discover.</p>
+    </div>
+    <nav class="stepper" id="stepper"></nav>
+    <div class="foot"><span class="save-dot"></span> All progress saved automatically</div>
+  </aside>
+
+  <main class="form-side">
+    <div class="topbar">
+      <div class="roleswitch">
+        <button type="button" aria-selected="true">Player</button>
+        <button type="button" aria-selected="false">Coach</button>
+        <button type="button" aria-selected="false">Academy</button>
+      </div>
+      <div class="acct"><span>Welcome to AthlasX</span><span class="av">P</span></div>
+    </div>
+    <div class="progress-line"><i id="progBar"></i></div>
+    <div class="scroller" id="scroller">
+      <div class="form-body" id="stepHost"></div>
+    </div>
+    <div class="form-foot">
+      <div class="meta" id="footMeta">Step 1 of 3</div>
+      <div class="btns">
+        <button type="button" class="btn btn-ghost" id="backBtn">Back</button>
+        <button type="button" class="btn btn-fill" id="nextBtn">Save &amp; Continue →</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $=(s,r)=>(r||document).querySelector(s);
+  const el=(t,a,h)=>{const n=document.createElement(t);if(a)for(const k in a){if(k==="class")n.className=a[k];else n.setAttribute(k,a[k]);}if(h!=null)n.innerHTML=h;return n;};
+  const svg=(p,w)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(w||2)+'" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+  const IC={
+    check:'<polyline points="20 6 9 17 4 11"/>',
+    warn:'<path d="M10.3 3.3 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.3a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>',
+    shield:'<path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+    info:'<circle cx="12" cy="12" r="10"/><path d="M12 8v.01M11 12h1v4h1"/>',
+    bat:'<path d="M14.5 3.5 21 10l-9.5 9.5-3-3z"/><path d="M8 16 3 21"/>',
+    ball:'<circle cx="12" cy="12" r="9"/><path d="M12 3c3 3 3 15 0 18M3 12c3-3 15-3 18 0"/>',
+    x:'<path d="M18 6 6 18M6 6l12 12"/>',
+    spark:'<path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
+    building:'<path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M9 21v-6h6v6"/>'
+  };
+
+  const STATES=["Andhra Pradesh","Bihar","Delhi","Gujarat","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Punjab","Rajasthan","Tamil Nadu","Telangana","Uttar Pradesh","West Bengal"];
+  const STEPS=[
+    {lbl:"About You",sub:"Identity & location"},
+    {lbl:"Cricket Profile",sub:"Skills & experience"},
+    {lbl:"Join Academy",sub:"Find your batch"}
+  ];
+  let step=0, done=false;
+  const data={
+    first_name:"Arjun", last_name:"Sharma", dob:"2010-04-12", mobile:"98765 43210",
+    city:"Kanpur", district:"Kanpur Nagar", state:"Uttar Pradesh", school:"St. Joseph's High School",
+    g_name:"Rajesh Sharma", g_rel:"Father", g_mobile:"90000 12345", consent:true,
+    batting:"Right-hand", bowling:"I Don't Bowl", role:"Batsman", formats:["T20","ODI / 50-over"], join_academy:""
+  };
+  let otpSent=true, gOtpSent=true, gVerified=true;
+
+  function renderStepper(){
+    const w=$("#stepper");w.innerHTML="";
+    STEPS.forEach((s,i)=>{
+      const n=el("div",{class:"step"+(i===step&&!done?" current":"")+((i<step||done)?" done":"")});
+      n.innerHTML='<span class="num">'+((i<step||done)?svg(IC.check,3):(i+1))+'</span><span class="lbl">'+s.lbl+'<small>'+s.sub+'</small></span>';
+      w.appendChild(n);
+    });
+  }
+  function head(h,k,t,d){
+    h.appendChild(el("p",{class:"step-kicker"},k));
+    h.appendChild(el("h2",{class:"step-title"},t));
+    h.appendChild(el("p",{class:"step-desc"},d));
+  }
+  function labelHTML(lbl,opts){
+    return lbl+(opts.req?'<span class="req">*</span>':(opts.opt?'<span class="opt">optional</span>':''))+(opts.newtag?'<span class="newtag">'+svg(IC.spark,2.5)+'New</span>':'');
+  }
+  function field(lbl,node,opts){
+    opts=opts||{};
+    const w=el("div",{class:"field"+(opts.full?" ffull":"")+(opts.newfield?" newfield":"")});
+    w.appendChild(el("label",null,labelHTML(lbl,opts)));
+    w.appendChild(node);w.appendChild(el("p",{class:"err"},"This field is required."));w._name=opts.name;return w;
+  }
+  function input(name,ph,type){
+    const i=el("input",{type:type||"text",placeholder:ph||""});i.value=data[name]||"";
+    i.addEventListener("input",()=>{data[name]=i.value;i.closest(".field")&&i.closest(".field").classList.remove("invalid");});return i;
+  }
+  function select(name,opts,ph){
+    const s=el("select");s.appendChild(el("option",{value:""},ph||"Select…"));
+    opts.forEach(o=>{const op=el("option",{value:o},o);if(data[name]===o)op.selected=true;s.appendChild(op);});
+    s.addEventListener("change",()=>{data[name]=s.value;s.closest(".field")&&s.closest(".field").classList.remove("invalid");});return s;
+  }
+  function otpRow(filledStr){
+    const w=el("div",{class:"otp-boxes"});
+    const vals=(filledStr||"").split("");
+    for(let i=0;i<6;i++){
+      const b=el("input",{class:"otp-box"+(vals[i]?" filled":""),type:"text",inputmode:"numeric",maxlength:"1"});
+      b.value=vals[i]||"";
+      b.addEventListener("input",()=>{b.value=b.value.replace(/\D/g,"").slice(0,1);b.classList.toggle("filled",!!b.value);if(b.value&&b.nextElementSibling)b.nextElementSibling.focus();});
+      b.addEventListener("keydown",e=>{if(e.key==="Backspace"&&!b.value&&b.previousElementSibling)b.previousElementSibling.focus();});
+      w.appendChild(b);
+    }
+    return w;
+  }
+  function chips(name,opts,multi){
+    const w=el("div",{class:"chips"});
+    if(multi&&!Array.isArray(data[name]))data[name]=[];
+    opts.forEach(o=>{
+      const active=multi?data[name].indexOf(o)>=0:data[name]===o;
+      const c=el("div",{class:"chip",role:"button",tabindex:"0","aria-pressed":active?"true":"false"},o);
+      const tog=()=>{
+        if(multi){const a=data[name],k=a.indexOf(o);if(k>=0)a.splice(k,1);else a.push(o);c.setAttribute("aria-pressed",k>=0?"false":"true");}
+        else{data[name]=o;w.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed","false"));c.setAttribute("aria-pressed","true");}
+      };
+      c.addEventListener("click",tog);
+      c.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();tog();}});
+      w.appendChild(c);
+    });
+    return w;
+  }
+  function optcards(name,cards,cols){
+    const w=el("div",{class:"cardset "+(cols||"c2")});
+    cards.forEach(c=>{
+      const o=el("button",{class:"optcard",type:"button","aria-pressed":data[name]===c.v?"true":"false"});
+      o.innerHTML=(c.i?'<span class="ico">'+svg(c.i)+'</span>':'')+'<b>'+c.v+'</b>';
+      o.addEventListener("click",()=>{data[name]=c.v;w.querySelectorAll(".optcard").forEach(x=>x.setAttribute("aria-pressed","false"));o.setAttribute("aria-pressed","true");});
+      w.appendChild(o);
+    });
+    return w;
+  }
+  function ageFrom(dob){
+    const d=new Date(dob);if(isNaN(d))return null;
+    const now=new Date();let a=now.getFullYear()-d.getFullYear();
+    const m=now.getMonth()-d.getMonth();if(m<0||(m===0&&now.getDate()<d.getDate()))a--;return a;
+  }
+
+  // ── STEP 1 ──
+  function s1(h){
+    head(h,"Step 1 of 3","About you","Your basic identity — coaches and scouts use this to find and contact you.");
+
+    // phone + otp
+    const pf=el("div",{class:"field"});
+    pf.appendChild(el("label",null,'Mobile Number (WhatsApp)<span class="req">*</span>'));
+    const row=el("div",{class:"phone-row"});
+    row.appendChild(el("div",{class:"phone-chip"},"🇮🇳 +91"));
+    const ph=el("input",{type:"tel",inputmode:"numeric",placeholder:"98765 43210"});ph.value=data.mobile||"";
+    ph.addEventListener("input",()=>{data.mobile=ph.value;});
+    row.appendChild(ph);
+    const send=el("button",{class:otpSent?"inline-ghost":"inline-amber",type:"button"},otpSent?"Resend OTP":"Send OTP");
+    send.addEventListener("click",()=>{otpSent=true;render();});
+    row.appendChild(send);pf.appendChild(row);h.appendChild(pf);
+
+    const of=el("div",{class:"field"});
+    of.appendChild(el("label",null,"Verify OTP"));
+    of.appendChild(otpRow(otpSent?"482913":""));
+    h.appendChild(of);
+
+    // name
+    const g1=el("div",{class:"grid2"});
+    g1.appendChild(field("First Name",input("first_name","Arjun"),{req:true,name:"first_name"}));
+    g1.appendChild(field("Last Name",input("last_name","Sharma"),{req:true,name:"last_name"}));
+    h.appendChild(g1);
+
+    // dob
+    const df=field("Date of Birth",input("dob","","date"),{req:true,name:"dob"});
+    const age=ageFrom(data.dob);
+    if(age!=null&&age<18){
+      df.appendChild(el("span",{class:"age-pill"},svg(IC.warn,2.5)+"Age "+age+" — Under 18 · Guardian consent required"));
+    }
+    h.appendChild(df);
+    df.querySelector("input").addEventListener("change",()=>{data.dob=df.querySelector("input").value;render();});
+
+    // location — 3 col with District as new field
+    const g2=el("div",{class:"grid3"});
+    g2.appendChild(field("City",input("city","Kanpur"),{req:true,name:"city"}));
+    g2.appendChild(field("District",input("district","Kanpur Nagar"),{name:"district",newtag:true,newfield:true}));
+    g2.appendChild(field("State",select("state",STATES,"Select"),{req:true,name:"state"}));
+    h.appendChild(g2);
+
+    // school
+    h.appendChild(field("School / College",input("school","St. Joseph's High School"),{opt:true,name:"school"}));
+
+    // guardian block
+    const guardian=el("div",{class:"guardian"+(age!=null&&age<18?" show":"")});
+    const gc=el("div",{class:"guardian-card"});
+    gc.innerHTML='<div class="g-head"><span class="sh">'+svg(IC.shield)+'</span><div><h3>Guardian Consent Required</h3><p>Players under 18 need a parent or guardian to approve their AthlasX account.</p></div></div>';
+    const gb=el("div",{class:"g-body"});
+    gb.innerHTML='<div class="callout">'+svg(IC.info)+"<p>We'll send a one-time approval request to your guardian's WhatsApp. They tap <b>Approve</b> — that's it. Your profile activates instantly.</p></div>";
+    const gg=el("div",{class:"grid2"});
+    gg.appendChild(field("Guardian Name",input("g_name","Full name"),{req:true,name:"g_name"}));
+    gg.appendChild(field("Relationship",select("g_rel",["Mother","Father","Legal Guardian"],"Select"),{req:true,name:"g_rel"}));
+    gb.appendChild(gg);
+
+    const gpf=el("div",{class:"field"});
+    gpf.appendChild(el("label",null,'Guardian WhatsApp Number<span class="req">*</span>'));
+    const grow=el("div",{class:"phone-row"});
+    grow.appendChild(el("div",{class:"phone-chip"},"🇮🇳 +91"));
+    const gph=el("input",{type:"tel",placeholder:"90000 12345"});gph.value=data.g_mobile||"";
+    gph.addEventListener("input",()=>{data.g_mobile=gph.value;});
+    grow.appendChild(gph);
+    const gsend=el("button",{class:gOtpSent?"inline-ghost":"inline-amber",type:"button"},gOtpSent?"Resend OTP":"Send OTP");
+    gsend.addEventListener("click",()=>{gOtpSent=true;render();});
+    grow.appendChild(gsend);gpf.appendChild(grow);gb.appendChild(gpf);
+
+    const gof=el("div",{class:"field"});
+    gof.appendChild(el("label",null,"Guardian OTP"));
+    gof.appendChild(otpRow(gOtpSent?"736401":""));
+    gb.appendChild(gof);
+
+    if(gVerified){
+      gb.appendChild(el("div",{class:"callout ok"},svg(IC.check,2.5)+"<p><b>Guardian verified.</b> Your account will be active after your guardian completes approval on WhatsApp.</p>"));
+    }
+
+    const cr=el("label",{class:"checkrow"});
+    const cb=el("input",{type:"checkbox"});cb.checked=!!data.consent;
+    cb.addEventListener("change",()=>{data.consent=cb.checked;});
+    cr.appendChild(cb);
+    cr.appendChild(el("span",null,'I confirm that I have informed my guardian and they agree to AthlasX\'s <a href="#" onclick="return false">Terms of Service</a> and <a href="#" onclick="return false">Privacy Policy</a> on behalf of the player.'));
+    gb.appendChild(cr);
+
+    gc.appendChild(gb);guardian.appendChild(gc);h.appendChild(guardian);
+  }
+
+  // ── STEP 2 ──
+  function s2(h){
+    head(h,"Step 2 of 3","Cricket profile","Your playing style and experience — this powers your discoverability and AthlasX Score.");
+    const bf=el("div",{class:"field"});bf.appendChild(el("label",null,"Batting Style"));
+    bf.appendChild(optcards("batting",[{v:"Right-hand",i:IC.bat},{v:"Left-hand",i:IC.bat}],"c2"));h.appendChild(bf);
+
+    const wf=el("div",{class:"field"});wf.appendChild(el("label",null,"Bowling Style"));
+    wf.appendChild(optcards("bowling",[
+      {v:"Right-arm Pace",i:IC.ball},{v:"Left-arm Pace",i:IC.ball},
+      {v:"Right-arm Spin",i:IC.ball},{v:"Left-arm Spin",i:IC.ball},
+      {v:"I Don't Bowl",i:IC.x}
+    ],"c2"));h.appendChild(wf);
+
+    const rf=el("div",{class:"field"});rf.appendChild(el("label",null,"Primary Role"));
+    rf.appendChild(chips("role",["Batsman","Bowler","All-rounder","Wicket-keeper","WK-Batsman"],false));h.appendChild(rf);
+
+    const ff=el("div",{class:"field"});ff.appendChild(el("label",null,"Preferred Formats"));
+    ff.appendChild(chips("formats",["T20","ODI / 50-over","40-over","Red-ball"],true));h.appendChild(ff);
+
+    const os=el("div",{class:"opt-stats"});
+    os.appendChild(el("div",{class:"oh"},"<h3>Career Stats</h3><span>optional — add them later from your dashboard</span>"));
+    const sg=el("div",{class:"grid2"});
+    sg.appendChild(field("Batting Average",input("bat_avg","—","number"),{opt:true,name:"bat_avg"}));
+    sg.appendChild(field("Bowling Average",input("bowl_avg","—","number"),{opt:true,name:"bowl_avg"}));
+    sg.appendChild(field("Matches Played",input("matches","—","number"),{opt:true,name:"matches"}));
+    sg.appendChild(field("Wickets Taken",input("wickets","—","number"),{opt:true,name:"wickets"}));
+    os.appendChild(sg);h.appendChild(os);
+  }
+
+  // ── STEP 3 ──
+  function s3(h){
+    head(h,"Step 3 of 3","Join an academy","Link to your academy to appear on their roster — or skip and join later. Coaches can still discover you either way.");
+    const cf=el("div",{class:"field"});cf.appendChild(el("label",null,"Search academies"));
+    cf.appendChild(input("academy_search","Search by name or city…"));h.appendChild(cf);
+
+    const list=el("div");
+    const ACADEMIES=[
+      {v:"KCA",n:"Kanpur Cricket Academy",s:"Kanpur Nagar · 5 batches"},
+      {v:"UPS",n:"UP Sports Academy",s:"Lucknow · 8 batches"},
+      {v:"GRD",n:"Green Park Development",s:"Kanpur · 3 batches"}
+    ];
+    ACADEMIES.forEach(a=>{
+      const it=el("div",{class:"academy-item",role:"button",tabindex:"0","aria-pressed":data.join_academy===a.v?"true":"false"});
+      it.innerHTML='<span class="alogo">'+a.v+'</span><span class="amid"><b>'+a.n+'</b><small>'+a.s+'</small></span><span class="pick">'+svg(IC.check,3)+'</span>';
+      it.addEventListener("click",()=>{data.join_academy=a.v;list.querySelectorAll(".academy-item").forEach(x=>x.setAttribute("aria-pressed","false"));it.setAttribute("aria-pressed","true");});
+      list.appendChild(it);
+    });
+    h.appendChild(list);
+
+    h.appendChild(el("div",{class:"or-line"},"or"));
+    const co=el("div",{class:"callout"});
+    co.innerHTML=svg(IC.building)+"<p>Not part of an academy yet? <b>Skip for now</b> — your profile stays discoverable and you can join a batch anytime.</p>";
+    h.appendChild(co);
+  }
+
+  const RENDER=[s1,s2,s3];
+  const REQUIRED={0:["first_name","last_name","dob","mobile","city","state"]};
+
+  function validate(){
+    const host=$("#stepHost");let ok=true,first=null;
+    (REQUIRED[step]||[]).forEach(n=>{
+      if(!(data[n]||"").trim||!(data[n]||"").trim()){
+        const w=[...host.querySelectorAll(".field")].find(f=>f._name===n);
+        if(w){w.classList.add("invalid");ok=false;first=first||w;}
+      }
+    });
+    if(first){try{first.querySelector("input,select")?.focus({preventScroll:true});}catch(e){}}
+    return ok;
+  }
+
+  function render(){
+    renderStepper();
+    const h=$("#stepHost");h.innerHTML="";
+    if(done){
+      const d=el("div",{class:"done-screen"});
+      d.innerHTML='<div class="seal">'+svg(IC.check,2.5)+'</div><h2>Your <b>profile</b> is live.</h2><p>You\'re discoverable by coaches, scouts, and academies. Your guardian will get a WhatsApp approval to fully activate your account.</p>';
+      h.appendChild(d);
+      $("#progBar").style.width="100%";$("#footMeta").textContent="Done";
+      $("#backBtn").style.display="none";$("#nextBtn").textContent="Go to Dashboard";return;
+    }
+    RENDER[step](h);
+    $("#progBar").style.width=((step+1)/3*100)+"%";
+    $("#footMeta").textContent="Step "+(step+1)+" of 3";
+    $("#backBtn").style.display=step===0?"none":"";
+    $("#nextBtn").innerHTML=step===2?"Finish →":"Save &amp; Continue →";
+    $("#scroller").scrollTop=0;
+  }
+
+  $("#backBtn").addEventListener("click",()=>{if(step>0&&!done){step--;render();}});
+  $("#nextBtn").addEventListener("click",()=>{
+    if(done){done=false;step=0;render();return;}
+    if(!validate())return;
+    if(step<2){step++;render();}else{done=true;render();}
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

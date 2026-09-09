@@ -16,7 +16,13 @@ const config: Config = {
           bgSoft: "#141312",
           text: "#F5F5F0",
           textDim: "rgba(245, 245, 240, 0.62)",
-          textFaint: "rgba(245, 245, 240, 0.4)",
+          // Raised from 0.4 -> 0.5: measured contrast against ax-bg
+          // (#0D0D0D) at 0.4 was ~3.6:1, failing WCAG AA's 4.5:1 for
+          // normal text (this token is used at 9-11px throughout, well
+          // under the "large text" 3:1 threshold it would otherwise
+          // clear). 0.5 measures ~4.97:1, verified via the standard
+          // relative-luminance formula, not just eyeballed.
+          textFaint: "rgba(245, 245, 240, 0.5)",
           accent: "#FF8A1E",
           accentBright: "#FFA64D",
           ok: "#38d39f",

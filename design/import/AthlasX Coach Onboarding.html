@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AthlasX — Coach Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0D0D0D; --bg-soft:#141312;
+    --text:#F5F5F0; --text-dim:rgba(245,245,240,0.62); --text-faint:rgba(245,245,240,0.4);
+    --accent:#FF8A1E; --accent-rgb:255,138,30; --accent-bright:#FFA64D;
+    --ov08:rgba(255,138,30,0.08); --ov14:rgba(255,138,30,0.14); --ov22:rgba(255,138,30,0.22);
+    --card-border:rgba(245,245,240,0.14); --field-bg:rgba(245,245,240,0.06);
+    --ok:#38d39f; --ok-rgb:56,211,159; --bad:#ff5a4d;
+    --phi2:2.618rem; --ease:cubic-bezier(0.22,1,0.36,1);
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:"Barlow",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  a{color:var(--accent-bright);text-decoration:none;} a:hover{color:var(--accent);}
+  ::selection{background:var(--ov22);}
+
+  .ob{display:grid;grid-template-columns:1fr 2fr;min-height:100vh;min-height:100dvh;}
+
+  /* ── LEFT RAIL ── */
+  .rail{position:relative;overflow:hidden;display:flex;flex-direction:column;padding:var(--phi2);background:var(--bg-soft);}
+  .rail::before{content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(110% 75% at 0% 0%, var(--ov14), transparent 55%),
+      linear-gradient(160deg, #1a0c04 0%, #0d0d0d 52%, #050505 100%);}
+  .rail::after{content:"";position:absolute;inset:0;opacity:0.03;pointer-events:none;
+    background:repeating-linear-gradient(45deg, var(--accent) 0 1px, transparent 1px 44px);}
+  .rail>*{position:relative;z-index:1;}
+  .brandmark{font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.22em;font-weight:700;font-size:0.95rem;color:var(--text);}
+  .brandmark span{color:var(--accent);}
+  .lead{margin-top:1.6rem;}
+  .lead .eyebrow{font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.2em;font-size:11px;font-weight:700;color:var(--accent-bright);margin:0 0 0.55rem;}
+  .lead h1{font-family:"Anton",sans-serif;text-transform:uppercase;font-weight:400;line-height:0.92;font-size:42px;margin:0;color:var(--text);}
+  .lead h1 b{color:var(--accent);font-weight:400;}
+  .lead p{margin:0.8rem 0 0;font-size:14px;line-height:1.5;color:var(--text-dim);max-width:22rem;}
+
+  .stepper{margin:2rem 0 0;display:flex;flex-direction:column;gap:0.15rem;}
+  .step{display:flex;align-items:center;gap:0.85rem;padding:0.5rem 0.4rem;border-radius:9px;color:var(--text-dim);}
+  .step .num{flex:0 0 auto;width:27px;height:27px;border-radius:50%;display:grid;place-items:center;font-size:0.78rem;font-weight:700;font-family:"Barlow Semi Condensed",sans-serif;border:1.5px solid var(--card-border);color:var(--text-dim);transition:all 0.25s var(--ease);}
+  .step .lbl{font-size:0.9rem;font-weight:600;}
+  .step .lbl small{display:block;font-size:0.7rem;font-weight:500;color:var(--text-faint);}
+  .step.done{color:var(--text);}
+  .step.done .num{border-color:var(--accent);background:var(--ov14);color:var(--accent-bright);}
+  .step.current{color:var(--text);}
+  .step.current .num{border-color:var(--accent);background:var(--accent);color:#1a0e02;box-shadow:0 0 0 4px var(--ov22);}
+  .rail .foot{margin-top:auto;padding-top:1.5rem;font-size:0.76rem;color:var(--text-faint);display:flex;align-items:center;gap:0.5rem;}
+  .save-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);}
+
+  /* ── RIGHT PANEL ── */
+  .form-side{position:relative;display:flex;flex-direction:column;background:var(--bg);min-width:0;}
+  .form-side::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(110% 50% at 100% 0%, var(--ov08), transparent 55%);}
+  .topbar{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1.1rem clamp(1.25rem,3.5vw,3rem);border-bottom:1px solid var(--card-border);}
+  .roleswitch{display:flex;gap:0.3rem;padding:0.28rem;background:var(--field-bg);border:1px solid var(--card-border);border-radius:11px;}
+  .roleswitch button{appearance:none;border:0;cursor:pointer;border-radius:8px;padding:0.46rem 0.95rem;font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.82rem;color:var(--text-dim);background:transparent;transition:background 0.22s var(--ease),color 0.22s var(--ease);}
+  .roleswitch button[aria-selected="true"]{background:var(--accent);color:#1a0e02;}
+  .acct{display:flex;align-items:center;gap:0.7rem;font-size:0.84rem;color:var(--text-dim);}
+  .acct .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--ov14);color:var(--accent-bright);font-weight:700;font-size:0.82rem;font-family:"Barlow Semi Condensed",sans-serif;}
+
+  .progress-line{height:3px;background:var(--card-border);overflow:hidden;position:relative;z-index:2;}
+  .progress-line i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-bright));width:75%;transition:width 0.5s var(--ease);}
+
+  .scroller{position:relative;z-index:1;flex:1;overflow-y:auto;}
+  .form-body{width:100%;max-width:42rem;margin:0 auto;padding:clamp(1.5rem,3.5vw,2.6rem) clamp(1.25rem,3.5vw,3rem) 2rem;}
+
+  .step-kicker{font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.18em;font-size:11px;font-weight:700;color:var(--accent-bright);margin:0 0 0.45rem;}
+  .step-title{font-family:"Anton",sans-serif;text-transform:uppercase;font-weight:400;line-height:0.92;font-size:40px;margin:0 0 0.55rem;color:var(--text);}
+  .step-desc{margin:0 0 1.7rem;font-size:14px;line-height:1.5;color:var(--text-dim);max-width:34rem;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0.95rem 1rem;}
+  .ffull{grid-column:1/-1;}
+  .field{margin-bottom:1.05rem;}
+  .field>label{display:block;font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.12em;font-size:10.5px;font-weight:700;color:var(--text-dim);margin:0 0 0.5rem;}
+  .field>label .req{color:var(--accent);margin-left:0.15rem;}
+  .field>label .opt{color:var(--text-faint);font-weight:500;letter-spacing:0.05em;margin-left:0.3rem;text-transform:none;}
+  .field input,.field select{width:100%;padding:0.78rem 0.95rem;font-family:"Barlow",sans-serif;font-size:0.95rem;color:var(--text);background:var(--field-bg);border:1px solid var(--card-border);border-radius:9px;outline:none;transition:border-color 0.22s var(--ease),background 0.22s var(--ease),box-shadow 0.22s var(--ease);}
+  .field input::placeholder{color:var(--text-faint);}
+  .field input:focus,.field select:focus{border-color:var(--accent);background:rgba(245,245,240,0.09);box-shadow:0 0 0 3px var(--ov22);}
+  .field.invalid input,.field.invalid select{border-color:var(--bad);box-shadow:0 0 0 3px rgba(255,90,77,0.16);}
+  .field .err{display:none;font-size:0.76rem;color:#ff8a7e;margin:0.45rem 0 0;}
+  .field.invalid .err{display:block;}
+  .field select{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23FFA64D' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");background-repeat:no-repeat;background-position:right 0.9rem center;padding-right:2.4rem;}
+
+  /* optcards */
+  .cardset{display:grid;gap:0.6rem;}
+  .cardset.c3{grid-template-columns:repeat(3,1fr);}
+  .cardset.c2{grid-template-columns:1fr 1fr;}
+  .optcard{cursor:pointer;text-align:left;padding:0.85rem 0.95rem;border-radius:11px;background:var(--field-bg);border:1.5px solid var(--card-border);display:flex;align-items:flex-start;gap:0.7rem;transition:all 0.18s var(--ease);}
+  .optcard:hover{border-color:rgba(245,245,240,0.3);}
+  .optcard[aria-pressed="true"]{border-color:var(--accent);background:var(--ov14);}
+  .optcard .ico{width:32px;height:32px;flex:0 0 auto;border-radius:8px;display:grid;place-items:center;background:rgba(var(--accent-rgb),0.16);color:var(--accent-bright);transition:all 0.18s var(--ease);}
+  .optcard[aria-pressed="true"] .ico{background:var(--accent);color:#1a0e02;}
+  .optcard .ico svg{width:17px;height:17px;}
+  .optcard .t b{display:block;font-size:0.92rem;font-weight:700;color:var(--text);}
+  .optcard .t small{font-size:0.74rem;color:var(--text-dim);line-height:1.35;}
+  .optcard .t small.it{font-style:italic;}
+
+  /* cert level card (vertical, badge) */
+  .certgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;}
+  .certcard{cursor:pointer;text-align:center;padding:1rem 0.7rem;border-radius:11px;background:var(--field-bg);border:1.5px solid var(--card-border);display:flex;flex-direction:column;align-items:center;gap:0.5rem;transition:all 0.18s var(--ease);}
+  .certcard:hover{border-color:rgba(245,245,240,0.3);}
+  .certcard[aria-pressed="true"]{border-color:var(--accent);background:var(--ov14);}
+  .certcard .badge{width:44px;height:44px;border-radius:10px;display:grid;place-items:center;font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;font-size:0.95rem;background:rgba(var(--accent-rgb),0.16);color:var(--accent-bright);border:1px solid var(--ov22);transition:all 0.18s var(--ease);}
+  .certcard[aria-pressed="true"] .badge{background:var(--accent);color:#1a0e02;border-color:var(--accent);box-shadow:0 6px 16px -6px rgba(var(--accent-rgb),0.7);}
+  .certcard .badge svg{width:20px;height:20px;}
+  .certcard b{font-size:0.86rem;font-weight:700;color:var(--text);}
+  .certcard small{font-size:0.72rem;color:var(--text-dim);}
+
+  /* chips */
+  .chips{display:flex;flex-wrap:wrap;gap:0.5rem;}
+  .chip{cursor:pointer;user-select:none;padding:0.5rem 0.9rem;border-radius:999px;font-size:0.86rem;font-weight:600;color:var(--text-dim);background:var(--field-bg);border:1.5px solid var(--card-border);transition:all 0.18s var(--ease);}
+  .chip:hover{border-color:rgba(245,245,240,0.3);color:var(--text);}
+  .chip[aria-pressed="true"]{background:var(--ov14);border-color:var(--accent);color:var(--accent-bright);}
+
+  /* numstep */
+  .numstep{display:inline-flex;align-items:center;border:1px solid var(--card-border);border-radius:9px;overflow:hidden;background:var(--field-bg);}
+  .numstep button{border:0;background:transparent;width:40px;height:44px;font-size:1.15rem;font-weight:700;color:var(--text);cursor:pointer;transition:background 0.15s var(--ease);}
+  .numstep button:hover{background:var(--ov14);color:var(--accent-bright);}
+  .numstep input{width:60px;text-align:center;border:0;border-left:1px solid var(--card-border);border-right:1px solid var(--card-border);height:44px;font-family:"Barlow Semi Condensed",sans-serif;font-size:1.05rem;font-weight:700;background:transparent;color:var(--text);outline:none;}
+
+  /* reveal */
+  .reveal{max-height:0;overflow:hidden;transition:max-height 0.4s var(--ease);}
+  .reveal.show{max-height:320px;}
+  .reveal .inner{padding-top:0.9rem;}
+
+  /* section divider */
+  .divider{display:flex;align-items:baseline;gap:0.7rem;margin:1.8rem 0 1rem;padding-top:1.3rem;border-top:1px solid var(--ov22);}
+  .divider h3{font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.1em;font-size:0.92rem;font-weight:700;margin:0;color:var(--text);}
+  .divider span{font-size:0.74rem;color:var(--text-faint);}
+
+  /* uploaded cert card */
+  .cert-item{display:flex;align-items:center;gap:0.9rem;padding:0.9rem 1rem;border-radius:11px;background:linear-gradient(180deg, rgba(245,245,240,0.07), rgba(245,245,240,0.03));border:1px solid var(--card-border);box-shadow:0 10px 24px -16px rgba(0,0,0,0.8), inset 0 1px 0 rgba(245,245,240,0.06);margin-bottom:0.7rem;}
+  .cert-item .cbadge{width:40px;height:40px;flex:0 0 auto;border-radius:9px;display:grid;place-items:center;background:var(--accent);color:#1a0e02;font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;font-size:0.92rem;box-shadow:0 6px 16px -6px rgba(var(--accent-rgb),0.7);}
+  .cert-item .cmid{flex:1;min-width:0;}
+  .cert-item .cmid b{display:block;font-size:0.9rem;font-weight:700;color:var(--text);}
+  .cert-item .cmid small{font-size:0.76rem;color:var(--text-dim);}
+  .verified-pill{flex:0 0 auto;display:inline-flex;align-items:center;gap:0.4rem;padding:0.35rem 0.75rem;border-radius:999px;background:rgba(var(--ok-rgb),0.12);border:1px solid rgba(var(--ok-rgb),0.5);color:var(--ok);font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;font-size:0.74rem;}
+  .verified-pill svg{width:13px;height:13px;}
+
+  /* upload zone */
+  .upload-zone{border:2px dashed var(--accent);border-radius:11px;padding:1.7rem 1rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem;text-align:center;cursor:pointer;background:var(--ov08);transition:background 0.18s var(--ease);}
+  .upload-zone:hover{background:var(--ov14);}
+  .upload-zone svg{width:30px;height:30px;color:var(--accent);}
+  .upload-zone b{font-size:0.9rem;color:var(--text);}
+  .upload-zone small{font-size:0.74rem;color:var(--text-faint);}
+
+  /* callout */
+  .callout{display:flex;gap:0.7rem;padding:0.85rem 1rem;border-radius:10px;margin:1.4rem 0 0.4rem;background:var(--ov08);border:1px solid var(--ov22);}
+  .callout svg{width:18px;height:18px;color:var(--accent-bright);flex:0 0 auto;margin-top:0.1rem;}
+  .callout p{margin:0;font-size:0.84rem;line-height:1.5;color:var(--text);}
+  .callout b{color:var(--accent-bright);}
+
+  /* invite code (step 4) */
+  .code-row{display:flex;gap:0.5rem;}
+  .code-row input{flex:1;text-transform:uppercase;letter-spacing:0.1em;font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;}
+  .inline-amber{flex:0 0 auto;padding:0 1.2rem;border:0;border-radius:9px;background:var(--accent);color:#1a0e02;font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;font-size:0.84rem;cursor:pointer;transition:background 0.18s var(--ease);}
+  .inline-amber:hover{background:var(--accent-bright);}
+  .or-line{display:flex;align-items:center;gap:0.8rem;margin:1.3rem 0;color:var(--text-faint);font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.14em;font-size:0.74rem;}
+  .or-line::before,.or-line::after{content:"";flex:1;height:1px;background:var(--card-border);}
+  .academy-item{display:flex;align-items:center;gap:0.85rem;padding:0.8rem 0.95rem;border-radius:11px;background:var(--field-bg);border:1.5px solid var(--card-border);cursor:pointer;margin-bottom:0.55rem;transition:all 0.18s var(--ease);}
+  .academy-item:hover{border-color:rgba(245,245,240,0.3);}
+  .academy-item[aria-pressed="true"]{border-color:var(--accent);background:var(--ov14);}
+  .academy-item .alogo{width:38px;height:38px;flex:0 0 auto;border-radius:9px;background:rgba(var(--accent-rgb),0.16);color:var(--accent-bright);display:grid;place-items:center;font-family:"Barlow Semi Condensed",sans-serif;font-weight:700;font-size:0.86rem;}
+  .academy-item .amid{flex:1;min-width:0;}
+  .academy-item .amid b{display:block;font-size:0.88rem;font-weight:700;color:var(--text);}
+  .academy-item .amid small{font-size:0.74rem;color:var(--text-dim);}
+  .academy-item .pick{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--card-border);flex:0 0 auto;display:grid;place-items:center;color:transparent;}
+  .academy-item[aria-pressed="true"] .pick{border-color:var(--accent);background:var(--accent);color:#1a0e02;}
+  .academy-item .pick svg{width:12px;height:12px;}
+
+  /* footer */
+  .form-foot{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem clamp(1.25rem,3.5vw,3rem);border-top:1px solid var(--card-border);background:rgba(13,13,13,0.6);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
+  .form-foot .meta{font-size:0.82rem;color:var(--text-dim);}
+  .form-foot .btns{display:flex;gap:0.6rem;}
+  .btn{padding:0.78rem 1.5rem;cursor:pointer;font-family:"Barlow Semi Condensed",sans-serif;text-transform:uppercase;letter-spacing:0.06em;font-weight:700;font-size:0.92rem;border-radius:9px;transition:transform 0.16s var(--ease),background 0.2s var(--ease),border-color 0.2s var(--ease);white-space:nowrap;}
+  .btn:active{transform:translateY(1px);}
+  .btn-fill{background:var(--accent);color:#1a0e02;border:1.5px solid var(--accent);box-shadow:0 8px 22px -8px rgba(var(--accent-rgb),0.7);}
+  .btn-fill:hover{background:var(--accent-bright);border-color:var(--accent-bright);}
+  .btn-ghost{background:transparent;color:var(--text);border:1.5px solid var(--card-border);}
+  .btn-ghost:hover{border-color:var(--text);background:rgba(245,245,240,0.06);}
+
+  /* success */
+  .done-screen{text-align:center;padding:2.5rem 0 1rem;}
+  .done-screen .seal{width:84px;height:84px;margin:0 auto 1.4rem;border-radius:50%;display:grid;place-items:center;background:var(--ov14);border:1.5px solid var(--accent);color:var(--accent);}
+  .done-screen .seal svg{width:40px;height:40px;}
+  .done-screen h2{font-family:"Anton",sans-serif;text-transform:uppercase;font-weight:400;line-height:0.92;font-size:clamp(30px,4vw,44px);margin:0 0 0.7rem;}
+  .done-screen h2 b{color:var(--accent);font-weight:400;}
+  .done-screen p{font-size:0.95rem;color:var(--text-dim);max-width:28rem;margin:0 auto;line-height:1.55;}
+
+  @media (max-width:900px){
+    .ob{grid-template-columns:1fr;}
+    .rail{padding:1.4rem;}
+    .lead h1{font-size:32px;}
+    .stepper{flex-direction:row;flex-wrap:wrap;gap:0.4rem;margin-top:1.2rem;}
+    .step{padding:0.35rem 0.6rem 0.35rem 0.35rem;background:rgba(245,245,240,0.04);}
+    .step .lbl{font-size:0.78rem;} .step .lbl small{display:none;}
+    .rail .foot{display:none;}
+  }
+  @media (max-width:560px){
+    .grid2,.cardset.c2,.certgrid{grid-template-columns:1fr;}
+    .certgrid{grid-template-columns:1fr 1fr;}
+    .topbar{flex-direction:column;align-items:stretch;}
+    .acct{display:none;}
+    .roleswitch{overflow-x:auto;}
+    .form-foot{flex-direction:column-reverse;align-items:stretch;}
+    .form-foot .btns .btn{flex:1;}
+    .step-title{font-size:32px;}
+  }
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:0.001ms !important;animation-duration:0.001ms !important;}}
+</style>
+</head>
+<body>
+<div class="ob">
+  <aside class="rail">
+    <div class="brandmark">ATHLAS<span>X</span></div>
+    <div class="lead">
+      <p class="eyebrow">Coach Onboarding</p>
+      <h1>Join as a <b>coach.</b></h1>
+      <p>Four steps. Share your experience, get verified, and start coaching on AthlasX.</p>
+    </div>
+    <nav class="stepper" id="stepper"></nav>
+    <div class="foot"><span class="save-dot"></span> All progress saved automatically</div>
+  </aside>
+
+  <main class="form-side">
+    <div class="topbar">
+      <div class="roleswitch">
+        <button type="button" aria-selected="false">Player</button>
+        <button type="button" aria-selected="true">Coach</button>
+        <button type="button" aria-selected="false">Academy</button>
+      </div>
+      <div class="acct"><span>Welcome to AthlasX</span><span class="av">C</span></div>
+    </div>
+    <div class="progress-line"><i id="progBar"></i></div>
+    <div class="scroller" id="scroller">
+      <div class="form-body" id="stepHost"></div>
+    </div>
+    <div class="form-foot">
+      <div class="meta" id="footMeta">Step 3 of 4</div>
+      <div class="btns">
+        <button type="button" class="btn btn-ghost" id="backBtn">Back</button>
+        <button type="button" class="btn btn-fill" id="nextBtn">Save &amp; Continue →</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $=(s,r)=>(r||document).querySelector(s);
+  const el=(t,a,h)=>{const n=document.createElement(t);if(a)for(const k in a){if(k==="class")n.className=a[k];else n.setAttribute(k,a[k]);}if(h!=null)n.innerHTML=h;return n;};
+  const svg=(p,w)=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(w||2)+'" stroke-linecap="round" stroke-linejoin="round">'+p+'</svg>';
+  const IC={
+    check:'<polyline points="20 6 9 17 4 11"/>',
+    whistle:'<path d="M12 5V3M8 5V3M16 5V3"/><path d="M3 9h11a5 5 0 1 1-5 5v-1a4 4 0 0 0-4-4H3z"/><circle cx="14" cy="14" r="1.5"/>',
+    star:'<polygon points="12 2 15 9 22 9.3 16.5 14 18.5 21 12 17 5.5 21 7.5 14 2 9.3 9 9"/>',
+    target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+    user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/>',
+    cloud:'<path d="M20 16.6A5 5 0 0 0 18 7h-1.3A7 7 0 1 0 5 15.3"/><path d="M12 12v9m0-9-3.5 3.5M12 12l3.5 3.5"/>',
+    info:'<circle cx="12" cy="12" r="10"/><path d="M12 8v.01M11 12h1v4h1"/>',
+    building:'<path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-5h6v5"/>',
+    x:'<path d="M18 6 6 18M6 6l12 12"/>'
+  };
+
+  const STEPS=[
+    {lbl:"Account",sub:"Phone + profile"},
+    {lbl:"Experience",sub:"Role, skills, history"},
+    {lbl:"Certifications",sub:"BCCI levels, NCA"},
+    {lbl:"Join Academy",sub:"Invite code or browse"}
+  ];
+  let step=2; // open on Step 3 (index 2)
+  let done=false;
+  const data={
+    coach_role:"Head Coach", specialisations:["Batting"], years:6, playedHigh:"Yes",
+    cert_level:"L2", certs:[{lvl:"L2",name:"BCCI Level 2 Certificate",verified:true}], join_academy:""
+  };
+
+  function renderStepper(){
+    const w=$("#stepper");w.innerHTML="";
+    STEPS.forEach((s,i)=>{
+      const n=el("div",{class:"step"+(i===step&&!done?" current":"")+((i<step||done)?" done":"")});
+      n.innerHTML='<span class="num">'+((i<step||done)?svg(IC.check,3):(i+1))+'</span><span class="lbl">'+s.lbl+'<small>'+s.sub+'</small></span>';
+      w.appendChild(n);
+    });
+  }
+
+  function head(h,k,t,d){
+    h.appendChild(el("p",{class:"step-kicker"},k));
+    h.appendChild(el("h2",{class:"step-title"},t));
+    h.appendChild(el("p",{class:"step-desc"},d));
+  }
+  function field(lbl,node,opts){
+    opts=opts||{};
+    const w=el("div",{class:"field"+(opts.full?" ffull":"")});
+    w.appendChild(el("label",null,lbl+(opts.req?'<span class="req">*</span>':(opts.opt?'<span class="opt">optional</span>':''))));
+    w.appendChild(node);w.appendChild(el("p",{class:"err"},"This field is required."));w._name=opts.name;return w;
+  }
+  function input(name,ph,type){
+    const i=el("input",{type:type||"text",placeholder:ph||""});i.value=data[name]||"";
+    i.addEventListener("input",()=>{data[name]=i.value;i.closest(".field")&&i.closest(".field").classList.remove("invalid");});return i;
+  }
+  function select(name,opts,ph){
+    const s=el("select");s.appendChild(el("option",{value:""},ph||"Select…"));
+    opts.forEach(o=>{const op=el("option",{value:o},o);if(data[name]===o)op.selected=true;s.appendChild(op);});
+    s.addEventListener("change",()=>{data[name]=s.value;s.closest(".field")&&s.closest(".field").classList.remove("invalid");});return s;
+  }
+  function chips(name,opts,multi){
+    const w=el("div",{class:"chips"});
+    if(multi&&!Array.isArray(data[name]))data[name]=[];
+    opts.forEach(o=>{
+      const active=multi?data[name].indexOf(o)>=0:data[name]===o;
+      const c=el("div",{class:"chip",role:"button",tabindex:"0","aria-pressed":active?"true":"false"},o);
+      const tog=()=>{
+        if(multi){const a=data[name],k=a.indexOf(o);if(k>=0)a.splice(k,1);else a.push(o);c.setAttribute("aria-pressed",k>=0?"false":"true");}
+        else{data[name]=o;w.querySelectorAll(".chip").forEach(x=>x.setAttribute("aria-pressed","false"));c.setAttribute("aria-pressed","true");if(w._onchange)w._onchange(o);}
+      };
+      c.addEventListener("click",tog);
+      c.addEventListener("keydown",e=>{if(e.key===" "||e.key==="Enter"){e.preventDefault();tog();}});
+      w.appendChild(c);
+    });
+    return w;
+  }
+  function numstep(name,min,max){
+    if(data[name]==null)data[name]=min;
+    const w=el("div",{class:"numstep"});
+    const m=el("button",{type:"button"},"−"),i=el("input",{type:"text",inputmode:"numeric"}),p=el("button",{type:"button"},"+");
+    i.value=data[name];
+    const cl=v=>{v=parseInt(v,10);if(isNaN(v))v=min;return Math.max(min,Math.min(max,v));};
+    m.addEventListener("click",()=>{data[name]=cl(data[name]-1);i.value=data[name];});
+    p.addEventListener("click",()=>{data[name]=cl(data[name]+1);i.value=data[name];});
+    i.addEventListener("input",()=>{data[name]=cl(i.value);i.value=data[name];});
+    w.appendChild(m);w.appendChild(i);w.appendChild(p);return w;
+  }
+  function optcards(name,cards,cols){
+    const w=el("div",{class:"cardset "+(cols||"c2")});
+    cards.forEach(c=>{
+      const o=el("button",{class:"optcard",type:"button","aria-pressed":data[name]===c.v?"true":"false"});
+      o.innerHTML='<span class="ico">'+svg(c.i)+'</span><span class="t"><b>'+c.v+'</b><small class="it">'+c.s+'</small></span>';
+      o.addEventListener("click",()=>{data[name]=c.v;w.querySelectorAll(".optcard").forEach(x=>x.setAttribute("aria-pressed","false"));o.setAttribute("aria-pressed","true");});
+      w.appendChild(o);
+    });
+    return w;
+  }
+
+  // ── STEP 1: ACCOUNT ──
+  function s1(h){
+    head(h,"Step 1 of 4","Create your account","Your name and number become your coach profile. We verify by OTP.");
+    const g=el("div",{class:"grid2"});
+    g.appendChild(field("Full Name",input("coach_name","e.g. Anil Kumble"),{full:true,req:true,name:"coach_name"}));
+    g.appendChild(field("Mobile Number",input("mobile","+91 98765 43210","tel"),{req:true,name:"mobile"}));
+    g.appendChild(field("Email",input("email","you@email.com","email"),{name:"email",opt:true}));
+    h.appendChild(g);
+    g.appendChild(field("City",input("city","e.g. Bengaluru"),{name:"city"}));
+    g.appendChild(field("Display Photo",(()=>{const u=el("div",{class:"upload-zone"});u.innerHTML=svg(IC.cloud)+"<b>Upload a headshot</b><small>PNG or JPG — max 5 MB</small>";u.style.padding="1.1rem";return u;})(),{name:"photo",opt:true}));
+  }
+
+  // ── STEP 2: EXPERIENCE ──
+  function s2(h){
+    head(h,"Step 2 of 4","Experience","Your coaching background helps us match you with the right academies and players.");
+    const rf=el("div",{class:"field"});rf.appendChild(el("label",null,"Primary Coaching Role"));
+    rf.appendChild(optcards("coach_role",[
+      {v:"Head Coach",s:"Leads a squad or academy",i:IC.whistle},
+      {v:"Assistant Coach",s:"Supports the head coach",i:IC.user},
+      {v:"Specialist",s:"Batting / bowling / fielding focus",i:IC.target},
+      {v:"Freelance",s:"Independent, multiple clients",i:IC.star}
+    ],"c2"));
+    h.appendChild(rf);
+
+    const sf=el("div",{class:"field"});sf.appendChild(el("label",null,"Coaching Specialisation"));
+    sf.appendChild(chips("specialisations",["Batting","Bowling (Pace)","Bowling (Spin)","Wicket-keeping","Fielding","Fitness & Conditioning","Mental Skills","All-round"],true));
+    h.appendChild(sf);
+
+    const yf=el("div",{class:"field"});yf.appendChild(el("label",null,"Years of Coaching Experience"));yf.appendChild(numstep("years",0,50));h.appendChild(yf);
+
+    const pf=el("div",{class:"field"});
+    pf.appendChild(el("label",null,"Played at State / Higher Level?"));
+    const pc=chips("playedHigh",["Yes","No"],false);
+    pf.appendChild(pc);
+    const rev=el("div",{class:"reveal"+(data.playedHigh==="Yes"?" show":"")});
+    const inner=el("div",{class:"inner"});
+    const g=el("div",{class:"grid2"});
+    g.appendChild(field("Highest Level Played",select("played_level",["District","State","Ranji Trophy","India A","International","IPL / Franchise"],"Select level"),{name:"played_level"}));
+    g.appendChild(field("Playing Role",select("played_role",["Batsman","Bowler","All-Rounder","Wicket-Keeper"],"Select role"),{name:"played_role"}));
+    inner.appendChild(g);rev.appendChild(inner);
+    pc._onchange=()=>rev.classList.toggle("show",data.playedHigh==="Yes");
+    pf.appendChild(rev);
+    h.appendChild(pf);
+  }
+
+  // ── STEP 3: CERTIFICATIONS ──
+  function s3(h){
+    head(h,"Step 3 of 4","Certifications","Verified certifications build trust with academies and parents. Upload whatever you have — even a single cert helps.");
+    const cf=el("div",{class:"field"});cf.appendChild(el("label",null,"Highest Certification Level"));
+    const grid=el("div",{class:"certgrid"});
+    const CERTS=[
+      {v:"L1",b:"L1",n:"BCCI Level 1",s:"Foundation"},
+      {v:"L2",b:"L2",n:"BCCI Level 2",s:"Intermediate"},
+      {v:"L3",b:"L3",n:"BCCI Level 3",s:"Advanced"},
+      {v:"NCA",b:"NCA",n:"NCA",s:"National"},
+      {v:"NIS",b:"NIS",n:"NIS",s:"Sports Institute"},
+      {v:"None",b:svg(IC.x),n:"No Cert",s:"Informal experience"}
+    ];
+    CERTS.forEach(c=>{
+      const o=el("button",{class:"certcard",type:"button","aria-pressed":data.cert_level===c.v?"true":"false"});
+      o.innerHTML='<span class="badge">'+c.b+'</span><b>'+c.n+'</b><small>'+c.s+'</small>';
+      o.addEventListener("click",()=>{data.cert_level=c.v;grid.querySelectorAll(".certcard").forEach(x=>x.setAttribute("aria-pressed","false"));o.setAttribute("aria-pressed","true");});
+      grid.appendChild(o);
+    });
+    cf.appendChild(grid);h.appendChild(cf);
+
+    const div=el("div",{class:"divider"});div.innerHTML="<h3>Certificate Upload</h3><span>optional but builds credibility</span>";h.appendChild(div);
+
+    data.certs.forEach(c=>{
+      const it=el("div",{class:"cert-item"});
+      it.innerHTML='<span class="cbadge">'+c.lvl+'</span><span class="cmid"><b>'+c.name+'</b><small>'+(c.verified?"Reviewed by AthlasX":"Upload your certificate for verification")+'</small></span>'+
+        (c.verified?'<span class="verified-pill">'+svg(IC.check,3)+'Verified</span>':'');
+      h.appendChild(it);
+    });
+
+    const uz=el("div",{class:"upload-zone"});
+    uz.innerHTML=svg(IC.cloud)+"<b>Upload certificate or ID proof</b><small>PDF, PNG, JPG — max 5 MB per file. <a href=\"#\" onclick=\"return false\">Browse files</a></small>";
+    h.appendChild(uz);
+
+    const co=el("div",{class:"callout"});
+    co.innerHTML=svg(IC.info)+"<p>Uploaded certs are reviewed within <b>24–48 hours</b>. You can still join and coach while verification is pending — academies will see a 'pending' badge.</p>";
+    h.appendChild(co);
+  }
+
+  // ── STEP 4: JOIN ACADEMY ──
+  function s4(h){
+    head(h,"Step 4 of 4","Join an academy","Enter an invite code from an academy, or browse and request to join. You can also coach independently.");
+    const cf=el("div",{class:"field"});cf.appendChild(el("label",null,"Have an invite code?"));
+    const row=el("div",{class:"code-row"});
+    const ci=el("input",{type:"text",placeholder:"E.G. KCA-8F21X",maxlength:"12"});ci.value=data.invite_code||"";
+    ci.addEventListener("input",()=>{data.invite_code=ci.value.toUpperCase();ci.value=data.invite_code;});
+    const cb=el("button",{class:"inline-amber",type:"button"},"Apply");
+    cb.addEventListener("click",()=>{if(!ci.value.trim())return ci.focus();cb.textContent="Applied ✓";setTimeout(()=>cb.textContent="Apply",1300);});
+    row.appendChild(ci);row.appendChild(cb);cf.appendChild(row);h.appendChild(cf);
+
+    h.appendChild(el("div",{class:"or-line"},"or browse academies"));
+
+    const list=el("div");
+    const ACADEMIES=[
+      {v:"KCA",n:"Karnataka Cricket Academy",s:"Bengaluru · 184 players"},
+      {v:"MPF",n:"MRF Pace Foundation",s:"Chennai · 62 players"},
+      {v:"NCA",n:"National Cricket Academy",s:"Bengaluru · Elite"}
+    ];
+    ACADEMIES.forEach(a=>{
+      const it=el("div",{class:"academy-item",role:"button",tabindex:"0","aria-pressed":data.join_academy===a.v?"true":"false"});
+      it.innerHTML='<span class="alogo">'+a.v+'</span><span class="amid"><b>'+a.n+'</b><small>'+a.s+'</small></span><span class="pick">'+svg(IC.check,3)+'</span>';
+      it.addEventListener("click",()=>{data.join_academy=a.v;list.querySelectorAll(".academy-item").forEach(x=>x.setAttribute("aria-pressed","false"));it.setAttribute("aria-pressed","true");});
+      list.appendChild(it);
+    });
+    h.appendChild(list);
+
+    const co=el("div",{class:"callout"});
+    co.innerHTML=svg(IC.building)+"<p>No academy yet? <b>Continue as independent</b> — you can coach and link an academy anytime from your dashboard.</p>";
+    h.appendChild(co);
+  }
+
+  const RENDER=[s1,s2,s3,s4];
+  const REQUIRED={0:["coach_name","mobile"]};
+
+  function validate(){
+    const host=$("#stepHost");let ok=true,first=null;
+    (REQUIRED[step]||[]).forEach(n=>{
+      if(!(data[n]||"").trim||!(data[n]||"").trim()){
+        const w=[...host.querySelectorAll(".field")].find(f=>f._name===n);
+        if(w){w.classList.add("invalid");ok=false;first=first||w;}
+      }
+    });
+    if(first){try{first.querySelector("input,select")?.focus({preventScroll:true});}catch(e){}}
+    return ok;
+  }
+
+  function render(){
+    renderStepper();
+    const h=$("#stepHost");h.innerHTML="";
+    if(done){
+      const d=el("div",{class:"done-screen"});
+      d.innerHTML='<div class="seal">'+svg(IC.check,2.5)+'</div><h2>You\'re a <b>coach</b> on AthlasX.</h2><p>Your profile is submitted. Certifications are under review (24–48h) — you can start coaching now with a pending badge.</p>';
+      h.appendChild(d);
+      $("#progBar").style.width="100%";$("#footMeta").textContent="Done";
+      $("#backBtn").style.display="none";$("#nextBtn").textContent="Go to Dashboard";return;
+    }
+    RENDER[step](h);
+    $("#progBar").style.width=((step+1)/4*100)+"%";
+    $("#footMeta").textContent="Step "+(step+1)+" of 4";
+    $("#backBtn").style.display=step===0?"none":"";
+    $("#nextBtn").innerHTML=step===3?"Finish →":"Save &amp; Continue →";
+    $("#scroller").scrollTop=0;
+  }
+
+  $("#backBtn").addEventListener("click",()=>{if(step>0&&!done){step--;render();}});
+  $("#nextBtn").addEventListener("click",()=>{
+    if(done){done=false;step=0;render();return;}
+    if(!validate())return;
+    if(step<3){step++;render();}else{done=true;render();}
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

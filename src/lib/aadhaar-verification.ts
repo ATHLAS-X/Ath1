@@ -54,14 +54,22 @@ interface PendingRequest {
 // own module-level Map, acceptable for a dev-only stub with no real
 // persistence requirement (a real provider would call out to a vendor
 // instead of storing anything here).
-const pending = new Map<string, PendingRequest>()
+// globalThis-backed — see src/lib/rate-limit.ts's identical comment. A
+// plain module-level Map here was getting silently reset by Next.js dev's
+// route-module recompilation between initiate/verify/consume calls,
+// producing intermittent verification failures unrelated to the real TTL.
+const globalForAadhaar = globalThis as unknown as { __athlasxAadhaarPending?: Map<string, PendingRequest> }
+const pending = globalForAadhaar.__athlasxAadhaarPending ?? new Map<string, PendingRequest>()
+globalForAadhaar.__athlasxAadhaarPending = pending
 
 // A verified requestId moves here (last4 only) so /api/player/onboard can
 // confirm server-side that THIS requestId was actually verified, rather
 // than trusting a client-supplied boolean outright. Single-use — consumed
 // by consumeVerifiedAadhaar() at account-creation time, so the same
 // verification can't be replayed onto a second account.
-const verified = new Map<string, { last4: string; verifiedAt: number }>()
+const globalForAadhaarVerified = globalThis as unknown as { __athlasxAadhaarVerified?: Map<string, { last4: string; verifiedAt: number }> }
+const verified = globalForAadhaarVerified.__athlasxAadhaarVerified ?? new Map<string, { last4: string; verifiedAt: number }>()
+globalForAadhaarVerified.__athlasxAadhaarVerified = verified
 const VERIFIED_TTL_MS = 30 * 60 * 1000 // generous window to finish the rest of onboarding
 
 /** Called by /api/player/onboard to confirm a requestId was really
@@ -103,7 +111,10 @@ const devStubProvider: AadhaarVerificationProvider = {
       return false
     }
     const ok = await verifyOtpCode(code, entry.codeHash)
-    if (ok) pending.delete(requestId)
+    if (ok) {
+      pending.delete(requestId)
+      verified.set(requestId, { last4: entry.last4, verifiedAt: Date.now() })
+    }
     return ok
   },
 }

@@ -84,6 +84,20 @@ const nextConfig = {
       { protocol: "https", hostname: "i.ytimg.com" },
     ],
   },
+  // Onboarding routes renamed for role-prefix consistency
+  // (/onboarding -> /player/onboarding, /onboarding/coach ->
+  // /coach/onboarding, /onboarding/academy -> /academy/onboarding).
+  // /onboarding/association is unaffected — it's a static "not self-serve"
+  // notice, not a wizard, and wasn't part of this rename. Permanent (308)
+  // since these are old bookmarked/linked URLs being replaced for good,
+  // not a temporary reroute.
+  async redirects() {
+    return [
+      { source: "/onboarding", destination: "/player/onboarding", permanent: true },
+      { source: "/onboarding/coach", destination: "/coach/onboarding", permanent: true },
+      { source: "/onboarding/academy", destination: "/academy/onboarding", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

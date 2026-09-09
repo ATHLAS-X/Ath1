@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Settings, Eye, Users, Loader2, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { Card } from '@/components/ui/card'
 
 /*
  * W6 — player-facing visibility control
@@ -14,6 +15,11 @@ import { toast } from 'sonner'
  * franchise_scout is intentionally not offered here — it's hard-disabled
  * behind FRANCHISE_SCOUT_ENABLED and there's no scout role to receive it
  * yet (see src/lib/feature-flags.ts).
+ *
+ * Styling-pass note: this page covers visibility only — there is no
+ * account/contact-info editing or guardian-details-for-minors section
+ * here or anywhere else in this codebase today. Not added in this pass
+ * (styling only); flagged in the accompanying report instead.
  */
 
 type SelectableTier = 'association_only' | 'cross_association'
@@ -69,24 +75,24 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-[700px]">
+    <div className="space-y-6 max-w-[700px] font-barlow">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-xl font-black text-white">Settings</h1>
-        <p className="text-xs text-zinc-600 mt-0.5">Account and profile preferences</p>
+        <h1 className="font-anton uppercase text-xl text-ax-text">Settings</h1>
+        <p className="text-xs text-ax-textFaint mt-0.5">Account and profile preferences</p>
       </motion.div>
 
-      <div className="glass-card p-6 space-y-4">
+      <Card className="p-6 space-y-4">
         <div className="flex items-center gap-2">
-          <Settings className="w-4 h-4 text-zinc-500" />
-          <h2 className="text-sm font-bold text-white">Who can see my profile?</h2>
+          <Settings className="w-4 h-4 text-ax-textDim" />
+          <h2 className="text-sm font-bold text-ax-text">Who can see my profile?</h2>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-8 text-zinc-600">
+          <div className="flex items-center justify-center py-8 text-ax-textFaint">
             <Loader2 className="w-5 h-5 animate-spin" />
           </div>
         ) : !hasProfile ? (
-          <p className="text-xs text-zinc-600">No player profile is linked to this account yet.</p>
+          <p className="text-xs text-ax-textFaint">No player profile is linked to this account yet.</p>
         ) : (
           <div className="space-y-2">
             {TIERS.map((t) => {
@@ -98,26 +104,26 @@ export default function SettingsPage() {
                   onClick={() => save(t.value)}
                   disabled={saving}
                   className={cn(
-                    'w-full flex items-start gap-3 text-left px-4 py-3 rounded-xl border transition-colors disabled:opacity-60',
+                    'w-full flex items-start gap-3 text-left px-4 py-3 rounded-ax-md border transition-colors disabled:opacity-60',
                     active
-                      ? 'border-green-500/30 bg-green-500/[0.06]'
-                      : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.12]',
+                      ? 'border-ax-accent/40 bg-[rgba(255,138,30,0.06)]'
+                      : 'border-ax-cardBorder bg-white/[0.02] hover:border-white/[0.24]',
                   )}
                 >
-                  <Icon className={cn('w-4 h-4 mt-0.5 shrink-0', active ? 'text-green-400' : 'text-zinc-500')} />
+                  <Icon className={cn('w-4 h-4 mt-0.5 shrink-0', active ? 'text-ax-accentBright' : 'text-ax-textDim')} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-white">{t.label}</p>
-                      {active && <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" />}
+                      <p className="text-sm font-bold text-ax-text">{t.label}</p>
+                      {active && <CheckCircle2 className="w-3.5 h-3.5 text-ax-accentBright shrink-0" />}
                     </div>
-                    <p className="text-[11px] text-zinc-600 mt-0.5">{t.description}</p>
+                    <p className="text-[11px] text-ax-textFaint mt-0.5">{t.description}</p>
                   </div>
                 </button>
               )
             })}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  AthlasX — Onboarding Wizards (Player · Coach · Academy · Scout)
+  Shares the hero/auth design language: same :root palette, fonts, accent
+  saffron-amber, glass surfaces, collage rail. Flows + fields are faithful to
+  the four onboarding specs:
+    Player  — 9-step PlayerProfileWizard
+    Coach   — 4-step self-signup wizard
+    Academy — single scrollable form (sections, Save draft / Submit)
+    Scout   — 4-step wizard
+  Everything is data-driven from the ROLE_FLOWS config; swap copy/fields there.
+  ============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AthlasX — Onboarding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:            #0D0D0D;
+    --bg-soft:       #141312;
+    --text:          #F5F5F0;
+    --text-dim:      rgba(245, 245, 240, 0.62);
+    --text-faint:    rgba(245, 245, 240, 0.4);
+    --accent:        #FF8A1E;
+    --accent-rgb:    255, 138, 30;
+    --accent-bright: #FFA64D;
+    --overlay-accent-08: rgba(var(--accent-rgb), 0.08);
+    --overlay-accent-14: rgba(var(--accent-rgb), 0.14);
+    --overlay-accent-22: rgba(var(--accent-rgb), 0.22);
+    --seam:          rgba(13, 13, 13, 0.9);
+    --phi2:          2.618rem;
+    --card-bg:       rgba(13, 13, 13, 0.55);
+    --card-border:   rgba(245, 245, 240, 0.14);
+    --field-bg:      rgba(245, 245, 240, 0.06);
+    --ok:            #38d39f;
+    --bad:           #ff5a4d;
+    --ease:          cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%; background: var(--bg); color: var(--text);
+    font-family: "Barlow", system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--overlay-accent-22); }
+
+  .ob {
+    display: grid;
+    grid-template-columns: 1fr 2fr;     /* φ-ish: rail : form, form bigger */
+    min-height: 100vh; min-height: 100dvh;
+  }
+
+  /* ───────────────────────── LEFT RAIL ───────────────────────── */
+  .rail {
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+    padding: var(--phi2);
+    background: var(--bg-soft);
+  }
+  .rail .bg {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  }
+  .rail .bg img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; object-position: 50% 35%;
+    filter: saturate(1.05) contrast(1.05) brightness(0.7);
+    opacity: 0; transition: opacity 0.8s var(--ease);
+  }
+  .rail.is-ready .bg img { opacity: 1; }
+  .rail .bg::after {
+    content: ""; position: absolute; inset: 0;
+    background:
+      linear-gradient(180deg, rgba(13,13,13,0.55) 0%, rgba(13,13,13,0.82) 40%, rgba(13,13,13,0.96) 100%),
+      radial-gradient(120% 80% at 0% 0%, var(--overlay-accent-14), transparent 55%);
+  }
+  .rail > * { position: relative; z-index: 1; }
+
+  .brandmark {
+    font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase;
+    letter-spacing: 0.22em; font-weight: 700; font-size: 0.95rem; color: var(--text);
+  }
+  .brandmark span { color: var(--accent); }
+
+  .rail .lead { margin-top: 1.6rem; }
+  .rail .lead .eyebrow {
+    font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase;
+    letter-spacing: 0.2em; font-size: 11px; font-weight: 700;
+    color: var(--accent-bright); margin: 0 0 0.55rem 0;
+  }
+  .rail .lead h1 {
+    font-family: "Anton", sans-serif; text-transform: uppercase; font-weight: 400;
+    line-height: 0.92; letter-spacing: -0.005em; margin: 0;
+    font-size: clamp(28px, 2.6vw, 40px); color: var(--text);
+  }
+  .rail .lead h1 b { color: var(--accent); }
+  .rail .lead p { margin: 0.8rem 0 0; font-size: 0.92rem; line-height: 1.5; color: var(--text-dim); max-width: 22rem; }
+
+  /* stepper */
+  .stepper { margin: 2rem 0 0; display: flex; flex-direction: column; gap: 0.15rem; }
+  .step {
+    display: flex; align-items: center; gap: 0.85rem;
+    padding: 0.5rem 0.4rem; border-radius: 9px; cursor: pointer;
+    color: var(--text-dim); transition: background 0.2s var(--ease), color 0.2s var(--ease);
+  }
+  .step:hover { background: rgba(245,245,240,0.04); }
+  .step .num {
+    flex: 0 0 auto; width: 27px; height: 27px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 0.78rem; font-weight: 700;
+    font-family: "Barlow Semi Condensed", sans-serif;
+    border: 1.5px solid var(--card-border); background: transparent; color: var(--text-dim);
+    transition: all 0.25s var(--ease);
+  }
+  .step .lbl { font-size: 0.9rem; font-weight: 600; }
+  .step .lbl small { display: block; font-size: 0.7rem; font-weight: 500; color: var(--text-faint); }
+  .step.done { color: var(--text); }
+  .step.done .num { border-color: var(--accent); background: var(--overlay-accent-14); color: var(--accent-bright); }
+  .step.current { color: var(--text); }
+  .step.current .num { border-color: var(--accent); background: var(--accent); color: #1a0e02; box-shadow: 0 0 0 4px var(--overlay-accent-22); }
+  .step .check { display: none; }
+  .step.done .num .check { display: block; } .step.done .num .nd { display: none; }
+  .step.optional .lbl::after { content: " · optional"; color: var(--text-faint); font-weight: 500; font-size: 0.72rem; }
+
+  .rail .foot {
+    margin-top: auto; padding-top: 1.5rem; font-size: 0.76rem; color: var(--text-faint);
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .rail .foot .save-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+
+  /* ───────────────────────── RIGHT FORM ───────────────────────── */
+  .form-side {
+    position: relative; display: flex; flex-direction: column;
+    background: var(--bg);
+  }
+  .form-side::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(110% 50% at 100% 0%, var(--overlay-accent-08), transparent 55%);
+  }
+
+  /* role switcher top bar */
+  .topbar {
+    position: relative; z-index: 2;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 1.1rem clamp(1.25rem, 3.5vw, 3rem);
+    border-bottom: 1px solid var(--card-border);
+  }
+  .roleswitch { display: flex; gap: 0.3rem; padding: 0.28rem; background: var(--field-bg); border: 1px solid var(--card-border); border-radius: 11px; }
+  .roleswitch button {
+    appearance: none; border: 0; cursor: pointer; border-radius: 8px;
+    padding: 0.46rem 0.95rem; font-family: "Barlow Semi Condensed", sans-serif;
+    text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; font-size: 0.82rem;
+    color: var(--text-dim); background: transparent; transition: background 0.22s var(--ease), color 0.22s var(--ease);
+  }
+  .roleswitch button[aria-selected="true"] { background: var(--accent); color: #1a0e02; }
+  .topbar .acct { display: flex; align-items: center; gap: 0.7rem; font-size: 0.84rem; color: var(--text-dim); }
+  .topbar .acct .av {
+    width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--overlay-accent-14); color: var(--accent-bright); font-weight: 700; font-size: 0.82rem;
+    font-family: "Barlow Semi Condensed", sans-serif;
+  }
+
+  .scroller { position: relative; z-index: 1; flex: 1; overflow-y: auto; }
+  .form-body { width: 100%; max-width: 40rem; margin: 0 auto; padding: clamp(1.5rem, 3.5vw, 2.8rem) clamp(1.25rem, 3.5vw, 3rem) 1.5rem; }
+
+  .progress-line { height: 3px; background: var(--card-border); border-radius: 3px; overflow: hidden; margin-bottom: 1.6rem; }
+  .progress-line i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-bright)); width: 0; transition: width 0.5s var(--ease); }
+
+  .step-kicker {
+    font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase;
+    letter-spacing: 0.18em; font-size: 11px; font-weight: 700; color: var(--accent-bright); margin: 0 0 0.45rem;
+  }
+  .step-title { font-family: "Anton", sans-serif; text-transform: uppercase; font-weight: 400; line-height: 0.98; font-size: clamp(26px, 3.6vw, 40px); margin: 0 0 0.5rem; }
+  .step-desc { margin: 0 0 1.7rem; font-size: 0.95rem; line-height: 1.5; color: var(--text-dim); max-width: 34rem; }
+
+  /* fields */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem 1rem; }
+  .ffull { grid-column: 1 / -1; }
+  .field { margin-bottom: 1.05rem; }
+  .field > label {
+    display: block; font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase;
+    letter-spacing: 0.12em; font-size: 10.5px; font-weight: 700; color: var(--text-dim); margin: 0 0 0.5rem;
+  }
+  .field > label .req { color: var(--accent); margin-left: 0.15rem; }
+  .field > label .opt { color: var(--text-faint); font-weight: 500; letter-spacing: 0.05em; margin-left: 0.3rem; }
+  .control, .field input, .field select, .field textarea {
+    width: 100%; padding: 0.78rem 0.95rem; font-family: "Barlow", sans-serif; font-size: 0.95rem;
+    color: var(--text); background: var(--field-bg); border: 1px solid var(--card-border);
+    border-radius: 9px; outline: none;
+    transition: border-color 0.22s var(--ease), background 0.22s var(--ease), box-shadow 0.22s var(--ease);
+  }
+  .field textarea { resize: vertical; min-height: 92px; line-height: 1.5; }
+  .field select { appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23FFA64D' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat; background-position: right 0.9rem center; padding-right: 2.4rem; }
+  .field input::placeholder, .field textarea::placeholder { color: var(--text-faint); }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--accent); background: rgba(245,245,240,0.09); box-shadow: 0 0 0 3px var(--overlay-accent-22);
+  }
+  .field.invalid input, .field.invalid select, .field.invalid textarea, .field.invalid .chips, .field.invalid .cardset {
+    border-color: var(--bad); box-shadow: 0 0 0 3px rgba(255,90,77,0.16);
+  }
+  .field .hint { font-size: 0.76rem; color: var(--text-faint); margin: 0.45rem 0 0; line-height: 1.45; }
+  .field .err { font-size: 0.76rem; color: #ff8a7e; margin: 0.45rem 0 0; display: none; }
+  .field.invalid .err { display: block; }
+
+  /* chips (multi-select) */
+  .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .chip {
+    cursor: pointer; user-select: none; padding: 0.5rem 0.9rem; border-radius: 999px;
+    font-size: 0.86rem; font-weight: 600; color: var(--text-dim);
+    background: var(--field-bg); border: 1.5px solid var(--card-border);
+    transition: all 0.18s var(--ease);
+  }
+  .chip:hover { border-color: rgba(245,245,240,0.3); color: var(--text); }
+  .chip[aria-pressed="true"] { background: var(--overlay-accent-14); border-color: var(--accent); color: var(--accent-bright); }
+
+  /* radio cards / role cards */
+  .cardset { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
+  .optcard {
+    cursor: pointer; text-align: left; padding: 0.85rem 0.95rem; border-radius: 11px;
+    background: var(--field-bg); border: 1.5px solid var(--card-border);
+    display: flex; align-items: flex-start; gap: 0.7rem; transition: all 0.18s var(--ease);
+  }
+  .optcard:hover { border-color: rgba(245,245,240,0.3); }
+  .optcard[aria-pressed="true"] { border-color: var(--accent); background: var(--overlay-accent-14); }
+  .optcard .ico { width: 32px; height: 32px; flex: 0 0 auto; border-radius: 8px; display: grid; place-items: center;
+    background: rgba(var(--accent-rgb),0.16); color: var(--accent-bright); }
+  .optcard[aria-pressed="true"] .ico { background: var(--accent); color: #1a0e02; }
+  .optcard .ico svg { width: 18px; height: 18px; }
+  .optcard .t b { display: block; font-size: 0.94rem; font-weight: 700; color: var(--text); }
+  .optcard .t small { font-size: 0.74rem; color: var(--text-dim); line-height: 1.35; }
+
+  /* consent / checkbox rows */
+  .checkrow { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.75rem 0.85rem; border-radius: 10px;
+    background: var(--field-bg); border: 1px solid var(--card-border); margin-bottom: 0.6rem; cursor: pointer; }
+  .checkrow input { margin-top: 0.15rem; width: 17px; height: 17px; accent-color: var(--accent); flex: 0 0 auto; }
+  .checkrow .ct b { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+  .checkrow .ct small { display: block; font-size: 0.76rem; color: var(--text-dim); line-height: 1.4; }
+
+  /* aadhaar / OTP */
+  .otp-row { display: flex; gap: 0.6rem; align-items: flex-end; }
+  .otp-row .field { flex: 1; margin-bottom: 0; }
+  .inline-btn {
+    flex: 0 0 auto; padding: 0.78rem 1.1rem; border-radius: 9px; cursor: pointer; white-space: nowrap;
+    font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700;
+    font-size: 0.84rem; color: var(--text); background: transparent; border: 1.5px solid var(--card-border);
+    transition: all 0.2s var(--ease);
+  }
+  .inline-btn:hover:not(:disabled) { border-color: var(--text); background: rgba(245,245,240,0.06); }
+  .inline-btn:disabled { opacity: 0.45; cursor: default; }
+  .verified-badge { display: none; align-items: center; gap: 0.5rem; margin-top: 0.8rem; padding: 0.6rem 0.85rem;
+    border-radius: 9px; background: rgba(56,211,159,0.1); border: 1px solid rgba(56,211,159,0.4); color: var(--ok); font-size: 0.85rem; font-weight: 600; }
+  .verified-badge.show { display: flex; }
+  .verified-badge svg { width: 16px; height: 16px; }
+
+  /* media list */
+  .media-add { display: flex; gap: 0.6rem; margin-bottom: 0.9rem; }
+  .media-add input { flex: 1; }
+  .media-list { display: flex; flex-direction: column; gap: 0.55rem; }
+  .media-item { display: flex; align-items: center; gap: 0.7rem; padding: 0.65rem 0.8rem; border-radius: 9px;
+    background: var(--field-bg); border: 1px solid var(--card-border); }
+  .media-item .mt { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center;
+    background: rgba(var(--accent-rgb),0.16); color: var(--accent-bright); }
+  .media-item .mt svg { width: 15px; height: 15px; }
+  .media-item .mtext { flex: 1; min-width: 0; }
+  .media-item .mtext b { display: block; font-size: 0.86rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .media-item .mtext small { font-size: 0.72rem; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .media-item .rm { appearance: none; border: 0; background: transparent; color: var(--text-faint); cursor: pointer; font-size: 1.3rem; line-height: 1; padding: 0 0.2rem; }
+  .media-item .rm:hover { color: var(--bad); }
+  .empty-note { font-size: 0.82rem; color: var(--text-faint); font-style: italic; padding: 0.3rem 0; }
+
+  /* policy callout */
+  .callout { display: flex; gap: 0.7rem; padding: 0.85rem 1rem; border-radius: 10px; margin: 0.4rem 0 1.4rem;
+    background: var(--overlay-accent-08); border: 1px solid var(--overlay-accent-22); }
+  .callout svg { width: 18px; height: 18px; color: var(--accent-bright); flex: 0 0 auto; margin-top: 0.1rem; }
+  .callout p { margin: 0; font-size: 0.84rem; line-height: 1.5; color: var(--text); }
+  .callout b { color: var(--accent-bright); }
+
+  /* section heading (academy single page) */
+  .section-h { display: flex; align-items: baseline; gap: 0.7rem; margin: 1.8rem 0 1rem; padding-top: 1.4rem; border-top: 1px solid var(--card-border); }
+  .section-h:first-of-type { border-top: 0; padding-top: 0; margin-top: 0.4rem; }
+  .section-h h3 { font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase; letter-spacing: 0.08em; font-size: 1.05rem; font-weight: 700; margin: 0; }
+  .section-h span { font-size: 0.78rem; color: var(--text-faint); }
+
+  /* review summary */
+  .review { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--card-border); border-radius: 12px; overflow: hidden; }
+  .review .rrow { display: flex; gap: 1rem; padding: 0.8rem 1rem; border-bottom: 1px solid var(--card-border); }
+  .review .rrow:last-child { border-bottom: 0; }
+  .review .rk { flex: 0 0 40%; font-size: 0.82rem; color: var(--text-dim); font-weight: 600; }
+  .review .rv { flex: 1; font-size: 0.9rem; color: var(--text); word-break: break-word; }
+  .review .rv.muted { color: var(--text-faint); }
+  .lvl-pill { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.7rem; border-radius: 999px;
+    background: var(--overlay-accent-14); border: 1px solid var(--accent); color: var(--accent-bright); font-size: 0.78rem; font-weight: 700; }
+
+  /* footer nav */
+  .form-foot {
+    position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: 1rem clamp(1.25rem, 3.5vw, 3rem); border-top: 1px solid var(--card-border);
+    background: rgba(13,13,13,0.6); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+  .form-foot .meta { font-size: 0.82rem; color: var(--text-dim); }
+  .form-foot .btns { display: flex; gap: 0.6rem; }
+  .btn {
+    padding: 0.78rem 1.5rem; cursor: pointer; font-family: "Barlow Semi Condensed", sans-serif;
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; font-size: 0.92rem;
+    border-radius: 9px; transition: transform 0.16s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease), opacity 0.2s; white-space: nowrap;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-fill { background: var(--accent); color: #1a0e02; border: 1.5px solid var(--accent); box-shadow: 0 8px 22px -8px rgba(var(--accent-rgb),0.7); }
+  .btn-fill:hover { background: var(--accent-bright); border-color: var(--accent-bright); }
+  .btn-ghost { background: transparent; color: var(--text); border: 1.5px solid var(--card-border); }
+  .btn-ghost:hover { border-color: var(--text); background: rgba(245,245,240,0.06); }
+  .btn-text { background: transparent; color: var(--text-dim); border: 1.5px solid transparent; }
+  .btn-text:hover { color: var(--text); }
+  .btn[disabled] { opacity: 0.4; cursor: default; pointer-events: none; }
+
+  /* success overlay */
+  .done-screen { text-align: center; padding: 2rem 0 1rem; }
+  .done-screen .seal { width: 84px; height: 84px; margin: 0 auto 1.4rem; border-radius: 50%; display: grid; place-items: center;
+    background: var(--overlay-accent-14); border: 1.5px solid var(--accent); color: var(--accent); }
+  .done-screen .seal svg { width: 40px; height: 40px; }
+  .done-screen h2 { font-family: "Anton", sans-serif; text-transform: uppercase; font-weight: 400; font-size: clamp(28px,4vw,44px); margin: 0 0 0.6rem; }
+  .done-screen p { font-size: 0.98rem; color: var(--text-dim); max-width: 30rem; margin: 0 auto 0.5rem; line-height: 1.55; }
+  .status-pill { display: inline-flex; align-items: center; gap: 0.5rem; margin: 1.2rem 0 0; padding: 0.5rem 1rem; border-radius: 999px;
+    background: var(--field-bg); border: 1px solid var(--card-border); font-size: 0.85rem; color: var(--text); }
+  .status-pill .d { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+  /* ───── responsive ───── */
+  @media (max-width: 900px) {
+    .ob { grid-template-columns: 1fr; }
+    .rail { padding: 1.4rem 1.4rem 1.6rem; }
+    .rail .lead p { display: none; }
+    .stepper { flex-direction: row; flex-wrap: wrap; gap: 0.4rem; margin-top: 1.3rem; }
+    .step { padding: 0.4rem 0.7rem 0.4rem 0.4rem; background: rgba(245,245,240,0.04); }
+    .step .lbl { font-size: 0.8rem; } .step .lbl small { display: none; }
+    .step.optional .lbl::after { content: ""; }
+    .rail .foot { display: none; }
+  }
+  @media (max-width: 560px) {
+    .grid2, .cardset { grid-template-columns: 1fr; }
+    .topbar { flex-direction: column; align-items: stretch; }
+    .topbar .acct { display: none; }
+    .roleswitch { overflow-x: auto; }
+    .step .lbl { display: none; }
+    .step { padding: 0.4rem; }
+    .form-foot { flex-direction: column-reverse; align-items: stretch; }
+    .form-foot .btns { justify-content: space-between; }
+    .form-foot .btns .btn { flex: 1; text-align: center; }
+    .media-add { flex-direction: column; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+    .rail .bg img { opacity: 1 !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="ob" id="ob">
+    <!-- LEFT RAIL -->
+    <aside class="rail" id="rail">
+      <div class="bg"><img id="railImg" alt="" /></div>
+      <div class="brandmark">ATHLAS<span>X</span></div>
+      <div class="lead">
+        <p class="eyebrow" id="leadEyebrow">Player Onboarding</p>
+        <h1 id="leadTitle">Build your <b>athlete</b> profile.</h1>
+        <p id="leadDesc">Nine quick steps. Everything auto-saves — leave and come back anytime.</p>
+      </div>
+      <nav class="stepper" id="stepper" aria-label="Onboarding steps"></nav>
+      <div class="foot"><span class="save-dot"></span> <span id="saveText">All progress saved automatically</span></div>
+    </aside>
+
+    <!-- RIGHT FORM -->
+    <main class="form-side">
+      <div class="topbar">
+        <div class="roleswitch" id="roleswitch" role="tablist" aria-label="Choose onboarding flow">
+          <button type="button" role="tab" data-role="player"  aria-selected="true">Player</button>
+          <button type="button" role="tab" data-role="coach"   aria-selected="false">Coach</button>
+          <button type="button" role="tab" data-role="academy" aria-selected="false">Academy</button>
+          <button type="button" role="tab" data-role="scout"   aria-selected="false">Scout</button>
+        </div>
+        <div class="acct"><span id="acctName">Welcome to AthlasX</span><span class="av" id="acctAv">A</span></div>
+      </div>
+
+      <div class="scroller" id="scroller">
+        <div class="form-body">
+          <div class="progress-line"><i id="progBar"></i></div>
+          <form id="stepForm" novalidate>
+            <div id="stepHost"></div>
+          </form>
+        </div>
+      </div>
+
+      <div class="form-foot">
+        <div class="meta" id="footMeta">Step 1 of 9</div>
+        <div class="btns">
+          <button type="button" class="btn btn-text" id="skipBtn" style="display:none">Skip</button>
+          <button type="button" class="btn btn-ghost" id="backBtn">Back</button>
+          <button type="button" class="btn btn-fill" id="nextBtn">Save &amp; Continue</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+<script>
+// ── ATHLASX_IMAGES ─ shared config contract; rail backdrop per role.
+const ATHLASX_IMAGES = [
+  { sport: "player",  url: "assets/cricket.jpg",         alt: "Cricketer in national kit" },
+  { sport: "coach",   url: "assets/tennis.jpg",          alt: "Coaching intensity" },
+  { sport: "academy", url: "assets/volleyball.jpg",      alt: "Academy training" },
+  { sport: "scout",   url: "assets/motorsport.jpg",      alt: "Scouting the field" }
+];
+
+(function () {
+  "use strict";
+  // ---------- tiny helpers ----------
+  const $  = function (s, r) { return (r || document).querySelector(s); };
+  const el = function (tag, attrs, html) {
+    const n = document.createElement(tag);
+    if (attrs) for (const k in attrs) { if (k === "class") n.className = attrs[k]; else n.setAttribute(k, attrs[k]); }
+    if (html != null) n.innerHTML = html;
+    return n;
+  };
+  const ICON = {
+    player:'<circle cx="12" cy="7" r="3.2"/><path d="M5 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/>',
+    coach:'<path d="M4 19V7l8-3 8 3v12"/><path d="M9 21v-5h6v5"/><path d="M12 4v3"/>',
+    academy:'<path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M9 21v-6h6v6"/>',
+    scout:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+    check:'<polyline points="20 6 9 17 4 11"/>',
+    shield:'<path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/>',
+    play:'<polygon points="6 4 20 12 6 20 6 4"/>',
+    spark:'<path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2.5 2.5M16.5 16.5 19 19M19 5l-2.5 2.5M7.5 16.5 5 19"/>'
+  };
+  function svg(paths, w) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(w||2)+'" stroke-linecap="round" stroke-linejoin="round">'+paths+'</svg>'; }
+
+  // ================= ROLE FLOWS (faithful to specs) =================
+  const STATES = ["Andhra Pradesh","Assam","Bihar","Delhi","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Odisha","Punjab","Rajasthan","Tamil Nadu","Telangana","Uttar Pradesh","Uttarakhand","West Bengal"];
+
+  const ROLE_FLOWS = {
+    player: {
+      label: "Player", av: "P",
+      eyebrow: "Player Onboarding",
+      title: 'Build your <b>athlete</b> profile.',
+      desc: "Nine steps, each auto-saved the moment you continue. Leave and resume anytime.",
+      img: "player",
+      submitStatus: { title: "Profile submitted for review", body: "Your profile is <b>Pending Approval</b> by the AthlasX team. Your account is now active — you can explore your dashboard while we verify your details.", pill: "profile_status: Pending Approval" },
+      steps: [
+        { key:"basic", label:"Basic Info", desc:"Tell us who you are. We compute your age from your date of birth — under-18 adds a parental-consent step at the end.",
+          fields:[
+            {t:"text",name:"first_name",label:"First name",req:true,col:1,ph:"e.g. Rohan"},
+            {t:"text",name:"last_name",label:"Last name",req:true,col:1,ph:"e.g. Sharma"},
+            {t:"date",name:"date_of_birth",label:"Date of birth",req:true,col:1},
+            {t:"select",name:"gender",label:"Gender",req:true,col:1,opts:["Male","Female","Other"]},
+            {t:"text",name:"city",label:"City",req:false,col:1,ph:"e.g. Pune"},
+            {t:"select",name:"state",label:"State",req:true,col:1,opts:STATES},
+            {t:"text",name:"country",label:"Country",req:false,col:2,val:"India"}
+          ]},
+        { key:"aadhaar", label:"Aadhaar Verification", desc:"Verify your identity with an Aadhaar OTP. We never store your raw Aadhaar number — only a masked version and the verified date of birth.",
+          aadhaar:true },
+        { key:"physical", label:"Physical", desc:"Your physical measurements feed into your AthlasX Score and role suitability.",
+          fields:[
+            {t:"number",name:"height_cm",label:"Height (cm)",req:true,col:1,ph:"175"},
+            {t:"number",name:"weight_kg",label:"Weight (kg)",req:true,col:1,ph:"68"},
+            {t:"select",name:"dominant_hand",label:"Dominant hand",req:false,col:2,opts:["Right","Left","Ambidextrous"]}
+          ]},
+        { key:"cricket", label:"Cricket", desc:"Your playing profile. Selecting Wicket-Keeper as primary role auto-clears bowling style.",
+          fields:[
+            {t:"select",name:"playing_role",label:"Primary role",req:true,col:1,opts:["Batsman","Bowler","All-Rounder","WK (Wicket-Keeper)"]},
+            {t:"select",name:"secondary_role",label:"Secondary role",req:false,col:1,opts:["None","Batsman","Bowler","All-Rounder","WK"]},
+            {t:"select",name:"batting_style",label:"Batting style",req:true,col:1,opts:["Right-hand bat","Left-hand bat"]},
+            {t:"select",name:"bowling_style",label:"Bowling style",req:false,col:1,dependBowl:true,opts:["Right-arm fast","Right-arm medium","Right-arm off-spin","Right-arm leg-spin","Left-arm fast","Left-arm orthodox","Left-arm chinaman"]},
+            {t:"text",name:"school_team",label:"School team",req:false,col:1,ph:"Optional"},
+            {t:"text",name:"club_team",label:"Club team",req:false,col:1,ph:"Optional"},
+            {t:"text",name:"district_team",label:"District team",req:false,col:1,ph:"Optional"},
+            {t:"text",name:"state_team",label:"State team",req:false,col:1,ph:"Optional"},
+            {t:"text",name:"academy_id",label:"Link an academy",req:false,col:2,ph:"Search academies…",hint:"Live search links you to an existing academy record (optional)."}
+          ]},
+        { key:"bio", label:"Bio", desc:"Help coaches and scouts get to know you in your own words.",
+          fields:[
+            {t:"textarea",name:"bio",label:"About you",req:false,col:2,ph:"A short introduction…"},
+            {t:"textarea",name:"aspirations",label:"Aspirations",req:false,col:2,ph:"Where do you want your game to go?"},
+            {t:"text",name:"strengths",label:"Strengths",req:false,col:1,ph:"e.g. Power hitting"},
+            {t:"text",name:"improvement_areas",label:"Areas to improve",req:false,col:1,ph:"e.g. Death bowling"}
+          ]},
+        { key:"media", label:"Media", desc:"Add at least one video link (YouTube, or a hosted URL). Link-only for now — direct upload is coming soon.",
+          media:true },
+        { key:"performance", label:"Performance", desc:"Your career numbers so far. Enter 0 where you haven't played yet.",
+          fields:[
+            {t:"number",name:"matches_played",label:"Matches played",req:true,col:1,ph:"0"},
+            {t:"number",name:"runs_scored",label:"Runs scored",req:false,col:1,ph:"0"},
+            {t:"number",name:"wickets_taken",label:"Wickets taken",req:false,col:1,ph:"0"},
+            {t:"number",name:"highest_score",label:"Highest score",req:false,col:1,ph:"0"},
+            {t:"text",name:"best_bowling",label:"Best bowling",req:false,col:2,ph:"e.g. 5/22"}
+          ]},
+        { key:"fitness", label:"Fitness", optional:true, desc:"Optional, but these boost your AthlasX Score. Skip if you don't have the numbers yet.",
+          fields:[
+            {t:"number",name:"yoyo_score",label:"Yo-Yo test score",req:false,col:1,ph:"e.g. 17.2"},
+            {t:"number",name:"sprint_30m",label:"30m sprint (sec)",req:false,col:1,ph:"e.g. 4.1"},
+            {t:"number",name:"run_2km",label:"2km run (min)",req:false,col:2,ph:"e.g. 7.5"}
+          ]},
+        { key:"consent", label:"Consent", desc:"Review and agree before we submit your profile.",
+          consent:true }
+      ]
+    },
+
+    coach: {
+      label: "Coach", av: "C",
+      eyebrow: "Coach Onboarding",
+      title: 'Get verified to <b>evaluate</b> talent.',
+      desc: "Four short steps. AthlasX reviews your credentials before granting evaluation permissions.",
+      img: "coach",
+      submitStatus: { title: "Submitted for credential review", body: "Your coach profile is now <b>Pending Review</b>. Once AthlasX verifies your certification, you'll unlock player evaluations and fitness assessments.", pill: "coach_status: PENDING_REVIEW" },
+      steps: [
+        { key:"identity", label:"Coach Identity", desc:"Your email comes from sign-up. Your display name is what academies and players will see.",
+          fields:[
+            {t:"email",name:"email",label:"Email (from sign-up)",req:false,col:2,val:"coach@email.com",readonly:true},
+            {t:"text",name:"coach_name",label:"Display name",req:true,col:2,ph:"e.g. Anil Kumble"}
+          ]},
+        { key:"affiliation", label:"Affiliation", desc:"Link to an academy or club. You can complete onboarding independently, but evaluation permissions stay off until an academy links you.",
+          fields:[
+            {t:"text",name:"academy_club",label:"Academy / Club",req:true,col:2,ph:"e.g. MRF Pace Foundation",hint:"Required at submit. Leave independent only if you'll be linked later by an academy."}
+          ]},
+        { key:"certification", label:"Certification", desc:"Your coaching credential. AthlasX reviews these before granting evaluation rights — a verified coach moves linked players into the Performance Verified trust tier.",
+          fields:[
+            {t:"text",name:"official_id",label:"Official ID",req:true,col:2,ph:"BCCI L1 / L2, NIS, NCA, or federation ID"},
+            {t:"text",name:"cert_url",label:"Certificate link",req:true,col:2,ph:"https://… scan of certificate / ID card",hint:"Link to a scan of your certificate, ID card, or federation page."}
+          ]},
+        { key:"review", label:"Review & Submit", desc:"Confirm everything looks right, then submit for review.", review:true }
+      ]
+    },
+
+    academy: {
+      label: "Academy", av: "A",
+      eyebrow: "Academy Onboarding",
+      title: 'Put your <b>academy</b> on the map.',
+      desc: "One page, every section. Save a draft anytime, then submit for approval.",
+      img: "academy",
+      single: true,
+      submitStatus: { title: "Submitted for approval", body: "Your academy profile is <b>Pending Approval</b> and verification is <b>PENDING</b>. Full dashboard capability — player invites and coach linking — unlocks once an admin verifies you.", pill: "verification_status: PENDING" },
+      steps: [
+        { key:"academy", label:"Academy Profile", desc:"Everything about your academy on one page. Required fields are marked.",
+          sections:[
+            { h:"Identity", note:"Who you are",
+              fields:[
+                {t:"text",name:"academy_name",label:"Academy name",req:true,col:2,ph:"e.g. Karnataka Cricket Academy"},
+                {t:"text",name:"logo_url",label:"Logo URL",req:false,col:1,ph:"https://…"},
+                {t:"number",name:"founded_year",label:"Founded year",req:true,col:1,ph:"e.g. 2008"},
+                {t:"textarea",name:"description",label:"Description",req:false,col:2,ph:"What makes your academy stand out?"}
+              ]},
+            { h:"Location", note:"Where you train",
+              fields:[
+                {t:"text",name:"city",label:"City",req:true,col:1,ph:"e.g. Bengaluru"},
+                {t:"select",name:"state",label:"State",req:true,col:1,opts:STATES},
+                {t:"text",name:"country",label:"Country",req:false,col:2,val:"India"}
+              ]},
+            { h:"Contact", note:"How to reach you",
+              fields:[
+                {t:"email",name:"contact_email",label:"Contact email",req:true,col:1,ph:"info@academy.com"},
+                {t:"text",name:"contact_phone",label:"Contact phone",req:false,col:1,ph:"+91…"},
+                {t:"text",name:"website",label:"Website",req:false,col:2,ph:"https://…"}
+              ]},
+            { h:"Social Links", note:"Optional",
+              fields:[
+                {t:"text",name:"social_instagram",label:"Instagram",req:false,col:1,ph:"@handle"},
+                {t:"text",name:"social_twitter",label:"Twitter / X",req:false,col:1,ph:"@handle"},
+                {t:"text",name:"social_youtube",label:"YouTube",req:false,col:1,ph:"channel URL"},
+                {t:"text",name:"social_linkedin",label:"LinkedIn",req:false,col:1,ph:"page URL"}
+              ]},
+            { h:"Programs", note:"Select all that apply",
+              fields:[
+                {t:"chips",name:"age_groups",label:"Age groups",req:false,col:2,opts:["U-10","U-12","U-14","U-16","U-19","U-23","Senior"]},
+                {t:"chips",name:"facilities",label:"Facilities",req:false,col:2,opts:["Indoor nets","Outdoor nets","Turf wicket","Floodlights","Gym","Pool","Hostel","Video analysis","Bowling machine"]},
+                {t:"chips",name:"specialties",label:"Specialties",req:false,col:2,opts:["Pace bowling","Spin bowling","Batting","Wicket-keeping","All-rounder development","Junior cricket","Women's cricket"]}
+              ]}
+          ]}
+      ]
+    },
+
+    scout: {
+      label: "Scout", av: "S",
+      eyebrow: "Scout Onboarding",
+      title: 'Discover India\'s <b>raw</b> talent.',
+      desc: "Four steps. Adult-profile search is available immediately — verification levels unlock more.",
+      img: "scout",
+      submitStatus: { title: "Submitted for review", body: "Your scout profile is <b>Pending Approval</b>. You're at <b>L0</b> — adult-profile search is already available. L1 (Verified) and L2 (Minor-Cleared) are granted by an AthlasX admin.", pill: "verification_level: L0 → Pending" },
+      steps: [
+        { key:"profile", label:"Scout Profile", desc:"Your name and email come from sign-up. Add the title you scout under.",
+          fields:[
+            {t:"text",name:"name",label:"Name (from sign-up)",req:false,col:1,val:"Scout User",readonly:true},
+            {t:"email",name:"email",label:"Email (from sign-up)",req:false,col:1,val:"scout@email.com",readonly:true},
+            {t:"text",name:"designation",label:"Designation",req:true,col:2,ph:"e.g. Talent Scout, Head Scout, Selector"}
+          ]},
+        { key:"org", label:"Organization & Affiliation", desc:"Where you scout from and your proof of affiliation.",
+          policy:true,
+          fields:[
+            {t:"text",name:"organization_name",label:"Organization",req:true,col:1,ph:"e.g. Rajasthan Royals"},
+            {t:"select",name:"org_type",label:"Organization type",req:true,col:1,opts:["Independent","Franchise","State","Country","Academy"]},
+            {t:"text",name:"region",label:"Region",req:true,col:1,ph:"State / city / pan-India"},
+            {t:"number",name:"years_experience",label:"Years of experience",req:true,col:1,ph:"0"},
+            {t:"text",name:"proof_url",label:"Affiliation proof",req:true,col:2,ph:"Link to ID card, official letter, or LinkedIn"}
+          ]},
+        { key:"prefs", label:"Scouting Preferences", desc:"These tune your discovery feed only — they never restrict your search. Change them anytime.",
+          fields:[
+            {t:"chips",name:"preferred_age_groups",label:"Preferred age groups",req:false,col:2,opts:["U16","U19","U23","Open"]},
+            {t:"chips",name:"preferred_roles",label:"Preferred roles",req:false,col:2,opts:["Batter","Bowler","All-Rounder","WK"]},
+            {t:"chips",name:"preferred_regions",label:"Preferred regions",req:false,col:2,opts:STATES}
+          ]},
+        { key:"review", label:"Review & Submit", desc:"Confirm your details, then submit for review.", review:true }
+      ]
+    }
+  };
+
+  // consent rows (player step 9)
+  const CONSENTS = [
+    { name:"profile_visibility_ok", b:"Profile visibility", s:"Allow my approved profile to be visible to verified scouts and academies." },
+    { name:"media_upload_ok",       b:"Media usage", s:"Allow AthlasX to display the video links I've added on my profile." },
+    { name:"scout_contact_ok",      b:"Scout contact", s:"Allow verified scouts to contact me (via parent/guardian if I'm a minor)." },
+    { name:"data_usage_ok",         b:"Data usage", s:"Allow AthlasX to use my performance data to compute my AthlasX Score." }
+  ];
+
+  // ================= STATE =================
+  let role = "player";
+  let stepIdx = 0;
+  const store = { player:{country:"India"}, coach:{email:"coach@email.com"}, academy:{country:"India"}, scout:{name:"Scout User",email:"scout@email.com"} };
+  const media = []; // player media rows
+  let aadhaarVerified = false;
+  let otpSent = false;
+  let isDone = false;
+
+  // ================= IMAGE for rail =================
+  const imgByRole = {}; ATHLASX_IMAGES.forEach(function(e){ imgByRole[e.sport]=e; });
+  const railImg = $("#railImg"), rail = $("#rail");
+  function setRailImg() {
+    const cfg = imgByRole[ROLE_FLOWS[role].img] || imgByRole[role];
+    rail.classList.remove("is-ready");
+    if (!cfg) return;
+    const probe = new Image();
+    probe.onload = function(){ railImg.src = cfg.url; rail.classList.add("is-ready"); };
+    probe.onerror = function(){ railImg.removeAttribute("src"); rail.style.background = "linear-gradient(160deg, rgba(var(--accent-rgb),0.22), #0d0d0d)"; rail.classList.add("is-ready"); };
+    probe.src = cfg.url;
+  }
+
+  // ================= RENDER =================
+  const stepHost = $("#stepHost"), stepper = $("#stepper"), progBar = $("#progBar");
+  const backBtn = $("#backBtn"), nextBtn = $("#nextBtn"), skipBtn = $("#skipBtn"), footMeta = $("#footMeta");
+
+  function flow(){ return ROLE_FLOWS[role]; }
+  function steps(){ return flow().steps; }
+  function curStep(){ return steps()[stepIdx]; }
+
+  function renderRail() {
+    const f = flow();
+    $("#leadEyebrow").textContent = f.eyebrow;
+    $("#leadTitle").innerHTML = f.title;
+    $("#leadDesc").textContent = f.desc;
+    $("#acctAv").textContent = f.av;
+    $("#acctName").textContent = "Signed in as " + f.label;
+    // stepper
+    stepper.innerHTML = "";
+    if (f.single) { stepper.style.display = "none"; return; }
+    stepper.style.display = "";
+    steps().forEach(function(s, i){
+      const cls = "step" + (i===stepIdx?" current":"") + (i<stepIdx?" done":"") + (s.optional?" optional":"");
+      const node = el("div", { class: cls });
+      node.innerHTML = '<span class="num"><span class="nd">'+(i+1)+'</span><span class="check">'+svg(ICON.check,3)+'</span></span><span class="lbl">'+s.label+'</span>';
+      node.addEventListener("click", function(){ if (i<=maxReached) goTo(i); });
+      stepper.appendChild(node);
+    });
+  }
+
+  let maxReached = 0;
+
+  function fieldNode(fl) {
+    const wrap = el("div", { class: "field" + (fl.col===2?" ffull":"") });
+    if (fl.t !== "chips") {
+      const lab = el("label", { for: "f_"+fl.name });
+      lab.innerHTML = fl.label + (fl.req?'<span class="req">*</span>':'<span class="opt">optional</span>');
+      wrap.appendChild(lab);
+    } else {
+      const lab = el("label");
+      lab.innerHTML = fl.label + (fl.req?'<span class="req">*</span>':'<span class="opt">optional</span>');
+      wrap.appendChild(lab);
+    }
+    const v = store[role][fl.name];
+    let input;
+    if (fl.t === "textarea") {
+      input = el("textarea", { id:"f_"+fl.name, name:fl.name, placeholder:fl.ph||"" });
+      input.value = v!=null?v:"";
+    } else if (fl.t === "select") {
+      input = el("select", { id:"f_"+fl.name, name:fl.name });
+      input.appendChild(el("option", { value:"" }, (fl.req?"Select…":"Select (optional)…")));
+      fl.opts.forEach(function(o){ const op = el("option",{value:o},o); if ((v!=null?v:fl.val)===o) op.selected=true; input.appendChild(op); });
+    } else if (fl.t === "chips") {
+      input = el("div", { class:"chips", role:"group" });
+      const sel = Array.isArray(v)?v:[];
+      fl.opts.forEach(function(o){
+        const c = el("div", { class:"chip", role:"button", tabindex:"0", "aria-pressed": sel.indexOf(o)>=0?"true":"false" }, o);
+        function toggle(){ const arr = Array.isArray(store[role][fl.name])?store[role][fl.name]:[]; const k=arr.indexOf(o);
+          if (k>=0) arr.splice(k,1); else arr.push(o); store[role][fl.name]=arr; c.setAttribute("aria-pressed", k>=0?"false":"true"); clearErr(wrap); }
+        c.addEventListener("click", toggle);
+        c.addEventListener("keydown", function(e){ if (e.key===" "||e.key==="Enter"){ e.preventDefault(); toggle(); } });
+        input.appendChild(c);
+      });
+    } else {
+      input = el("input", { id:"f_"+fl.name, name:fl.name, type: fl.t==="number"?"number":(fl.t==="date"?"date":(fl.t==="email"?"email":"text")), placeholder: fl.ph||"" });
+      input.value = (v!=null?v:(fl.val||""));
+      if (fl.readonly) { input.readOnly = true; input.style.opacity="0.7"; input.style.cursor="default"; }
+    }
+    if (fl.t!=="chips") {
+      input.addEventListener("input", function(){
+        if (fl.readonly) return;
+        store[role][fl.name] = input.value;
+        clearErr(wrap);
+        if (fl.dependBowl===undefined && (fl.name==="playing_role")) {} // handled below
+      });
+      if (fl.name === "playing_role") {
+        input.addEventListener("change", function(){
+          // WK auto-clears bowling style
+          const bowl = $("#f_bowling_style");
+          if (input.value.indexOf("WK")===0) { if (bowl){ bowl.value=""; store[role].bowling_style=""; bowl.disabled=true; bowl.style.opacity="0.45"; } }
+          else if (bowl){ bowl.disabled=false; bowl.style.opacity=""; }
+        });
+      }
+    }
+    wrap.appendChild(input);
+    wrap._field = fl;
+    if (fl.hint) wrap.appendChild(el("p",{class:"hint"},fl.hint));
+    wrap.appendChild(el("p",{class:"err"}, fl.req? (fl.t==="chips"?"Select at least one.":"This field is required.") : "Please check this field."));
+    return wrap;
+  }
+
+  function clearErr(wrap){ wrap.classList.remove("invalid"); }
+
+  function renderFields(container, fields) {
+    // group into rows of two cols using grid
+    const grid = el("div", { class:"grid2" });
+    fields.forEach(function(fl){ grid.appendChild(fieldNode(fl)); });
+    container.appendChild(grid);
+  }
+
+  function renderStep() {
+    const s = curStep(), f = flow();
+    stepHost.innerHTML = "";
+    // header
+    const kick = f.single ? f.eyebrow : ("Step " + (stepIdx+1) + " of " + steps().length);
+    stepHost.appendChild(el("p",{class:"step-kicker"}, kick));
+    stepHost.appendChild(el("h2",{class:"step-title"}, s.label));
+    if (s.desc) stepHost.appendChild(el("p",{class:"step-desc"}, s.desc));
+
+    if (s.policy) {
+      stepHost.appendChild(el("div",{class:"callout"}, svg(ICON.shield)+'<p><b>Policy:</b> Scouts can never contact minors directly — even at L2 (Minor-Cleared). All contact with a minor is routed through the player\'s parent or guardian.</p>'));
+    }
+
+    if (s.fields) renderFields(stepHost, s.fields);
+    if (s.sections) {
+      s.sections.forEach(function(sec){
+        const h = el("div",{class:"section-h"});
+        h.innerHTML = '<h3>'+sec.h+'</h3><span>'+sec.note+'</span>';
+        stepHost.appendChild(h);
+        renderFields(stepHost, sec.fields);
+      });
+    }
+    if (s.aadhaar) renderAadhaar(stepHost);
+    if (s.media) renderMedia(stepHost);
+    if (s.consent) renderConsent(stepHost);
+    if (s.review) renderReview(stepHost);
+
+    // apply WK disable state on cricket revisit
+    if (s.key==="cricket") {
+      const pr = store.player.playing_role||""; const bowl = $("#f_bowling_style");
+      if (pr.indexOf("WK")===0 && bowl){ bowl.disabled=true; bowl.style.opacity="0.45"; }
+    }
+
+    // footer
+    const isLast = stepIdx === steps().length-1;
+    backBtn.style.display = stepIdx===0 ? "none" : "";
+    skipBtn.style.display = s.optional ? "" : "none";
+    nextBtn.textContent = f.single ? "Submit for Approval" : (isLast ? (role==="player"?"Submit Profile":"Submit for Review") : "Save & Continue");
+    footMeta.textContent = f.single ? "Save a draft anytime" : ("Step " + (stepIdx+1) + " of " + steps().length + (s.optional?" · optional":""));
+    progBar.style.width = (f.single ? 30 : ((stepIdx+1)/steps().length*100)) + "%";
+
+    $("#scroller").scrollTop = 0;
+    renderRail();
+  }
+
+  // ---- aadhaar block ----
+  function renderAadhaar(host) {
+    const wrap = el("div");
+    const f1 = el("div",{class:"field"});
+    f1.innerHTML = '<label for="f_aadhaar">Aadhaar number <span class="req">*</span></label>';
+    const inp = el("input",{id:"f_aadhaar",type:"text",inputmode:"numeric",placeholder:"XXXX XXXX XXXX",maxlength:"14"});
+    inp.value = store.player._aadhaar_disp || "";
+    inp.addEventListener("input", function(){
+      let d = inp.value.replace(/\D/g,"").slice(0,12);
+      store.player._aadhaar_raw = d;
+      inp.value = d.replace(/(.{4})/g,"$1 ").trim();
+      store.player._aadhaar_disp = inp.value;
+    });
+    f1.appendChild(inp);
+    f1.appendChild(el("p",{class:"hint"},"12 digits. We only ever store a masked version (e.g. XXXX-XXXX-1234) and your verified DOB."));
+    wrap.appendChild(f1);
+
+    const otpRow = el("div",{class:"otp-row"});
+    const f2 = el("div",{class:"field"});
+    f2.innerHTML = '<label for="f_otp">OTP</label>';
+    const otp = el("input",{id:"f_otp",type:"text",inputmode:"numeric",placeholder:otpSent?"Enter 6-digit OTP":"Request OTP first",maxlength:"6"});
+    otp.disabled = !otpSent;
+    f2.appendChild(otp);
+    const sendBtn = el("button",{class:"inline-btn",type:"button"}, otpSent?"Resend OTP":"Send OTP");
+    const verifyBtn = el("button",{class:"inline-btn",type:"button"}, "Verify");
+    verifyBtn.disabled = !otpSent;
+    otpRow.appendChild(f2); otpRow.appendChild(sendBtn); otpRow.appendChild(verifyBtn);
+    wrap.appendChild(otpRow);
+
+    const badge = el("div",{class:"verified-badge"+(aadhaarVerified?" show":"")}, svg(ICON.check,3)+'<span>Identity verified — masked Aadhaar &amp; DOB saved.</span>');
+    wrap.appendChild(badge);
+
+    sendBtn.addEventListener("click", function(){
+      if ((store.player._aadhaar_raw||"").length !== 12) { f1.classList.add("invalid"); f1.querySelector(".hint").innerHTML='<span style="color:#ff8a7e">Enter all 12 digits to request an OTP.</span>'; return; }
+      f1.classList.remove("invalid");
+      otpSent = true; otp.disabled=false; verifyBtn.disabled=false; otp.placeholder="Enter 6-digit OTP"; sendBtn.textContent="Resend OTP";
+      sendBtn.disabled=true; sendBtn.textContent="Sent ✓"; setTimeout(function(){ sendBtn.disabled=false; sendBtn.textContent="Resend OTP"; }, 1400);
+    });
+    verifyBtn.addEventListener("click", function(){
+      if ((otp.value||"").replace(/\D/g,"").length !== 6) { otp.focus(); return; }
+      verifyBtn.disabled=true; verifyBtn.textContent="…";
+      setTimeout(function(){
+        aadhaarVerified = true;
+        store.player.masked_aadhaar = "XXXX-XXXX-" + (store.player._aadhaar_raw||"0000").slice(-4);
+        badge.classList.add("show"); verifyBtn.textContent="Verified ✓";
+        updateNext();
+      }, 900);
+    });
+    host.appendChild(wrap);
+  }
+
+  // ---- media block ----
+  function renderMedia(host) {
+    const addWrap = el("div",{class:"media-add"});
+    const url = el("input",{type:"text",placeholder:"Paste a YouTube or hosted video URL"});
+    const title = el("input",{type:"text",placeholder:"Title (optional)",style:"max-width:11rem"});
+    const add = el("button",{class:"btn btn-ghost",type:"button",style:"padding:0.78rem 1.2rem"},"Add");
+    addWrap.appendChild(url); addWrap.appendChild(title); addWrap.appendChild(add);
+    host.appendChild(addWrap);
+
+    const list = el("div",{class:"media-list"});
+    host.appendChild(list);
+    function draw(){
+      list.innerHTML = "";
+      if (!media.length) { list.appendChild(el("div",{class:"empty-note"},"No videos added yet — at least one is required to continue.")); return; }
+      media.forEach(function(m, i){
+        const it = el("div",{class:"media-item"});
+        it.innerHTML = '<span class="mt">'+svg(ICON.play)+'</span><span class="mtext"><b>'+(m.title||"Untitled video")+'</b><small>'+m.url+'</small></span>';
+        const rm = el("button",{class:"rm",type:"button","aria-label":"Remove"},"×");
+        rm.addEventListener("click", function(){ media.splice(i,1); draw(); updateNext(); });
+        it.appendChild(rm); list.appendChild(it);
+      });
+    }
+    add.addEventListener("click", function(){
+      const u = url.value.trim(); if (!u) { url.focus(); return; }
+      media.push({ url:u, title:title.value.trim() }); url.value=""; title.value=""; draw(); updateNext();
+    });
+    draw();
+  }
+
+  // ---- consent block ----
+  function renderConsent(host) {
+    const isMinor = computeMinor();
+    if (isMinor) {
+      host.appendChild(el("div",{class:"callout"}, svg(ICON.shield)+'<p>You\'re <b>under 18</b>, so a parent or guardian must consent. Their details are required below.</p>'));
+      const minorFields = [
+        {t:"text",name:"parent_name",label:"Parent / guardian name",req:true,col:1,ph:"Full name"},
+        {t:"text",name:"parent_phone",label:"Parent / guardian phone",req:true,col:1,ph:"+91…"},
+        {t:"email",name:"parent_email",label:"Parent / guardian email",req:false,col:2,ph:"Optional"}
+      ];
+      renderFields(host, minorFields);
+    }
+    host.appendChild(el("p",{class:"step-kicker",style:"margin-top:0.6rem"},"Required consents"));
+    const cwrap = el("div");
+    CONSENTS.forEach(function(c){
+      const row = el("label",{class:"checkrow"});
+      const cb = el("input",{type:"checkbox",name:c.name});
+      cb.checked = !!store.player[c.name];
+      cb.addEventListener("change", function(){ store.player[c.name]=cb.checked; cwrap.classList.remove("invalid"); updateNext(); });
+      row.appendChild(cb);
+      row.appendChild(el("span",{class:"ct"}, '<b>'+c.b+'</b><small>'+c.s+'</small>'));
+      cwrap.appendChild(row);
+    });
+    cwrap.id = "consentWrap";
+    host.appendChild(cwrap);
+    host.appendChild(el("p",{class:"err",id:"consentErr",style:"display:none"},"Please agree to all four consents to submit."));
+  }
+
+  function computeMinor() {
+    const dob = store.player.date_of_birth; if (!dob) return false;
+    const d = new Date(dob); if (isNaN(d)) return false;
+    const now = new Date(); let age = now.getFullYear()-d.getFullYear();
+    const m = now.getMonth()-d.getMonth(); if (m<0 || (m===0 && now.getDate()<d.getDate())) age--;
+    return age < 18;
+  }
+
+  // ---- review block ----
+  function renderReview(host) {
+    const f = flow();
+    const rev = el("div",{class:"review"});
+    const data = store[role];
+    function row(k, v, muted){ const r = el("div",{class:"rrow"}); r.innerHTML = '<div class="rk">'+k+'</div><div class="rv'+(muted?" muted":"")+'">'+(v||"—")+'</div>'; rev.appendChild(r); }
+    if (role==="coach") {
+      row("Name (sign-up)", "From your account", true);
+      row("Display name", data.coach_name);
+      row("Email", data.email, true);
+      row("Academy / Club", data.academy_club);
+      row("Official ID", data.official_id);
+      row("Certification", data.cert_url);
+      row("Current status", '<span class="lvl-pill">DRAFT</span>');
+    } else if (role==="scout") {
+      row("Name", data.name, true);
+      row("Email", data.email, true);
+      row("Designation", data.designation);
+      row("Organization", data.organization_name);
+      row("Org type", data.org_type);
+      row("Region", data.region);
+      row("Experience", data.years_experience!=null && data.years_experience!=="" ? data.years_experience+" yrs" : "");
+      row("Proof", data.proof_url);
+      row("Age groups", (data.preferred_age_groups||[]).join(", "));
+      row("Roles", (data.preferred_roles||[]).join(", "));
+      row("Regions", (data.preferred_regions||[]).join(", "));
+      row("Verification", '<span class="lvl-pill">L0 · Pending</span>');
+    }
+    host.appendChild(rev);
+  }
+
+  // ================= NAVIGATION + VALIDATION =================
+  function validateStep() {
+    const s = curStep();
+    let ok = true, firstBad = null;
+    const checkFields = function(fields){
+      fields.forEach(function(fl){
+        const wrap = stepHost.querySelector('.field [name="'+CSS.escape(fl.name)+'"], .field [id="f_'+fl.name+'"]');
+        let host2 = wrap ? wrap.closest(".field") : null;
+        let val = store[role][fl.name];
+        let bad = false;
+        if (fl.t==="chips") { host2 = findChipField(fl.name); bad = fl.req && (!Array.isArray(val)||!val.length); }
+        else { bad = fl.req && (val==null || String(val).trim()===""); }
+        if (bad && host2) { host2.classList.add("invalid"); ok=false; if(!firstBad) firstBad=host2; }
+      });
+    };
+    if (s.fields) checkFields(s.fields);
+    if (s.sections) s.sections.forEach(function(sec){ checkFields(sec.fields); });
+    if (s.aadhaar && !aadhaarVerified) { ok=false; }
+    if (s.media && media.length===0) { ok=false; firstBad = firstBad || stepHost.querySelector(".media-list"); }
+    if (s.consent) {
+      if (computeMinor()) checkFields([{name:"parent_name",req:true,t:"text"},{name:"parent_phone",req:true,t:"text"}]);
+      const allC = CONSENTS.every(function(c){ return !!store.player[c.name]; });
+      if (!allC) { ok=false; const ce=$("#consentErr"); if(ce) ce.style.display="block"; const cw=$("#consentWrap"); if(cw){ cw.classList.add("invalid"); } if(!firstBad) firstBad=$("#consentWrap"); }
+    }
+    if (!ok && firstBad && firstBad.scrollIntoView===undefined) {}
+    if (!ok && firstBad) { try { firstBad.querySelector("input,select,textarea")?.focus({preventScroll:true}); } catch(e){} }
+    return ok;
+  }
+  function findChipField(name){
+    const all = stepHost.querySelectorAll(".field");
+    for (const w of all){ const cg = w.querySelector(".chips"); if (cg){ const lab=w.querySelector("label"); if (lab) { /* match by stored field */ } } }
+    // simpler: tag chip wrappers
+    return stepHost.querySelector('[data-chip="'+name+'"]');
+  }
+
+  function updateNext(){ /* re-enable / labels if needed */ }
+
+  function goTo(i){ stepIdx = i; maxReached = Math.max(maxReached, i); renderStep(); }
+
+  function next() {
+    if (isDone) { resetRole(role); return; }
+    const f = flow();
+    if (f.single) { if (validateStep()) submit(); return; }
+    if (!validateStep()) {
+      // pulse the next button red-ish via shake
+      nextBtn.animate([{transform:"translateX(0)"},{transform:"translateX(-4px)"},{transform:"translateX(4px)"},{transform:"translateX(0)"}],{duration:240});
+      return;
+    }
+    if (stepIdx === steps().length-1) { submit(); return; }
+    goTo(stepIdx+1);
+  }
+  function back(){ if (stepIdx>0) goTo(stepIdx-1); }
+  function skip(){ if (curStep().optional && stepIdx < steps().length-1) goTo(stepIdx+1); }
+
+  function submit() {
+    const f = flow();
+    nextBtn.disabled = true; nextBtn.textContent = "Submitting…";
+    setTimeout(function(){
+      nextBtn.disabled = false;
+      isDone = true;
+      stepHost.innerHTML = "";
+      stepper.querySelectorAll(".step").forEach(function(n){ n.classList.add("done"); n.classList.remove("current"); });
+      const ss = f.submitStatus;
+      const done = el("div",{class:"done-screen"});
+      done.innerHTML =
+        '<div class="seal">'+svg(ICON.check,2.5)+'</div>'+
+        '<h2>'+ss.title+'</h2>'+
+        '<p>'+ss.body+'</p>'+
+        '<div class="status-pill"><span class="d"></span>'+ss.pill+'</div>';
+      stepHost.appendChild(done);
+      progBar.style.width = "100%";
+      footMeta.textContent = "Done";
+      backBtn.style.display = "none"; skipBtn.style.display="none";
+      nextBtn.textContent = "Go to Dashboard";
+      $("#scroller").scrollTop = 0;
+    }, 1000);
+  }
+
+  function resetRole(r) {
+    isDone = false;
+    role = r; stepIdx = 0; maxReached = 0; aadhaarVerified=false; otpSent=false;
+    nextBtn.disabled=false;
+    setRailImg();
+    renderStep();
+  }
+
+  // ================= WIRE UP =================
+  backBtn.addEventListener("click", back);
+  nextBtn.addEventListener("click", next);
+  skipBtn.addEventListener("click", skip);
+  $("#roleswitch").querySelectorAll("button").forEach(function(b){
+    b.addEventListener("click", function(){
+      if (b.getAttribute("data-role")===role) return;
+      $("#roleswitch").querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-selected","false"); });
+      b.setAttribute("aria-selected","true");
+      resetRole(b.getAttribute("data-role"));
+    });
+  });
+
+  // tag chip fields after render for validation lookup
+  const _origRenderFields = renderFields;
+  renderFields = function(container, fields){
+    _origRenderFields(container, fields);
+    fields.forEach(function(fl){ if (fl.t==="chips"){ const cg = container.querySelectorAll(".field"); cg.forEach(function(w){ const lab=w.querySelector("label"); if (lab && lab.textContent.indexOf(fl.label)===0) w.setAttribute("data-chip", fl.name); }); } });
+  };
+
+  // init
+  setRailImg();
+  renderStep();
+})();
+</script>
+</body>
+</html>

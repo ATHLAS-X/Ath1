@@ -56,6 +56,13 @@ const adultBody = {
   academy: 'Tara Cricket Academy',
   batting_url: 'https://youtube.com/batting',
   bio: 'Kanpur opener',
+  // Required by the route since the W5 HIGH-field wiring pass — this
+  // fixture predated that and was never updated, causing every test below
+  // to 400 on "Identity and playing profile are required".
+  gender: 'male',
+  city: 'Kanpur',
+  enrollmentDate: '2015-06-01',
+  highestLevelRepresented: 'district_team',
 }
 
 beforeAll(async () => {
@@ -138,6 +145,7 @@ describe('POST /api/player/onboard', () => {
         fullName: 'Rohan Sharma',
         dob: '2012-06-01',
         guardianPhone: '+91 99988 87776',
+        guardianName: 'Suresh Sharma',
         consentDpdpGuardian: true,
         aadhaarRequestId: await verifiedAadhaarRequestId(),
         guardianAadhaarRequestId: await verifiedAadhaarRequestId(),

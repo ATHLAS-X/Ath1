@@ -96,28 +96,31 @@ export default function HeroLanding() {
             href="/auth"
             className="font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-wide px-5 py-2.5 rounded-lg border border-white/25 text-white hover:border-white/50 transition-colors"
           >
-            Log In
+            Sign In
           </a>
           <a
             href="/auth"
             className="font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-wide px-5 py-2.5 rounded-lg bg-[color:var(--accent)] text-[#1a0e02] hover:bg-[color:var(--accent-bright)] transition-colors shadow-[0_8px_22px_-8px_rgba(255,138,30,0.7)]"
           >
-            Sign In
+            Signup
           </a>
         </div>
 
         {/* ── Brand overlay ── */}
-        <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] text-center px-6">
-          <p className="font-[family-name:var(--font-barlow-semi)] text-[11px] sm:text-xs font-bold uppercase tracking-[0.35em] text-[color:var(--accent-bright)] mb-3">
-            Grassroots to Global · District · State · Beyond
-          </p>
-          <h1 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.85] text-white text-[64px] sm:text-[110px] lg:text-[160px] [text-shadow:0_0.06em_0.5em_rgba(0,0,0,0.55)]">
+        {/* pointer-events-none: this full-viewport flex box has no
+            interactive content of its own, but sits after the account bar
+            in DOM order with the same z-10 — without this it intercepts
+            clicks across the whole screen, including Log In/Sign In. */}
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-[100dvh] text-center px-6 pointer-events-none">
+          <h1
+            className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.85] text-white text-[88px] sm:text-[150px] lg:text-[220px]"
+            style={{
+              textShadow:
+                '0 0.03em 0 rgba(0,0,0,0.9), 0 0.06em 0 rgba(0,0,0,0.85), 0 0.1em 0.14em rgba(0,0,0,0.75), 0 0.25em 0.6em rgba(0,0,0,0.7)',
+            }}
+          >
             ATHLAS<span className="text-[color:var(--accent)]">X</span>
           </h1>
-          <p className="font-[family-name:var(--font-barlow)] mt-4 text-base sm:text-2xl text-white">
-            Every sport. Every talent. <b className="text-[color:var(--accent-bright)] font-bold">One platform.</b>
-          </p>
-          <div className="mt-7 h-0.5 w-40 sm:w-60" style={{ background: 'linear-gradient(90deg, transparent, var(--accent), transparent)' }} />
         </div>
       </div>
 

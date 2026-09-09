@@ -4,6 +4,7 @@ import { encode } from "next-auth/jwt";
 import type { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { comparePassword } from "@/lib/password";
+import { rateLimit } from "@/lib/rate-limit";
 
 export interface AuthenticatedUser {
   id: string;
@@ -17,6 +18,13 @@ export async function authenticateWithPassword(
 ): Promise<AuthenticatedUser | null> {
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail || !password) return null;
+
+  // The actual login path had no rate limiting at all — every other
+  // password/OTP-adjacent endpoint in this codebase does. Keyed by the
+  // submitted email (the account being targeted), same "identity being
+  // targeted" pattern claim/start uses for phone.
+  const limit = rateLimit("login-password", normalizedEmail, 10, 900);
+  if (!limit.success) return null;
 
   const user = await db.user.findUnique({
     where: { email: normalizedEmail },

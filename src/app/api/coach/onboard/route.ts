@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { hashPassword } from '@/lib/password'
 import { verifyAcademyOtp } from '@/lib/academy-onboarding-otp'
+import { rateLimit } from '@/lib/rate-limit'
 
 // Creates a new coach User + CoachProfile, following the same
 // encodeSessionToken/applySessionCookie session-minting pattern as
@@ -27,6 +28,11 @@ export async function POST(req: NextRequest) {
   const otp = String(body.otp ?? '')
   if (mobile.length !== 10 || !requestId || !otp) {
     return NextResponse.json({ error: 'Phone verification is required' }, { status: 400 })
+  }
+  // Final-submit OTP re-check had no guess-rate bound — send-otp does.
+  const otpVerifyLimit = rateLimit('coach-onboard-otp-verify', mobile, 10, 3600)
+  if (!otpVerifyLimit.success) {
+    return NextResponse.json({ error: 'Too many verification attempts. Try again later.' }, { status: 429 })
   }
   const otpOk = await verifyAcademyOtp(requestId, mobile, otp)
   if (!otpOk) {

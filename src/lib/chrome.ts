@@ -19,7 +19,7 @@ export const NAV_SECTIONS: ChromeNavSection[] = [
     label: 'Association',
     roles: ['association', 'athlasx_ops'],
     items: [
-      { label: 'Overview', href: '/dashboard' },
+      { label: 'Overview', href: '/association' },
       { label: 'Trial Cycles', href: '/trial-cycles', badge: '1 open' },
       { label: 'Ingest & Data', href: '/ingest', badge: '2' },
       { label: 'Identity Exceptions', href: '/identity-exceptions' },
@@ -65,6 +65,7 @@ export const NAV_SECTIONS: ChromeNavSection[] = [
     items: [
       { label: 'Dashboard', href: '/academy' },
       { label: 'Players', href: '/academy/players' },
+      { label: 'Batches', href: '/academy/batches' },
       { label: 'Add Players', href: '/academy/add-players' },
       { label: 'Join Requests', href: '/academy/join-requests' },
     ],
@@ -90,11 +91,24 @@ export function navHrefsForRole(role: string): string[] {
   return navSectionsForRole(role).flatMap((section) => section.items.map((item) => item.href))
 }
 
+/** Top bar's page title/breadcrumb — the matching nav item's own label for
+ *  the current pathname (longest-href match, so a sub-route like
+ *  /academy/players/123 still resolves to "Players", not the nearest
+ *  section-less fallback). Derived from the same navSectionsForRole data,
+ *  not a second mapping to keep in sync. */
+export function pageTitleForPath(role: string, pathname: string): string {
+  const items = navSectionsForRole(role).flatMap((section) => section.items)
+  const match = items
+    .filter((item) => pathname === item.href || pathname.startsWith(item.href + '/'))
+    .sort((a, b) => b.href.length - a.href.length)[0]
+  return match?.label ?? 'Dashboard'
+}
+
 /** Each role's own home page — where a signed-in visit to / should land. */
 const ROLE_HOME: Record<string, string> = {
   player: '/record',
   coach: '/coach',
-  association: '/dashboard',
+  association: '/association',
   athlasx_ops: '/dashboard',
   selection_panel: '/selection',
   academy_admin: '/academy',

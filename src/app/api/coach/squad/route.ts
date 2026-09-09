@@ -71,6 +71,7 @@ export async function GET(req: NextRequest) {
       name: p.full_name,
       age,
       district: p.district,
+      playing_role: p.playing_role,
       flag: week?.flag_type ?? 'none',
       athlasx_score: result.total,
       fitness_rating: week?.fitness_rating ?? undefined,

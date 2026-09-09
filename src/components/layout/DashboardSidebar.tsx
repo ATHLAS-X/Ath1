@@ -2,16 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut, useSession } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, User, Users, ClipboardList,
-  Shield, BarChart3, Bell, Settings, Zap,
-  ChevronRight, LogOut, Activity, BookOpen,
+  Shield, BarChart3, Bell, Settings,
+  Activity, BookOpen,
   Database, GitMerge, Building2, UserPlus, Inbox, UserCog,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { chromeIdentity, navSectionsForRole } from '@/lib/chrome'
+import { navSectionsForRole } from '@/lib/chrome'
 
 const ICONS: Record<string, React.ElementType> = {
   '/dashboard': LayoutDashboard,
@@ -29,6 +29,7 @@ const ICONS: Record<string, React.ElementType> = {
   '/settings': Settings,
   '/academy': LayoutDashboard,
   '/academy/players': Users,
+  '/academy/batches': ClipboardList,
   '/academy/add-players': UserPlus,
   '/academy/join-requests': Inbox,
   '/ops/associations/new': UserCog,
@@ -43,6 +44,11 @@ interface NavItemProps {
   active: boolean
 }
 
+// Same visual weight as the onboarding StepRail's active-step treatment
+// (orange ring/fill on the current item) — not the same component, since
+// StepRail is a numbered vertical progress rail and this is a flat nav
+// list, but the active-state language (orange, not a full-bg fill) is
+// deliberately shared.
 function NavItem({ href, icon: Icon, label, badge, active }: NavItemProps) {
   return (
     <Link href={href}>
@@ -50,29 +56,28 @@ function NavItem({ href, icon: Icon, label, badge, active }: NavItemProps) {
         whileHover={{ x: active ? 0 : 3 }}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
         className={cn(
-          'relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group',
+          'relative flex items-center gap-3 pl-3.5 pr-3 py-2.5 rounded-ax-md text-sm font-medium font-barlow transition-all duration-200 group',
           active
-            ? 'bg-green-500/10 text-green-400 border border-green-500/18'
-            : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.04]'
+            ? 'bg-[rgba(255,138,30,0.1)] text-ax-accentBright'
+            : 'text-ax-textDim hover:text-ax-text hover:bg-white/[0.04]'
         )}
       >
         {active && (
           <motion.div
             layoutId="sidebar-indicator"
-            className="absolute left-0 inset-y-2 w-0.5 bg-green-500 rounded-r-full"
+            className="absolute left-0 inset-y-2 w-0.5 bg-ax-accent rounded-r-full"
           />
         )}
-        <Icon className={cn('w-4 h-4 flex-shrink-0 transition-colors', active ? 'text-green-400' : 'text-zinc-600 group-hover:text-zinc-400')} />
+        <Icon className={cn('w-4 h-4 flex-shrink-0 transition-colors', active ? 'text-ax-accentBright' : 'text-ax-textFaint group-hover:text-ax-textDim')} />
         <span className="flex-1 truncate">{label}</span>
         {badge && (
           <span className={cn(
             'text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center',
-            active ? 'bg-green-500/20 text-green-300' : 'bg-white/8 text-zinc-500'
+            active ? 'bg-[rgba(255,138,30,0.18)] text-ax-accentBright' : 'bg-white/[0.08] text-ax-textFaint'
           )}>
             {badge}
           </span>
         )}
-        {active && <ChevronRight className="w-3 h-3 text-green-500 flex-shrink-0" />}
       </motion.div>
     </Link>
   )
@@ -82,32 +87,19 @@ export default function DashboardSidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const sections = navSectionsForRole(session?.user?.role ?? '')
-  const identity = chromeIdentity(session?.user)
-  const initials = identity.email.slice(0, 2).toUpperCase()
 
   return (
-    <aside className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-[#070707] border-r border-white/[0.05] z-30">
-      {/* Logo */}
-      <div className="px-5 h-16 flex items-center border-b border-white/[0.05]">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <motion.div
-            whileHover={{ rotate: 15, scale: 1.1 }}
-            transition={{ type: 'spring', stiffness: 400 }}
-            className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-400 to-emerald-700 flex items-center justify-center glow-green-sm"
-          >
-            <Zap className="w-[15px] h-[15px] text-white fill-white" />
-          </motion.div>
-          <span className="text-[1.2rem] font-black tracking-tight">
-            Athlas<span className="text-gradient-green">X</span>
-          </span>
+    <aside className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-ax-bg border-r border-ax-cardBorder z-30">
+      <div className="px-5 h-14 flex items-center border-b border-ax-cardBorder">
+        <Link href="/" className="flex items-center gap-1 font-barlow-semi uppercase tracking-[0.18em] font-bold text-sm text-ax-text">
+          Athlas<span className="text-ax-accent">X</span>
         </Link>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-4">
         {sections.map((section) => (
           <div key={section.label}>
-            <p className="px-3 text-[10px] font-bold text-zinc-700 uppercase tracking-[0.14em] mb-1.5">
+            <p className="px-3 font-anton text-[11px] font-normal text-ax-textFaint uppercase tracking-[0.14em] mb-1.5">
               {section.label}
             </p>
             <div className="space-y-0.5">
@@ -125,24 +117,6 @@ export default function DashboardSidebar() {
           </div>
         ))}
       </nav>
-
-      {/* User row */}
-      <div className="px-3 pb-4 border-t border-white/[0.05] pt-3">
-        <button
-          type="button"
-          onClick={() => signOut({ callbackUrl: '/api/auth/signin' })}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.04] transition-colors group text-left"
-        >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-500 to-emerald-700 flex items-center justify-center flex-shrink-0 text-xs font-black text-white">
-            {initials || '—'}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-white truncate">{identity.email || 'Not signed in'}</p>
-            <p className="text-[10px] text-zinc-600 truncate">{identity.roleLabel}</p>
-          </div>
-          <LogOut className="w-3.5 h-3.5 text-zinc-700 group-hover:text-zinc-400 transition-colors flex-shrink-0" />
-        </button>
-      </div>
     </aside>
   )
 }

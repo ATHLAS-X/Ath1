@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { verifyOtpCode, isOtpExpired, MAX_ATTEMPTS } from '@/lib/otp'
 import { logOtpEvent } from '@/lib/otp-log'
+import { rateLimit } from '@/lib/rate-limit'
 
 // Verifies the OTP and, on success, grants consent, marks the profile
 // claimed, creates the player User, and signs them in via a session cookie.
@@ -10,6 +11,15 @@ export async function POST(req: NextRequest) {
   const { claimId, code } = await req.json()
   if (!claimId || !code) {
     return NextResponse.json({ error: 'claimId and code are required' }, { status: 400 })
+  }
+
+  // Per-claim, in addition to the existing per-row MAX_ATTEMPTS counter —
+  // that counter resets if a new OTP is sent for the same claim, so it
+  // alone doesn't bound the total guess rate across resends the way the
+  // send-side rateLimit('claim-otp-send', ...) already bounds sends.
+  const verifyLimit = rateLimit('claim-otp-verify', claimId, 10, 3600)
+  if (!verifyLimit.success) {
+    return NextResponse.json({ error: 'Too many verification attempts. Try again later.' }, { status: 429 })
   }
 
   const otp = await db.phoneOtp.findFirst({

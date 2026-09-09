@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { BattingStyle, BowlingStyleEnum, Format, PlayingRoleEnum } from '@prisma/client'
+import type { BattingStyle, BowlingStyleEnum, CompetitiveLevel, Format, Gender, PlayingRoleEnum } from '@prisma/client'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { hashPassword } from '@/lib/password'
 import { consumeVerifiedAadhaar } from '@/lib/aadhaar-verification'
+
+// docs/AthlasX_Master_Data_Points.docx Player Phase 1 (HIGH) — the wizard's
+// <select> already sends the enum's own values directly (see the "value"
+// attrs in src/app/onboarding/page.tsx), unlike playingRole/battingStyle/
+// bowlingStyle above, which still send the old mockup-copy display strings
+// needing a lookup table. No mapping table needed for gender/level.
+const GENDER_VALUES = new Set<Gender>(['male', 'female', 'other'])
+const COMPETITIVE_LEVEL_VALUES = new Set<CompetitiveLevel>([
+  'club_only', 'school_team', 'zonal', 'district_team', 'state_trial', 'state_team', 'ipl_trial', 'national',
+])
 
 const PLAYING_ROLE: Record<string, PlayingRoleEnum> = {
   Batsman: 'Batsman',
@@ -90,18 +100,42 @@ export async function POST(req: NextRequest) {
   const state = String(body.state ?? '').trim()
   const playingRole = typeof body.playingRole === 'string' ? PLAYING_ROLE[body.playingRole] : undefined
 
-  if (!email || !password || !fullName || !dob || Number.isNaN(dob.getTime()) || !district || !state || !playingRole) {
+  // docs/AthlasX_Master_Data_Points.docx Player Phase 1 (HIGH) — required
+  // the same way the pre-existing identity/playing-profile fields above
+  // are: a 400 if missing, not a silent null. Re-checked server-side even
+  // though the wizard's own canProceedStage1() already gates on these —
+  // same trust-the-client-nothing pattern as the Aadhaar re-check below.
+  const gender = typeof body.gender === 'string' && GENDER_VALUES.has(body.gender as Gender) ? (body.gender as Gender) : undefined
+  const city = String(body.city ?? '').trim()
+  const enrollmentDateRaw = body.enrollmentDate
+  const enrollmentDate = typeof enrollmentDateRaw === 'string' && enrollmentDateRaw ? new Date(enrollmentDateRaw) : null
+  const highestLevelRepresented = typeof body.highestLevelRepresented === 'string' && COMPETITIVE_LEVEL_VALUES.has(body.highestLevelRepresented as CompetitiveLevel)
+    ? (body.highestLevelRepresented as CompetitiveLevel)
+    : undefined
+
+  if (
+    !email || !password || !fullName || !dob || Number.isNaN(dob.getTime()) || !district || !state || !playingRole
+    || !gender || !city || !enrollmentDate || Number.isNaN(enrollmentDate.getTime()) || !highestLevelRepresented
+  ) {
     return NextResponse.json({ error: 'Identity and playing profile are required' }, { status: 400 })
   }
 
   const minor = isUnder18(dob)
   const guardianPhone = String(body.guardianPhone ?? '').trim()
-  if (minor && !guardianPhone) {
+  const guardianName = String(body.guardianName ?? '').trim()
+  if (minor && (!guardianPhone || !guardianName)) {
     return NextResponse.json(
-      { error: 'Guardian phone is required for players under 18' },
+      { error: 'Guardian name and phone are required for players under 18' },
       { status: 400 },
     )
   }
+
+  // Batch dual-mode (docs Phase 1, HIGH) — batch_id when the wizard
+  // resolved a real AcademyBatch via /api/academy/lookup, batch_label
+  // free text otherwise. Exactly one is expected to be set; not enforced
+  // as a DB constraint (see the schema's own comment on batch_id/batch_label).
+  const batchId = String(body.batchId ?? '').trim() || undefined
+  const batchLabel = String(body.batchLabel ?? '').trim() || undefined
 
   // Aadhaar verification (Stage 2 of the onboarding wizard) — the client
   // never sends a raw Aadhaar number here, only the requestId its own
@@ -155,6 +189,13 @@ export async function POST(req: NextRequest) {
               dob,
               district,
               state,
+              gender,
+              city,
+              enrollment_date: enrollmentDate,
+              highest_level_represented: highestLevelRepresented,
+              cricheroes_handle: typeof body.cricheroes_handle === 'string' && body.cricheroes_handle.trim() ? body.cricheroes_handle.trim() : undefined,
+              batch_id: batchId,
+              batch_label: batchLabel,
               playing_role: playingRole,
               batting_style: typeof body.battingStyle === 'string' ? BATTING_STYLE[body.battingStyle] : undefined,
               bowling_style: typeof body.bowlingStyle === 'string' ? BOWLING_STYLE[body.bowlingStyle] : undefined,
@@ -163,6 +204,7 @@ export async function POST(req: NextRequest) {
                 : [],
               academy: body.academy ? String(body.academy) : undefined,
               guardian_phone: guardianPhone || undefined,
+              guardian_name: guardianName || undefined,
               footage_urls: footageUrls(body),
               bio: foldBio(body),
               profile_source: 'self_registered',
@@ -216,13 +258,11 @@ function footageUrls(body: Record<string, unknown>): string[] {
 }
 
 function foldBio(body: Record<string, unknown>): string | undefined {
-  const parts: string[] = []
-  if (typeof body.bio === 'string' && body.bio.trim()) parts.push(body.bio.trim())
-  if (typeof body.cricheroes_handle === 'string' && body.cricheroes_handle.trim()) {
-    parts.push(`CricHeroes: ${body.cricheroes_handle.trim()}`)
-  }
-  if (body.yearsExperience !== undefined && body.yearsExperience !== null && String(body.yearsExperience).trim() !== '') {
-    parts.push(`${String(body.yearsExperience).trim()} years of cricket`)
-  }
-  return parts.length ? parts.join('\n') : undefined
+  // cricheroes_handle and yearsExperience used to be folded into bio text
+  // here (no real columns existed for either). cricheroes_handle now has
+  // its own column (see the create() call above); yearsExperience was
+  // dropped from the wizard entirely — superseded by Phase 2's
+  // playing_since_year, not replaced yet. bio is just bio now.
+  const bio = typeof body.bio === 'string' ? body.bio.trim() : ''
+  return bio || undefined
 }

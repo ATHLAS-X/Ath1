@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  AthlasX — Authentication (Sign In / Sign Up)
+  Shares the hero's design language: same :root palette, fonts, vignette,
+  glass card, accent saffron-amber, golden-ratio split (φ-major collage / form).
+  Four roles: Player · Coach · Academy · Scout.
+  ============================================================================
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AthlasX — Sign In / Sign Up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ── shared palette/tokens, copied from the hero ───────────────────── */
+  :root {
+    --bg:            #0D0D0D;
+    --bg-soft:       #141312;
+    --text:          #F5F5F0;
+    --text-dim:      rgba(245, 245, 240, 0.62);
+    --accent:        #FF8A1E;
+    --accent-rgb:    255, 138, 30;
+    --accent-bright: #FFA64D;
+    --overlay-accent-08: rgba(var(--accent-rgb), 0.08);
+    --overlay-accent-14: rgba(var(--accent-rgb), 0.14);
+    --overlay-accent-22: rgba(var(--accent-rgb), 0.22);
+    --seam:          rgba(13, 13, 13, 0.9);
+    --gap:           3px;
+    --phi2:          2.618rem;
+    --card-bg:       rgba(13, 13, 13, 0.55);
+    --card-border:   rgba(245, 245, 240, 0.14);
+    --field-bg:      rgba(245, 245, 240, 0.06);
+    --ease:          cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Barlow", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* split: φ-major collage column · φ-minor form column */
+  .auth-stage {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* ── LEFT: collage backdrop (same mosaic + filters + vignette) ──────── */
+  .showcase {
+    position: relative;
+    overflow: hidden;
+    background: var(--seam);
+  }
+  .showcase .grid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    gap: var(--gap);
+    grid-template-columns: 1.618fr 1fr 0.618fr;
+    grid-template-rows: 1fr 1.618fr 1fr;
+    grid-template-areas:
+      "a a b"
+      "a a c"
+      "d e c";
+  }
+  .tile { position: relative; overflow: hidden; background: var(--bg-soft); }
+  .tile img {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: var(--focus, 50% 35%);
+    display: block; transform: scale(1.04);
+    transition: transform 1s var(--ease);
+  }
+  .auth-stage.is-ready .tile img { transform: scale(1.001); }
+  .tile::after {
+    content: ""; position: absolute; inset: 0;
+    background: var(--overlay-accent-08); mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+  .t-a { grid-area: a; } .t-a img { filter: saturate(1.05) contrast(1.05) brightness(0.96); }
+  .t-b { grid-area: b; } .t-b img { filter: saturate(1.2) contrast(1.05) brightness(1.02); --focus: 50% 28%; }
+  .t-c { grid-area: c; } .t-c img { filter: saturate(1.06) contrast(1.1) brightness(0.94); --focus: 50% 30%; }
+  .t-d { grid-area: d; } .t-d img { filter: saturate(1.18) contrast(1.12) brightness(0.98); --focus: 50% 30%; }
+  .t-e { grid-area: e; } .t-e img { filter: saturate(1.24) contrast(1.05); --focus: 46% 30%; }
+
+  .showcase .vignette {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background:
+      radial-gradient(120% 100% at 40% 42%,
+        rgba(13,13,13,0) 0%, rgba(13,13,13,0.12) 40%,
+        rgba(13,13,13,0.55) 74%, rgba(13,13,13,0.9) 100%),
+      linear-gradient(90deg, rgba(13,13,13,0) 55%, rgba(13,13,13,0.7) 100%);
+  }
+  .showcase .copy {
+    position: absolute; z-index: 3; left: var(--phi2); bottom: var(--phi2);
+    right: var(--phi2); max-width: 30rem;
+  }
+  .showcase .copy .eyebrow {
+    font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase;
+    letter-spacing: 0.32em; font-weight: 700; font-size: 12px;
+    color: var(--accent-bright); margin: 0 0 0.7rem 0;
+  }
+  .showcase .copy h2 {
+    font-family: "Anton", sans-serif; text-transform: uppercase;
+    font-weight: 400; line-height: 0.92; letter-spacing: -0.01em;
+    font-size: clamp(34px, 4vw, 60px); margin: 0; color: var(--text);
+    text-shadow: 0 0.06em 0.5em rgba(0,0,0,0.55);
+  }
+  .showcase .copy h2 b { color: var(--accent); }
+  .showcase .copy p {
+    margin: 1rem 0 0; font-size: 1rem; line-height: 1.5;
+    color: rgba(245,245,240,0.82); max-width: 24rem;
+  }
+
+  /* corner brandmark */
+  .brandmark {
+    position: absolute; z-index: 4; top: var(--phi2); left: var(--phi2);
+    font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase;
+    letter-spacing: 0.22em; font-weight: 700; font-size: 0.9rem; color: var(--text);
+  }
+  .brandmark span { color: var(--accent); }
+
+  /* ── RIGHT: the form column ─────────────────────────────────────────── */
+  .panel {
+    position: relative;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: clamp(1.75rem, 4vw, 3.4rem);
+    background: var(--bg);
+  }
+  /* faint accent glow so the dark column isn't flat */
+  .panel::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(120% 60% at 100% 0%, var(--overlay-accent-08), transparent 60%);
+  }
+  .form-wrap { position: relative; width: 100%; max-width: 30rem; margin: 0 auto; }
+
+  .kicker {
+    font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase;
+    letter-spacing: 0.2em; font-size: 11px; font-weight: 700;
+    color: var(--accent-bright); margin: 0 0 0.5rem 0;
+  }
+  .title {
+    font-family: "Anton", sans-serif; text-transform: uppercase;
+    font-weight: 400; letter-spacing: 0; line-height: 0.95;
+    font-size: clamp(30px, 4.5vw, 46px); margin: 0 0 0.45rem 0; color: var(--text);
+  }
+  .subtitle { margin: 0 0 1.6rem 0; font-size: 0.92rem; color: var(--text-dim); }
+
+  /* mode toggle (Sign In / Sign Up) */
+  .toggle {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem;
+    padding: 0.28rem; margin-bottom: 1.5rem;
+    background: var(--field-bg); border: 1px solid var(--card-border);
+    border-radius: 11px;
+  }
+  .toggle button {
+    appearance: none; cursor: pointer; border: 0; border-radius: 8px;
+    padding: 0.62rem 0.5rem; font-family: "Barlow Semi Condensed", sans-serif;
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700;
+    font-size: 0.92rem; color: var(--text-dim); background: transparent;
+    transition: background 0.25s var(--ease), color 0.25s var(--ease);
+  }
+  .toggle button[aria-selected="true"] {
+    background: var(--accent); color: #1a0e02;
+    box-shadow: 0 6px 18px -8px rgba(var(--accent-rgb), 0.7);
+  }
+
+  /* role selector */
+  .field-label {
+    font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase;
+    letter-spacing: 0.14em; font-size: 11px; font-weight: 700;
+    color: var(--text-dim); margin: 0 0 0.55rem 0;
+  }
+  .roles {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;
+    margin-bottom: 1.4rem;
+  }
+  .role {
+    cursor: pointer; text-align: left;
+    padding: 0.7rem 0.8rem; border-radius: 10px;
+    background: var(--field-bg); border: 1.5px solid var(--card-border);
+    transition: border-color 0.2s var(--ease), background 0.2s var(--ease), transform 0.15s var(--ease);
+    display: flex; align-items: center; gap: 0.6rem;
+  }
+  .role:hover { border-color: rgba(245,245,240,0.32); }
+  .role:active { transform: translateY(1px); }
+  .role[aria-pressed="true"] {
+    border-color: var(--accent); background: var(--overlay-accent-14);
+  }
+  .role .ico {
+    width: 30px; height: 30px; flex: 0 0 auto; border-radius: 8px;
+    display: grid; place-items: center;
+    background: rgba(var(--accent-rgb), 0.16); color: var(--accent-bright);
+  }
+  .role[aria-pressed="true"] .ico { background: var(--accent); color: #1a0e02; }
+  .role .ico svg { width: 17px; height: 17px; display: block; }
+  .role .rl { display: flex; flex-direction: column; line-height: 1.15; }
+  .role .rl b { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+  .role .rl small { font-size: 0.68rem; color: var(--text-dim); }
+
+  /* fields */
+  .field { margin-bottom: 0.9rem; }
+  .field input {
+    width: 100%; padding: 0.82rem 0.95rem;
+    font-family: "Barlow", sans-serif; font-size: 0.95rem; color: var(--text);
+    background: var(--field-bg); border: 1px solid var(--card-border);
+    border-radius: 9px; outline: none;
+    transition: border-color 0.25s var(--ease), background 0.25s var(--ease), box-shadow 0.25s var(--ease);
+  }
+  .field input::placeholder { color: rgba(245,245,240,0.4); }
+  .field input:focus {
+    border-color: var(--accent); background: rgba(245,245,240,0.09);
+    box-shadow: 0 0 0 3px var(--overlay-accent-22);
+  }
+  .field input.invalid { border-color: #ff5a4d; box-shadow: 0 0 0 3px rgba(255,90,77,0.18); }
+  /* signup-only fields */
+  .signup-only { display: none; }
+  .mode-signup .signup-only { display: block; }
+  .mode-signup .roles-block { display: block; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+
+  .form-msg {
+    min-height: 1rem; font-size: 0.78rem; margin: 0 0 0.7rem 0.15rem;
+    color: #ff8a7e; opacity: 0; transition: opacity 0.2s var(--ease);
+  }
+  .form-msg.show { opacity: 1; }
+  .form-msg.ok { color: var(--accent-bright); }
+
+  .between {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 0.1rem 0 1.1rem; font-size: 0.82rem; color: var(--text-dim);
+  }
+  .between label { display: flex; align-items: center; gap: 0.45rem; cursor: pointer; }
+  .between input { accent-color: var(--accent); width: 15px; height: 15px; }
+  .between a { color: var(--accent-bright); text-decoration: none; }
+  .between a:hover { text-decoration: underline; }
+
+  .btn {
+    width: 100%; padding: 0.92rem 0.6rem; cursor: pointer;
+    font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase;
+    letter-spacing: 0.06em; font-weight: 700; font-size: 1rem;
+    border-radius: 10px; border: 1.5px solid var(--accent);
+    background: var(--accent); color: #1a0e02;
+    box-shadow: 0 10px 26px -10px rgba(var(--accent-rgb), 0.8);
+    transition: transform 0.18s var(--ease), background 0.22s var(--ease), box-shadow 0.22s var(--ease);
+  }
+  .btn:hover { background: var(--accent-bright); border-color: var(--accent-bright); }
+  .btn:active { transform: translateY(1px); }
+
+  .divider {
+    display: flex; align-items: center; gap: 0.8rem;
+    margin: 1.3rem 0; color: var(--text-dim); font-size: 0.74rem;
+    text-transform: uppercase; letter-spacing: 0.14em;
+  }
+  .divider::before, .divider::after {
+    content: ""; flex: 1; height: 1px; background: var(--card-border);
+  }
+  .btn-ghost {
+    width: 100%; padding: 0.82rem 0.6rem; cursor: pointer;
+    font-family: "Barlow Semi Condensed", sans-serif; text-transform: uppercase;
+    letter-spacing: 0.06em; font-weight: 700; font-size: 0.92rem;
+    border-radius: 10px; border: 1.5px solid var(--card-border);
+    background: transparent; color: var(--text);
+    transition: border-color 0.2s var(--ease), background 0.2s var(--ease), transform 0.15s var(--ease);
+  }
+  .btn-ghost:hover { border-color: var(--text); background: rgba(245,245,240,0.06); }
+  .btn-ghost:active { transform: translateY(1px); }
+
+  .swap {
+    margin: 1.4rem 0 0; text-align: center; font-size: 0.88rem; color: var(--text-dim);
+  }
+  .swap button {
+    appearance: none; background: none; border: 0; cursor: pointer; padding: 0;
+    font: inherit; font-weight: 700; color: var(--accent-bright);
+  }
+  .swap button:hover { text-decoration: underline; }
+
+  .legal {
+    margin: 1.4rem 0 0; font-size: 0.72rem; line-height: 1.45; color: var(--text-dim);
+    text-align: center;
+  }
+  .legal a { color: var(--accent-bright); text-decoration: none; }
+  .legal a:hover { text-decoration: underline; }
+
+  /* ── responsive: stack, collage becomes a banner ───────────────────── */
+  @media (max-width: 880px) {
+    .auth-stage { grid-template-columns: 1fr; }
+    .showcase { min-height: 38vh; }
+    .showcase .grid {
+      grid-template-columns: 1.618fr 1fr 0.618fr;
+      grid-template-rows: 1fr 1fr;
+      grid-template-areas: "a b c" "a d e";
+    }
+    .showcase .copy h2 { font-size: clamp(26px, 7vw, 40px); }
+    .showcase .copy p { display: none; }
+  }
+  @media (max-width: 480px) {
+    .showcase { min-height: 30vh; }
+    .roles { grid-template-columns: 1fr; }
+    .row2 { grid-template-columns: 1fr; gap: 0; }
+    .panel { padding: 1.5rem 1.25rem 2rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tile img { transition: none !important; transform: none !important; }
+    .auth-stage.is-ready .tile img { transform: none !important; }
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important; transition-duration: 0.001ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="auth-stage" id="stage">
+
+    <!-- LEFT — collage showcase -->
+    <section class="showcase" aria-hidden="true">
+      <div class="grid" id="grid">
+        <figure class="tile t-a" data-sport="motorsport"></figure>
+        <figure class="tile t-b" data-sport="badminton"></figure>
+        <figure class="tile t-c" data-sport="tennis-2"></figure>
+        <figure class="tile t-d" data-sport="cricket"></figure>
+        <figure class="tile t-e" data-sport="volleyball"></figure>
+      </div>
+      <div class="vignette"></div>
+      <div class="brandmark">ATHLAS<span>X</span></div>
+      <div class="copy">
+        <p class="eyebrow">Grassroots to Global</p>
+        <h2>Where India's next <b>champions</b> get found.</h2>
+        <p>One profile. Every sport. Seen by the coaches, academies and scouts who matter.</p>
+      </div>
+    </section>
+
+    <!-- RIGHT — form -->
+    <section class="panel">
+      <div class="form-wrap mode-signin" id="formWrap">
+        <p class="kicker" id="kicker">Welcome back</p>
+        <h1 class="title" id="title">Sign in</h1>
+        <p class="subtitle" id="subtitle">Pick up right where you left off.</p>
+
+        <!-- mode toggle -->
+        <div class="toggle" role="tablist" aria-label="Sign in or sign up">
+          <button type="button" id="tabSignin" role="tab" aria-selected="true">Sign In</button>
+          <button type="button" id="tabSignup" role="tab" aria-selected="false">Sign Up</button>
+        </div>
+
+        <form id="authForm" novalidate>
+          <!-- ROLE (signup) -->
+          <div class="roles-block signup-only">
+            <p class="field-label">I am a&hellip;</p>
+            <div class="roles" id="roles" role="group" aria-label="Select your role">
+              <button type="button" class="role" data-role="Player" aria-pressed="true">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="7" r="3.2"/><path d="M5 21c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg></span>
+                <span class="rl"><b>Player</b><small>Athlete profile</small></span>
+              </button>
+              <button type="button" class="role" data-role="Coach" aria-pressed="false">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V7l8-3 8 3v12"/><path d="M9 21v-5h6v5"/><path d="M12 4v3"/></svg></span>
+                <span class="rl"><b>Coach</b><small>Train & track</small></span>
+              </button>
+              <button type="button" class="role" data-role="Academy" aria-pressed="false">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M9 21v-6h6v6"/></svg></span>
+                <span class="rl"><b>Academy</b><small>Manage talent</small></span>
+              </button>
+              <button type="button" class="role" data-role="Scout" aria-pressed="false">
+                <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></span>
+                <span class="rl"><b>Scout</b><small>Discover players</small></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- NAME (signup) -->
+          <div class="signup-only">
+            <div class="row2">
+              <div class="field">
+                <input type="text" id="firstName" autocomplete="given-name" placeholder="First name" aria-label="First name" />
+              </div>
+              <div class="field">
+                <input type="text" id="lastName" autocomplete="family-name" placeholder="Last name" aria-label="Last name" />
+              </div>
+            </div>
+          </div>
+
+          <div class="field">
+            <input type="email" id="email" autocomplete="email" placeholder="Email address" aria-label="Email address" />
+          </div>
+          <div class="field">
+            <input type="password" id="password" autocomplete="current-password" placeholder="Password" aria-label="Password" />
+          </div>
+          <!-- CONFIRM (signup) -->
+          <div class="field signup-only">
+            <input type="password" id="confirm" autocomplete="new-password" placeholder="Confirm password" aria-label="Confirm password" />
+          </div>
+
+          <p class="form-msg" id="formMsg" role="status" aria-live="polite"></p>
+
+          <div class="between">
+            <label><input type="checkbox" id="remember" /> <span id="rememberLabel">Remember me</span></label>
+            <a href="#" id="forgot">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn" id="submitBtn">Sign In</button>
+        </form>
+
+        <div class="divider">or</div>
+        <button type="button" class="btn-ghost" id="ssoBtn">Continue with Google</button>
+
+        <p class="swap" id="swap">
+          <span id="swapText">New to AthlasX?</span>
+          <button type="button" id="swapBtn">Create an account</button>
+        </p>
+
+        <p class="legal">By continuing you agree to our <a href="#">Terms</a> &amp; <a href="#">Privacy Policy</a>.</p>
+      </div>
+    </section>
+  </div>
+
+<script>
+// ── ATHLASX_IMAGES ─ same config contract as the hero; swap url to drop in real art.
+const ATHLASX_IMAGES = [
+  { sport: "motorsport", url: "assets/motorsport.jpg",      alt: "Motorsport driver on a single-seater under a vast sky" },
+  { sport: "badminton",  url: "assets/badminton.jpg",       alt: "Badminton player roaring in triumph, flag behind" },
+  { sport: "cricket",    url: "assets/cricket.jpg",         alt: "Cricketer in national kit against a smoke-coloured sky" },
+  { sport: "volleyball", url: "assets/volleyball.jpg",      alt: "Volleyball player leaping to serve amid blue and gold paint" },
+  { sport: "tennis-2",   url: "assets/tennis-sunburst.jpg", alt: "Stylised tennis player against a warm sunburst" }
+];
+
+(function () {
+  "use strict";
+
+  /* 1 ── paint collage from config */
+  const byKey = Object.create(null);
+  ATHLASX_IMAGES.forEach(function (e) { byKey[e.sport] = e; });
+  const stage = document.getElementById("stage");
+  const tiles = document.querySelectorAll(".tile[data-sport]");
+  let pending = 0;
+  tiles.forEach(function (tile) {
+    const cfg = byKey[tile.getAttribute("data-sport")];
+    if (!cfg) return;
+    const img = new Image();
+    img.alt = cfg.alt || ""; img.decoding = "async"; img.loading = "eager";
+    pending++;
+    const done = function () { if (--pending <= 0) stage.classList.add("is-ready"); };
+    img.addEventListener("load", done);
+    img.addEventListener("error", function () {
+      tile.style.background = "linear-gradient(135deg, rgba(var(--accent-rgb),0.22), rgba(13,13,13,0.9))";
+      done();
+    });
+    img.src = cfg.url;
+    tile.appendChild(img);
+  });
+  setTimeout(function () { stage.classList.add("is-ready"); }, 2200);
+
+  /* 2 ── role selection */
+  let role = "Player";
+  const roleBtns = document.querySelectorAll(".role");
+  roleBtns.forEach(function (b) {
+    b.addEventListener("click", function () {
+      roleBtns.forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+      b.setAttribute("aria-pressed", "true");
+      role = b.getAttribute("data-role");
+    });
+  });
+
+  /* 3 ── mode toggle (signin / signup) */
+  const wrap       = document.getElementById("formWrap");
+  const tabSignin  = document.getElementById("tabSignin");
+  const tabSignup  = document.getElementById("tabSignup");
+  const titleEl    = document.getElementById("title");
+  const kickerEl   = document.getElementById("kicker");
+  const subtitleEl = document.getElementById("subtitle");
+  const submitBtn  = document.getElementById("submitBtn");
+  const ssoBtn     = document.getElementById("ssoBtn");
+  const swapText   = document.getElementById("swapText");
+  const swapBtn    = document.getElementById("swapBtn");
+  const rememberLb = document.getElementById("rememberLabel");
+  const pwd        = document.getElementById("password");
+  let mode = "signin";
+
+  function applyMode(next) {
+    mode = next;
+    const up = mode === "signup";
+    wrap.classList.toggle("mode-signup", up);
+    wrap.classList.toggle("mode-signin", !up);
+    tabSignin.setAttribute("aria-selected", String(!up));
+    tabSignup.setAttribute("aria-selected", String(up));
+    kickerEl.textContent   = up ? "Join AthlasX" : "Welcome back";
+    titleEl.textContent    = up ? "Create account" : "Sign in";
+    subtitleEl.textContent = up ? "Set up your profile in under a minute." : "Pick up right where you left off.";
+    submitBtn.textContent  = up ? "Create Account" : "Sign In";
+    ssoBtn.textContent     = up ? "Sign up with Google" : "Continue with Google";
+    swapText.textContent   = up ? "Already on AthlasX?" : "New to AthlasX?";
+    swapBtn.textContent    = up ? "Sign in instead" : "Create an account";
+    rememberLb.textContent = up ? "Email me opportunities" : "Remember me";
+    pwd.setAttribute("autocomplete", up ? "new-password" : "current-password");
+    setMsg("", false);
+  }
+  tabSignin.addEventListener("click", function () { applyMode("signin"); });
+  tabSignup.addEventListener("click", function () { applyMode("signup"); });
+  swapBtn.addEventListener("click", function () { applyMode(mode === "signin" ? "signup" : "signin"); });
+
+  /* 4 ── validation + demo submit */
+  const form    = document.getElementById("authForm");
+  const email   = document.getElementById("email");
+  const confirm = document.getElementById("confirm");
+  const first   = document.getElementById("firstName");
+  const msgEl   = document.getElementById("formMsg");
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+  function setMsg(text, ok) {
+    msgEl.textContent = text;
+    msgEl.classList.toggle("show", !!text);
+    msgEl.classList.toggle("ok", !!ok);
+  }
+  function mark(el, bad) { el.classList.toggle("invalid", !!bad); }
+
+  function validate() {
+    [email, pwd, confirm, first].forEach(function (el) { mark(el, false); });
+    if (mode === "signup" && !first.value.trim()) { mark(first, true); setMsg("Tell us your first name.", false); return false; }
+    if (!EMAIL_RE.test(email.value.trim()))        { mark(email, true); setMsg("Enter a valid email address.", false); return false; }
+    if (pwd.value.length < 6)                       { mark(pwd, true);   setMsg("Password must be at least 6 characters.", false); return false; }
+    if (mode === "signup" && confirm.value !== pwd.value) { mark(confirm, true); setMsg("Passwords don't match.", false); return false; }
+    setMsg("", false);
+    return true;
+  }
+  [email, pwd, confirm, first].forEach(function (el) {
+    el.addEventListener("input", function () { if (el.classList.contains("invalid")) validate(); });
+  });
+
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    if (!validate()) return;
+    const original = submitBtn.textContent;
+    submitBtn.disabled = true; submitBtn.style.opacity = "0.75"; submitBtn.textContent = "Please wait…";
+    setTimeout(function () {
+      submitBtn.disabled = false; submitBtn.style.opacity = ""; submitBtn.textContent = original;
+      const who = mode === "signup" ? role : "back";
+      setMsg((mode === "signup" ? "Account created for a " + role + "!" : "Signed in — welcome " + who + "!") + " (demo)", true);
+    }, 950);
+  });
+
+  ssoBtn.addEventListener("click", function () { setMsg("Google " + (mode === "signup" ? "sign-up" : "sign-in") + " is a demo here.", true); });
+  document.getElementById("forgot").addEventListener("click", function (e) { e.preventDefault(); setMsg("Password reset link sent (demo).", true); });
+
+  applyMode("signin");
+})();
+</script>
+</body>
+</html>

@@ -8,7 +8,16 @@
  * later means swapping this module's internals, not its call sites.
  */
 
-const buckets = new Map<string, number[]>()
+// globalThis-backed, not a plain module-level const — Next.js dev mode can
+// dispose and recompile a route handler's module after a period of
+// inactivity (its on-demand-entries GC), which would silently reset a
+// plain module-level Map and make rate limits (and previously, pending
+// OTPs elsewhere) intermittently forget state that was set moments
+// earlier. Attaching to globalThis survives that recompilation the same
+// way src/lib/db.ts's Prisma singleton already does.
+const globalForRateLimit = globalThis as unknown as { __athlasxRateLimitBuckets?: Map<string, number[]> }
+const buckets = globalForRateLimit.__athlasxRateLimitBuckets ?? new Map<string, number[]>()
+globalForRateLimit.__athlasxRateLimitBuckets = buckets
 
 export interface RateLimitResult {
   success: boolean

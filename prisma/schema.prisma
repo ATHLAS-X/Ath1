@@ -4,12 +4,23 @@
 // the corresponding TS interface field so the Prisma Client's generated
 // types need no manual re-mapping at the API-route boundary.
 //
-// IMPORTANT: this Neon database already hosts ~30 tables from the archived
-// SportX codebase (users, player_profiles, academies, etc. — different
-// shape, same names). Every model below lives in its own Postgres schema
-// ("athlasx") via @@schema, so `prisma migrate` never touches, alters, or
-// collides with the old tables in "public". Do not remove @@schema from a
-// model or drop the multiSchema preview feature below.
+// IMPORTANT — datasource target is not fixed, check .env.local's DATABASE_URL
+// host before assuming which of these applies:
+//   - Neon: this database already hosts ~30 tables from the archived SportX
+//     codebase (users, player_profiles, academies, etc. — different shape,
+//     same names) in the "public" schema.
+//   - Supabase: a fresh project, with no legacy SportX tables to protect
+//     against — the @@schema isolation below is then precautionary, not
+//     load-bearing against pre-existing data.
+// As of this comment, .env.local's DATABASE_URL host is
+// aws-0-ap-south-1.pooler.supabase.com — i.e. Supabase, not Neon. This was
+// not true when the paragraph above was first written; re-check the host
+// yourself rather than trusting this note to stay current.
+// Every model below lives in its own Postgres schema ("athlasx") via
+// @@schema regardless of which target is active, so `prisma migrate`/`db
+// push` never touches, alters, or collides with anything in "public". Do
+// not remove @@schema from a model or drop the multiSchema preview feature
+// below.
 //
 // Conventions:
 //   • Model names: PascalCase. Table names: snake_case via @@map.
@@ -68,6 +79,32 @@ enum PlayingRoleEnum {
   Bowler
   All_rounder           @map("All-rounder")
   Wicket_keeper_Batsman @map("Wicket-keeper Batsman")
+
+  @@schema("athlasx")
+}
+
+// docs/AthlasX_Master_Data_Points.docx — Player Phase 1 (HIGH).
+enum Gender {
+  male
+  female
+  other
+
+  @@schema("athlasx")
+}
+
+// docs/AthlasX_Master_Data_Points.docx — Player Phase 1 (HIGH). Unverified
+// until association data confirms it — the doc's own "Unverified" badge
+// note is a UI/display concern, not a schema one; no separate verification
+// status column added here.
+enum CompetitiveLevel {
+  club_only
+  school_team
+  zonal
+  district_team
+  state_trial
+  state_team
+  ipl_trial
+  national
 
   @@schema("athlasx")
 }
@@ -195,6 +232,41 @@ enum ProfileSource {
   ingest
   self_registered
   academy_join_request
+
+  @@schema("athlasx")
+}
+
+// docs/AthlasX_Master_Data_Points.docx — Academy Phase 1 (HIGH).
+enum AcademyType {
+  private
+  government
+  sports_club
+  school_attached
+  ngo
+  trust
+
+  @@schema("athlasx")
+}
+
+// docs/AthlasX_Master_Data_Points.docx — Academy Phase 1 (HIGH). A range,
+// not an exact count, per the doc's own "reduces friction vs asking for
+// an exact count" rationale.
+enum PlayerCountRange {
+  under_50
+  from_50_to_100
+  from_100_to_250
+  over_250
+
+  @@schema("athlasx")
+}
+
+// docs/AthlasX_Master_Data_Points.docx — added in Phase 1's schema pass
+// even though first consumed in Phase 3 (Sports Insurance for Players),
+// to avoid a second migration file later for one shared enum.
+enum TriState {
+  yes
+  no
+  not_sure
 
   @@schema("athlasx")
 }
@@ -343,6 +415,32 @@ model PlayerProfile {
   preferred_formats                    Format[]
   academy                              String?
   avatar_url                           String?
+  // docs/AthlasX_Master_Data_Points.docx — Player Phase 1 (HIGH). Nullable
+  // at the DB level — not every PlayerProfile.create() call site has a
+  // gender to supply (ingest/academy-join-request/identity-resolution all
+  // create gender-unknown draft profiles with no self-registration step
+  // to ask the question). "Never default to Male" is instead enforced at
+  // the application layer: the self-serve wizard's own canProceedStage1()
+  // requires it before Stage 1 can advance, with no pre-selected option
+  // in the <select> — the DB simply never invents a value on their behalf.
+  gender                               Gender?
+  city                                 String?
+  // Guardian's name, alongside the existing guardian_phone above — both
+  // become mandatory together once DOB confirms a minor (enforced in
+  // src/app/onboarding/page.tsx, same pattern already used for
+  // guardian_phone alone).
+  guardian_name                        String?
+  enrollment_date                      DateTime?                 @db.Date
+  // Dual-mode per the doc: a real FK when the player's academy already has
+  // AcademyBatch rows to pick from, a free-text fallback otherwise ("allow
+  // free-text if batches not yet set up — convert to structured later").
+  // Both nullable and independent — exactly one is expected to be set per
+  // row, but that's an application-layer invariant, not a DB constraint.
+  batch_id                             String?                   @db.Uuid
+  batch                                AcademyBatch?             @relation(fields: [batch_id], references: [id])
+  batch_label                          String?
+  highest_level_represented            CompetitiveLevel?
+  cricheroes_handle                    String?
   footage_urls                         String[]
   bio                                  String?
   athlasx_score                        Float?
@@ -456,6 +554,25 @@ model Academy {
   admin                    User?    @relation(fields: [admin_user_id], references: [id])
   created_at               DateTime @default(now()) @db.Timestamptz(6)
 
+  // docs/AthlasX_Master_Data_Points.docx — Academy Phase 1 (HIGH-relevance
+  // fields). src/app/onboarding/academy/page.tsx's wizard already collects
+  // these in its own React state today; POST /api/academy/onboard has been
+  // silently discarding them until now. Mobile/email are deliberately NOT
+  // duplicated here — those already live correctly on the admin's own User
+  // row (see admin_user_id above), matching the doc's own field, not a
+  // second copy on Academy.
+  city                     String?
+  year_established         Int?
+  academy_type             AcademyType?
+  contact_name             String?
+  contact_designation      String?
+  bcci_affiliated          Boolean          @default(false)
+  bcci_affiliation_id      String?
+  state_assoc_affiliated   Boolean          @default(false)
+  state_assoc_names        String[]
+  head_coach_name          String?
+  active_player_count_range PlayerCountRange?
+
   match_candidates AcademyMatchCandidate[]
   batches          AcademyBatch[]
   join_requests    AcademyJoinRequest[]
@@ -489,6 +606,11 @@ model AcademyBatch {
   updated_at         DateTime           @updatedAt @db.Timestamptz(6)
 
   memberships AcademyBatchMembership[]
+  // docs/AthlasX_Master_Data_Points.docx — Player Phase 1 (HIGH). Distinct
+  // from `memberships` above (AcademyBatchMembership, the flagged-off
+  // self-serve academy-admin subsystem's own join table) — this is the
+  // self-serve player-onboarding wizard's own batch_id field.
+  player_profiles PlayerProfile[]
 
   @@index([academy_id])
   @@map("academy_batches")
