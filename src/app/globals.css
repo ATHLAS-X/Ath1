@@ -12,7 +12,14 @@
   --ax-bg-soft: #141312;
   --ax-text: #F5F5F0;
   --ax-text-dim: rgba(245, 245, 240, 0.62);
-  --ax-text-faint: rgba(245, 245, 240, 0.4);
+  /* Synced to tailwind.config.ts's ax.textFaint (2026-09-10) — that value
+   * was raised 0.4 -> 0.5 (verified 4.98:1 against ax-bg, clears WCAG AA's
+   * 4.5:1) but this raw CSS var was never updated to match, so the two
+   * definitions drifted. Kept for pages still on the pre-Tailwind-theme
+   * inline-CSS-var pattern (e.g. onboarding wizards' local *_VARS objects);
+   * new code should use the text-ax-textFaint Tailwind utility instead of
+   * referencing var(--ax-text-faint) directly, so this can't drift again. */
+  --ax-text-faint: rgba(245, 245, 240, 0.5);
   --ax-accent: #FF8A1E;
   --ax-accent-bright: #FFA64D;
   --ax-card-bg: rgba(13, 13, 13, 0.55);
