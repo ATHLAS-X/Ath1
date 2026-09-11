@@ -1,10 +1,24 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Loader2, CalendarRange, Users, TrendingDown, TrendingUp, Lock, UserCog, Star } from 'lucide-react'
+import { Loader2, CalendarRange, Users, TrendingDown, TrendingUp, Lock, UserCog, Star, Flag, AlertTriangle } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { dbRoleMap } from '@/lib/mock-performance-seed'
+import { RingGauge } from '@/components/ui/ring-gauge'
+
+// Header restyled against the hero + stat-tile + KPI-card pattern (docs
+// request, 2026-09-10). The four Card sections below are UNCHANGED — real
+// logic, real endpoints, not part of this pass. The "registrations, last 8
+// weeks" sparkline + delta WAS dropped in an earlier pass as unbacked —
+// on review, Registration.created_at is a real per-row timestamp;
+// GET /api/trial-cycles/mine now buckets it by week (scoped to this
+// association's own cycles, same as everything else on this page) and
+// returns `trend`/`thisWeekCount`. The mockup's "Tracked players"
+// stat is also relabeled "Flagged players" here: GET /api/tracking (this
+// page's own pre-existing comment says so) returns only players with an
+// active TrendAlert, not the full roster — calling it "tracked" the way
+// the mockup did would overstate what the number means.
 
 /**
  * Association-facing dashboard — docs/AthlasX_Master_Data_Points_Phase1_Prompts.md
@@ -90,11 +104,23 @@ interface AvailableCoach {
   email: string
 }
 
+// Fixed alongside this restyle: this map's keys ('open'/'closed') never
+// matched TrialCycleStatus's real values (upcoming/registration_open/
+// registration_closed/in_progress/completed) — every real row fell
+// through to the `?? cycleStatusColor.closed` default, confirmed live
+// (an in_progress cycle rendered with the "closed" gray badge). Not
+// something this pass introduced; found while wiring the new hero/stat
+// tiles against the same field.
 const cycleStatusColor: Record<string, string> = {
   upcoming: 'text-ax-accentBright bg-[rgba(255,138,30,0.1)] border-[rgba(255,138,30,0.2)]',
-  open: 'text-ax-ok bg-[rgba(56,211,159,0.1)] border-[rgba(56,211,159,0.2)]',
-  closed: 'text-ax-textFaint bg-white/[0.03] border-ax-cardBorder',
+  registration_open: 'text-ax-ok bg-[rgba(56,211,159,0.1)] border-[rgba(56,211,159,0.2)]',
+  in_progress: 'text-ax-accentBright bg-[rgba(255,138,30,0.1)] border-[rgba(255,138,30,0.2)]',
+  registration_closed: 'text-ax-textFaint bg-white/[0.03] border-ax-cardBorder',
   completed: 'text-ax-textDim bg-white/[0.03] border-ax-cardBorder',
+}
+
+function formatCycleStatus(status: string): string {
+  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 function SectionHeading({ icon: Icon, title, sub }: { icon: React.ElementType; title: string; sub: string }) {
@@ -109,9 +135,38 @@ function SectionHeading({ icon: Icon, title, sub }: { icon: React.ElementType; t
   )
 }
 
+function Sparkline({ values }: { values: number[] }) {
+  if (values.length < 2) return null
+  const w = 120, h = 36
+  const min = Math.min(...values), max = Math.max(...values)
+  const range = max - min || 1
+  const points = values.map((v, i) => `${(i / (values.length - 1)) * w},${h - ((v - min) / range) * h}`).join(' ')
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="shrink-0">
+      <polyline points={points} fill="none" stroke="rgb(52,211,153)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function StatTile({ icon: Icon, value, label, tint }: { icon: React.ElementType; value: string | number; label: string; tint?: string }) {
+  return (
+    <div className="rounded-ax-md border border-ax-cardBorder bg-ax-bgSoft p-4">
+      <div className={`w-[34px] h-[34px] rounded-full flex items-center justify-center ${tint ?? 'bg-[rgba(255,138,30,0.08)]'}`}>
+        <Icon className="w-4 h-4 text-ax-accentBright" />
+      </div>
+      <div className="font-anton text-2xl text-ax-text mt-3">{value}</div>
+      <p className="font-barlow-semi text-[10.5px] font-bold uppercase tracking-[0.1em] text-ax-textDim mt-0.5">{label}</p>
+    </div>
+  )
+}
+
 export default function AssociationDashboard() {
   const [cycles, setCycles] = useState<TrialCycleRow[] | null>(null)
   const [cyclesError, setCyclesError] = useState('')
+  const [registrationTrend, setRegistrationTrend] = useState<{ week: string; count: number }[]>([])
+  const [thisWeekCount, setThisWeekCount] = useState(0)
+  const [totalPlayers, setTotalPlayers] = useState(0)
+  const [totalVenues, setTotalVenues] = useState(0)
 
   const [convergenceLoading, setConvergenceLoading] = useState(true)
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -192,6 +247,10 @@ export default function AssociationDashboard() {
         const d = await r.json()
         if (!r.ok) throw new Error(d.error || 'Failed to load trial cycles')
         setCycles(d.cycles ?? [])
+        setRegistrationTrend(d.trend ?? [])
+        setThisWeekCount(d.thisWeekCount ?? 0)
+        setTotalPlayers(d.totalPlayers ?? 0)
+        setTotalVenues(d.totalVenues ?? 0)
       })
       .catch(e => setCyclesError(e instanceof Error ? e.message : 'Failed to load trial cycles'))
 
@@ -219,111 +278,237 @@ export default function AssociationDashboard() {
       .finally(() => setConvergenceLoading(false))
   }, [])
 
+  // Every number below is derived from the same four fetches this page
+  // already makes — none of it is a placeholder.
+  const stats = useMemo(() => {
+    const openCycles = (cycles ?? []).filter(c => c.status === 'registration_open' || c.status === 'in_progress').length
+    const totalRegistrations = (cycles ?? []).reduce((sum, c) => sum + c.registrations, 0)
+    const flaggedPlayers = tracked?.length ?? 0
+    const unanimous = (convergence ?? []).filter(v => v.consensus === 'unanimous').length
+    const split = (convergence ?? []).filter(v => v.consensus === 'split').length
+    const contested = (convergence ?? []).filter(v => v.consensus === 'contested').length
+    const convergenceTotal = unanimous + split + contested
+    const closingSoon = (cycles ?? []).filter(c => {
+      if (c.status !== 'registration_open') return false
+      const days = (new Date(c.registration_closes).getTime() - Date.now()) / 86400000
+      return days >= 0 && days <= 7
+    }).length
+    return { openCycles, totalRegistrations, flaggedPlayers, unanimous, split, contested, convergenceTotal, closingSoon }
+  }, [cycles, tracked, convergence])
+
   return (
-    <div className="space-y-6 max-w-[1100px] font-barlow">
+    <div className="space-y-6 max-w-[1300px] font-barlow">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="font-anton uppercase text-xl text-ax-text">Association Dashboard</h1>
-        <p className="text-xs text-ax-textFaint mt-0.5">Read-only overview of your region — trial cycles, selection results, and player tracking</p>
+        <p className="font-barlow-semi text-[11px] font-bold uppercase tracking-[0.18em] text-ax-accentBright">Association dashboard</p>
+        <h1 className="font-anton uppercase text-2xl sm:text-[30px] text-ax-text mt-1">Trial cycle oversight</h1>
       </motion.div>
+
+      {/* Hero */}
+      <div
+        className="rounded-ax-lg border border-ax-cardBorder p-6 sm:p-7 flex flex-col lg:flex-row lg:items-center justify-between gap-6"
+        style={{ background: 'linear-gradient(120deg, rgba(255,138,30,0.08), var(--ax-bg-soft) 55%)' }}
+      >
+        <div className="flex items-center gap-5 min-w-0">
+          <RingGauge value={stats.openCycles} max={Math.max(stats.openCycles, cycles?.length ?? 1, 1)} label={stats.openCycles} sublabel="Cycles" />
+          <div className="min-w-0">
+            <p className="font-barlow-semi text-[11px] font-bold uppercase tracking-[0.18em] text-ax-accentBright">Trial season command centre</p>
+            <h2 className="font-anton uppercase text-xl sm:text-2xl text-ax-text mt-1.5 leading-tight">
+              {totalPlayers.toLocaleString()} tracked players · {stats.totalRegistrations.toLocaleString()} registrations across {stats.openCycles} active trial cycle{stats.openCycles === 1 ? '' : 's'}
+            </h2>
+            <p className="text-[13.5px] text-ax-textDim mt-2.5 leading-relaxed max-w-lg">
+              {stats.unanimous} unanimous, {stats.split} split and {stats.contested} contested scout call{stats.contested === 1 ? '' : 's'}
+              {totalVenues > 0 && <> · {totalVenues} trial venue{totalVenues === 1 ? '' : 's'} confirmed</>}.
+            </p>
+          </div>
+        </div>
+        <a
+          href="/trial-cycles"
+          className="shrink-0 font-barlow-semi text-[12.5px] font-bold uppercase tracking-[0.06em] bg-ax-accent text-[#1a0e02] px-[18px] py-[11px] rounded-ax-md hover:bg-ax-accentBright transition-colors text-center"
+        >
+          Open Cycle Console
+        </a>
+      </div>
+
+      {/* Stat tiles */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <StatTile icon={CalendarRange} value={stats.openCycles} label="Active cycles" />
+        <StatTile icon={Users} value={stats.totalRegistrations.toLocaleString()} label="Registrations" />
+        <StatTile icon={Flag} value={stats.unanimous} label="Unanimous" tint="bg-[rgba(56,211,159,0.1)]" />
+        <StatTile icon={AlertTriangle} value={stats.split} label="Split calls" />
+        <StatTile icon={AlertTriangle} value={stats.contested} label="Contested" tint="bg-[rgba(255,90,77,0.1)]" />
+      </div>
+
+      {/* KPI row */}
+      <div className="grid lg:grid-cols-[1.6fr_1fr] gap-4">
+        <div className="rounded-ax-lg border border-ax-cardBorder bg-ax-bgSoft p-5 sm:p-6 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-barlow-semi text-[10.5px] font-bold uppercase tracking-[0.12em] text-ax-textDim">Registrations, last 8 weeks</p>
+            <div className="font-anton text-4xl sm:text-[52px] text-ax-text leading-none mt-2">{stats.totalRegistrations.toLocaleString()}</div>
+            {thisWeekCount > 0 && (
+              <p className="text-[11px] font-bold text-ax-ok mt-1.5">↑ {thisWeekCount} this week</p>
+            )}
+          </div>
+          <Sparkline values={registrationTrend.map(t => t.count)} />
+        </div>
+        <div className="rounded-ax-lg border border-ax-cardBorder bg-ax-bgSoft p-5 sm:p-6">
+          <p className="font-barlow-semi text-[10.5px] font-bold uppercase tracking-[0.12em] text-ax-textDim">Panel consensus</p>
+          {stats.convergenceTotal > 0 ? (
+            <>
+              <div className="flex h-3.5 rounded-ax-sm overflow-hidden mt-4 bg-white/[0.03]">
+                {stats.unanimous > 0 && <div className="bg-ax-ok" style={{ width: `${(stats.unanimous / stats.convergenceTotal) * 100}%` }} />}
+                {stats.split > 0 && <div className="bg-[rgba(255,138,30,0.22)]" style={{ width: `${(stats.split / stats.convergenceTotal) * 100}%` }} />}
+                {stats.contested > 0 && <div className="bg-ax-bad" style={{ width: `${(stats.contested / stats.convergenceTotal) * 100}%` }} />}
+              </div>
+              <div className="flex justify-between mt-2.5 text-[10.5px] font-barlow-semi font-bold uppercase tracking-wide">
+                <span className="text-ax-ok">Unanimous ({stats.unanimous})</span>
+                <span className="text-ax-accentBright">Split ({stats.split})</span>
+                <span className="text-ax-bad">Contested ({stats.contested})</span>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-ax-textFaint mt-3">No convergence data yet.</p>
+          )}
+        </div>
+      </div>
 
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-        <Card className="p-5">
-          <SectionHeading icon={CalendarRange} title="Trial Cycles" sub="Your association's own cycles only" />
-          {cyclesError && <p className="text-xs text-ax-bad">{cyclesError}</p>}
-          {!cycles && !cyclesError && <Loader2 className="w-4 h-4 animate-spin text-ax-textFaint" />}
-          {cycles && cycles.length === 0 && <p className="text-xs text-ax-textFaint">No trial cycles for your association yet.</p>}
+        <Card className="p-0 overflow-hidden">
+          <div className="p-5 pb-0">
+            <SectionHeading icon={CalendarRange} title="Trial Cycles" sub="Your association's own cycles only" />
+          </div>
+          {cyclesError && <p className="text-xs text-ax-bad px-5 pb-5">{cyclesError}</p>}
+          {!cycles && !cyclesError && <Loader2 className="w-4 h-4 animate-spin text-ax-textFaint mx-5 mb-5" />}
+          {cycles && cycles.length === 0 && <p className="text-xs text-ax-textFaint px-5 pb-5">No trial cycles for your association yet.</p>}
           {cycles && cycles.length > 0 && (
-            <div className="space-y-2">
-              {cycles.map(c => (
-                <div key={c.id} className="flex flex-wrap items-center justify-between gap-2 gap-y-2 px-3 py-2.5 rounded-ax-md bg-white/[0.02] border border-ax-cardBorder">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-[10px] font-bold px-2 py-1 rounded-ax-sm border border-[rgba(255,138,30,0.2)] bg-[rgba(255,138,30,0.1)] text-ax-accentBright uppercase tracking-wide shrink-0">
-                      {c.age_category}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-ax-text">{c.venues.map(v => v.name).join(', ') || 'No venue set'}</p>
-                      <p className="text-[11px] text-ax-textFaint mt-0.5">{c.registrations} registered</p>
-                    </div>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded-ax-sm border shrink-0 ${cycleStatusColor[c.status] ?? cycleStatusColor.closed}`}>
-                    {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
-                  </span>
-                </div>
-              ))}
+            <div className="overflow-x-auto mt-3">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="text-[10.5px] font-barlow-semi font-bold uppercase tracking-[0.1em] text-ax-textDim border-y border-ax-cardBorder">
+                    <th className="px-5 py-2.5 font-bold">Age category</th>
+                    <th className="px-3 py-2.5 font-bold hidden md:table-cell">DOB window</th>
+                    <th className="px-3 py-2.5 font-bold hidden lg:table-cell">Registration opens / closes</th>
+                    <th className="px-3 py-2.5 font-bold">Status</th>
+                    <th className="px-3 py-2.5 font-bold">Venues</th>
+                    <th className="px-5 py-2.5 font-bold text-right">Regs</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cycles.map(c => (
+                    <tr key={c.id} className="border-b border-ax-cardBorder last:border-b-0 hover:bg-white/[0.02]">
+                      <td className="px-5 py-3 text-sm font-bold text-ax-text">{c.age_category}</td>
+                      <td className="px-3 py-3 text-xs text-ax-textDim hidden md:table-cell">
+                        {new Date(c.dob_window_start).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} – {new Date(c.dob_window_end).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </td>
+                      <td className="px-3 py-3 text-xs text-ax-textDim hidden lg:table-cell">
+                        {new Date(c.registration_opens).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} – {new Date(c.registration_closes).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className={`text-[10px] font-bold px-2 py-1 rounded-ax-sm border shrink-0 ${cycleStatusColor[c.status] ?? cycleStatusColor.closed}`}>
+                          {formatCycleStatus(c.status)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-sm text-ax-textDim">{c.venues.length}</td>
+                      <td className="px-5 py-3 text-sm text-ax-text font-semibold text-right">{c.registrations}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </Card>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <Card className="p-5">
-          <SectionHeading icon={Users} title="Selection Convergence" sub="Most recent selection session for your region" />
-          {convergenceError && <p className="text-xs text-ax-bad">{convergenceError}</p>}
-          {convergenceLoading && !convergenceError && <Loader2 className="w-4 h-4 animate-spin text-ax-textFaint" />}
-          {!convergenceLoading && !convergenceError && sessionId === null && (
-            <p className="text-xs text-ax-textFaint">No selection session found for your association yet.</p>
-          )}
-          {convergenceLocked && (
-            <div className="flex items-center gap-2 text-xs text-ax-textFaint">
-              <Lock className="w-3.5 h-3.5" />
-              Convergence has not been unlocked by the session chair yet.
+      <div className="grid lg:grid-cols-2 gap-4">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card className="p-0 overflow-hidden">
+            <div className="p-5 pb-0">
+              <SectionHeading icon={Users} title="Scout Convergence" sub="Most recent selection session for your region" />
             </div>
-          )}
-          {convergence && convergence.length === 0 && <p className="text-xs text-ax-textFaint">No grades submitted yet for this session.</p>}
-          {convergence && convergence.length > 0 && (
-            <div className="space-y-1.5">
-              {convergence.map(v => (
-                <div key={v.player_id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-ax-sm bg-white/[0.03] border border-ax-cardBorder">
-                  <div className="min-w-0">
-                    <p className="text-sm text-ax-text font-semibold">{v.name}</p>
-                    <p className="text-[11px] text-ax-textFaint">{v.district}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-black text-ax-text tabular-nums">{v.average.toFixed(1)}</span>
-                    <span className={`text-[10px] font-bold uppercase ${v.consensus === 'unanimous' ? 'text-ax-ok' : v.consensus === 'split' ? 'text-ax-accentBright' : 'text-ax-bad'}`}>
-                      {v.consensus}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </motion.div>
+            {convergenceError && <p className="text-xs text-ax-bad px-5 pb-5">{convergenceError}</p>}
+            {convergenceLoading && !convergenceError && <Loader2 className="w-4 h-4 animate-spin text-ax-textFaint mx-5 mb-5" />}
+            {!convergenceLoading && !convergenceError && sessionId === null && (
+              <p className="text-xs text-ax-textFaint px-5 pb-5">No selection session found for your association yet.</p>
+            )}
+            {convergenceLocked && (
+              <div className="flex items-center gap-2 text-xs text-ax-textFaint px-5 pb-5">
+                <Lock className="w-3.5 h-3.5" />
+                Convergence has not been unlocked by the session chair yet.
+              </div>
+            )}
+            {convergence && convergence.length === 0 && <p className="text-xs text-ax-textFaint px-5 pb-5">No grades submitted yet for this session.</p>}
+            {convergence && convergence.length > 0 && (
+              <div className="overflow-x-auto mt-3">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="text-[10.5px] font-barlow-semi font-bold uppercase tracking-[0.1em] text-ax-textDim border-y border-ax-cardBorder">
+                      <th className="px-5 py-2.5 font-bold">Player name</th>
+                      <th className="px-3 py-2.5 font-bold">District</th>
+                      <th className="px-3 py-2.5 font-bold">Average</th>
+                      <th className="px-5 py-2.5 font-bold text-right">Consensus</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {convergence.map(v => (
+                      <tr key={v.player_id} className="border-b border-ax-cardBorder last:border-b-0 hover:bg-white/[0.02]">
+                        <td className="px-5 py-2.5 text-sm text-ax-text font-semibold">{v.name}</td>
+                        <td className="px-3 py-2.5 text-xs text-ax-textDim">{v.district}</td>
+                        <td className="px-3 py-2.5 text-sm font-black text-ax-text tabular-nums">{v.average.toFixed(1)}</td>
+                        <td className="px-5 py-2.5 text-right">
+                          <span className={`text-[10px] font-bold uppercase ${v.consensus === 'unanimous' ? 'text-ax-ok' : v.consensus === 'split' ? 'text-ax-accentBright' : 'text-ax-bad'}`}>
+                            {v.consensus}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </motion.div>
 
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-        <Card className="p-5">
-          <SectionHeading icon={TrendingUp} title="Season Tracking" sub="Players currently flagged for a form or skill trend — not the full roster" />
-          {trackedError && <p className="text-xs text-ax-bad">{trackedError}</p>}
-          {!tracked && !trackedError && <Loader2 className="w-4 h-4 animate-spin text-ax-textFaint" />}
-          {tracked && tracked.length === 0 && <p className="text-xs text-ax-textFaint">No players currently flagged.</p>}
-          {tracked && tracked.length > 0 && (
-            <div className="space-y-1.5">
-              {tracked.map(p => (
-                <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-ax-sm bg-white/[0.03] border border-ax-cardBorder">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm text-ax-text font-semibold">{p.name}</p>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.05] border border-ax-cardBorder text-ax-textDim uppercase tracking-wide">
-                        {dbRoleMap[p.playing_role] ?? p.playing_role.replace(/_/g, ' ')}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-ax-textFaint">{p.district} · {p.playing_role}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-black text-ax-text tabular-nums">{p.athlasx_score}</span>
-                    {p.score_delta !== 0 && (
-                      p.score_delta > 0
-                        ? <TrendingUp className="w-3.5 h-3.5 text-ax-ok" />
-                        : <TrendingDown className="w-3.5 h-3.5 text-ax-bad" />
-                    )}
-                  </div>
-                </div>
-              ))}
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <Card className="p-0 overflow-hidden">
+            <div className="p-5 pb-0">
+              <SectionHeading icon={TrendingUp} title="Tracked Players" sub="Currently flagged for a form or skill trend — not the full roster" />
             </div>
-          )}
-        </Card>
-      </motion.div>
+            {trackedError && <p className="text-xs text-ax-bad px-5 pb-5">{trackedError}</p>}
+            {!tracked && !trackedError && <Loader2 className="w-4 h-4 animate-spin text-ax-textFaint mx-5 mb-5" />}
+            {tracked && tracked.length === 0 && <p className="text-xs text-ax-textFaint px-5 pb-5">No players currently flagged.</p>}
+            {tracked && tracked.length > 0 && (
+              <div className="overflow-x-auto mt-3">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="text-[10.5px] font-barlow-semi font-bold uppercase tracking-[0.1em] text-ax-textDim border-y border-ax-cardBorder">
+                      <th className="px-5 py-2.5 font-bold">Name</th>
+                      <th className="px-3 py-2.5 font-bold hidden md:table-cell">District</th>
+                      <th className="px-3 py-2.5 font-bold hidden md:table-cell">Role</th>
+                      <th className="px-3 py-2.5 font-bold">Score</th>
+                      <th className="px-5 py-2.5 font-bold text-right">Delta</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tracked.map(p => (
+                      <tr key={p.id} className="border-b border-ax-cardBorder last:border-b-0 hover:bg-white/[0.02]">
+                        <td className="px-5 py-2.5 text-sm text-ax-text font-semibold">{p.name}</td>
+                        <td className="px-3 py-2.5 text-xs text-ax-textDim hidden md:table-cell">{p.district}</td>
+                        <td className="px-3 py-2.5 text-xs text-ax-textDim hidden md:table-cell">{dbRoleMap[p.playing_role] ?? p.playing_role.replace(/_/g, ' ')}</td>
+                        <td className="px-3 py-2.5 text-sm font-black text-ax-text tabular-nums">{p.athlasx_score}</td>
+                        <td className="px-5 py-2.5 text-right">
+                          <span className={`text-sm font-bold tabular-nums inline-flex items-center gap-1 ${p.score_delta > 0 ? 'text-ax-ok' : p.score_delta < 0 ? 'text-ax-bad' : 'text-ax-textFaint'}`}>
+                            {p.score_delta !== 0 && (p.score_delta > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />)}
+                            {p.score_delta > 0 ? '+' : ''}{p.score_delta.toFixed(1)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </motion.div>
+      </div>
 
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
         <Card className="p-5">

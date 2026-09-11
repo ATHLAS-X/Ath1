@@ -62,8 +62,24 @@ export async function GET(req: NextRequest) {
     label, runs: b.runs, sr: b.balls > 0 ? Math.round((b.runs / b.balls) * 1000) / 10 : 0,
   }))
 
+  // Real "score trend, last 8 assessments" — PlayerWeek.rolling_4week_average
+  // is a real per-player column, populated when this player has been
+  // through coach-supervised weekly assessment (i.e. is on a Squad roster).
+  // Players with no PlayerWeek rows get an honest empty state instead of a
+  // fabricated line — most claimed players won't have this yet, same
+  // treatment as every other "no history" case in this app.
+  const weeks = await db.playerWeek.findMany({
+    where: { player_id: player.id, rolling_4week_average: { not: null } },
+    orderBy: { week_start: 'asc' },
+    select: { week_start: true, rolling_4week_average: true },
+  })
+  const scoreTrend = weeks.slice(-8).map((w) => ({
+    week: w.week_start.toISOString().slice(0, 10),
+    score: w.rolling_4week_average!,
+  }))
+
   return NextResponse.json({
-    player: { id: player.id, full_name: player.full_name, playing_role: role, dob: player.dob },
+    player: { id: player.id, full_name: player.full_name, playing_role: role, dob: player.dob, district: player.district, academy: player.academy },
     score: { total: result.total, tier: tier.label, batting: result.batting, bowling: result.bowling, fitness: result.fitness, fitnessAssessed: result.fitnessAssessed },
     percentile: {
       value: cohort.percentile,
@@ -80,6 +96,7 @@ export async function GET(req: NextRequest) {
       best,
     },
     trend,
+    scoreTrend,
     matches: matches.slice(0, 10).map(m => ({
       id: m.id, opponent: m.opponent, tournament: m.tournament, date: m.date, level: m.level,
       runs: m.batting_runs, balls: m.batting_balls,

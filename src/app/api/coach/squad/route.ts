@@ -80,5 +80,28 @@ export async function GET(req: NextRequest) {
     }
   })
 
-  return NextResponse.json({ squadId, squad })
+  // Real "last 8 weeks" roster-score trend. PlayerWeek.rolling_4week_average
+  // is a per-player rolling average that already exists in the schema for
+  // exactly this purpose — averaging it across the roster per week_start
+  // is real aggregation, not invented data. Weeks with no player having a
+  // computed average yet are skipped rather than shown as 0 (0 would read
+  // as "roster scored zero that week", which is false — it means no data).
+  const allWeeks = await db.playerWeek.findMany({
+    where: { player_id: { in: playerIds }, rolling_4week_average: { not: null } },
+    orderBy: { week_start: 'asc' },
+    select: { week_start: true, rolling_4week_average: true },
+  })
+  const byWeek = new Map<string, number[]>()
+  for (const w of allWeeks) {
+    const key = w.week_start.toISOString().slice(0, 10)
+    const arr = byWeek.get(key) ?? []
+    arr.push(w.rolling_4week_average!)
+    byWeek.set(key, arr)
+  }
+  const trend = Array.from(byWeek.entries())
+    .map(([week, values]) => ({ week, avgScore: Math.round((values.reduce((s, v) => s + v, 0) / values.length) * 10) / 10 }))
+    .slice(-8)
+  const trendDelta = trend.length >= 2 ? Math.round((trend[trend.length - 1].avgScore - trend[0].avgScore) * 10) / 10 : null
+
+  return NextResponse.json({ squadId, squad, trend, trendDelta })
 }

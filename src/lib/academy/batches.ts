@@ -340,6 +340,7 @@ export type DashboardBatchSummary = {
   name: string;
   age_group: BatchAgeGroup;
   player_count: number;
+  max_players: number | null;
   schedule_label: string;
   next_session: string;
 };
@@ -350,12 +351,24 @@ export type DashboardBatchStats = {
   pending_joins: number;
 };
 
+function mondayOf(d: Date): string {
+  const day = d.getUTCDay();
+  const diff = (day === 0 ? -6 : 1) - day;
+  const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diff));
+  return monday.toISOString().slice(0, 10);
+}
+
+export type EnrollmentTrendPoint = { week: string; count: number };
+
 /** Batch + roster summary for the academy admin dashboard. */
 export async function loadDashboardBatchSummary(academyId: string): Promise<{
   stats: DashboardBatchStats;
   batches: DashboardBatchSummary[];
+  enrollmentTrend: EnrollmentTrendPoint[];
+  newThisMonth: number;
+  capacity: { total: number; filled: number } | null;
 }> {
-  const [players, pendingJoins, batchRows, counts] = await Promise.all([
+  const [players, pendingJoins, batchRows, counts, memberships] = await Promise.all([
     db.academyBatchMembership.count({ where: { status: "active", batch: { academy_id: academyId } } }),
     db.academyJoinRequest.count({ where: { academy_id: academyId, status: "pending" } }),
     db.academyBatch.findMany({
@@ -363,6 +376,14 @@ export async function loadDashboardBatchSummary(academyId: string): Promise<{
       orderBy: { created_at: "desc" },
     }),
     playerCountsByBatch(academyId),
+    // Real "player enrollment, last 8 weeks" trend. joined_at is a real
+    // per-membership timestamp already on every row — bucketing it by
+    // week is aggregation, not invention, unlike the mockup's sparkline
+    // (which came with no data behind it at all before this).
+    db.academyBatchMembership.findMany({
+      where: { batch: { academy_id: academyId } },
+      select: { joined_at: true },
+    }),
   ]);
 
   const batches: DashboardBatchSummary[] = batchRows.map((row) => {
@@ -372,10 +393,37 @@ export async function loadDashboardBatchSummary(academyId: string): Promise<{
       name: row.batch_name,
       age_group: (row.age_group as BatchAgeGroup | null) ?? "Any",
       player_count: counts.get(row.id) ?? 0,
+      max_players: row.max_players,
       schedule_label: formatScheduleLabel(schedule),
       next_session: nextSessionLabel(schedule),
     };
   });
+
+  // Real capacity/fill figure — only when at least one batch has actually
+  // set max_players (it's an optional field; most seed/dev batches won't
+  // have it). Batches without a cap don't contribute a denominator, so
+  // this never implies a limit that isn't really configured.
+  const cappedBatches = batches.filter((b) => b.max_players != null && b.max_players > 0);
+  const capacity = cappedBatches.length
+    ? {
+        total: cappedBatches.reduce((sum, b) => sum + (b.max_players ?? 0), 0),
+        filled: cappedBatches.reduce((sum, b) => sum + b.player_count, 0),
+      }
+    : null;
+
+  const byWeek = new Map<string, number>();
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+  let newThisMonth = 0;
+  for (const m of memberships) {
+    byWeek.set(mondayOf(m.joined_at), (byWeek.get(mondayOf(m.joined_at)) ?? 0) + 1);
+    if (m.joined_at >= thirtyDaysAgo) newThisMonth += 1;
+  }
+  const eightWeeksAgo = mondayOf(new Date(now.getTime() - 8 * 7 * 24 * 3600 * 1000));
+  const enrollmentTrend = Array.from(byWeek.entries())
+    .filter(([week]) => week >= eightWeeksAgo)
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([week, count]) => ({ week, count }));
 
   return {
     stats: {
@@ -384,5 +432,8 @@ export async function loadDashboardBatchSummary(academyId: string): Promise<{
       pending_joins: pendingJoins,
     },
     batches,
+    enrollmentTrend,
+    newThisMonth,
+    capacity,
   };
 }

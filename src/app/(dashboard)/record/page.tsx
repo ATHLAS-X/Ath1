@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { TrendingUp, Shield, Zap, Loader2, BarChart3 } from 'lucide-react'
+import { Shield, Loader2, BarChart3 } from 'lucide-react'
 import {
   AreaChart, Area, BarChart, Bar, ResponsiveContainer,
   XAxis, YAxis, Tooltip, CartesianGrid,
@@ -10,15 +10,24 @@ import {
 import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { dbRoleMap } from '@/lib/mock-performance-seed'
+import { RingGauge } from '@/components/ui/ring-gauge'
 
 interface RecordData {
-  player: { id: string; full_name: string; playing_role: string }
+  player: { id: string; full_name: string; playing_role: string; district: string; academy: string | null }
   score: { total: number; tier: string; batting: number; bowling: number; fitness: number; fitnessAssessed: boolean }
   percentile: { value: number | null; cohortSize: number; ageCategory: string; district: string }
   summary: { matches: number; runs: number; average: number; strikeRate: number; fifties: number; best: number }
   trend: { label: string; runs: number; sr: number }[]
+  scoreTrend: { week: string; score: number }[]
   matches: { id: string; opponent: string; tournament: string; date: string; level: string; runs?: number; balls?: number; sr?: number }[]
 }
+
+// Real score-tier ladder (src/lib/athlasx-score.ts's getScoreTier) — the
+// mockup showed "Local → District → State → National" as a tier
+// progression, but that's TournamentLevel (a match's competition level),
+// a completely different concept from score.tier. Using the real tier
+// labels here instead of reproducing the mockup's mislabeled ladder.
+const TIER_LADDER = ['Rising', 'Developing', 'Advanced', 'Elite']
 
 // docs/AthlasX_Master_Data_Points_Phase1_Prompts.md L-2 audit — was
 // text-blue/text-purple/text-amber/text-cyan, unrelated to the green
@@ -74,7 +83,9 @@ export default function RecordPage() {
     </Card>
   )
 
-  const { player, score, percentile, summary, trend, matches } = data
+  const { player, score, percentile, summary, trend, scoreTrend, matches } = data
+  const firstName = player.full_name.split(' ')[0]
+  const roleLabel = dbRoleMap[player.playing_role] ?? player.playing_role.replace(/_/g, ' ')
 
   const summaryStats = [
     { label: 'Matches',     value: String(summary.matches), sub: 'Verified' },
@@ -87,62 +98,95 @@ export default function RecordPage() {
 
   return (
     <div className="space-y-6 max-w-[1100px] font-barlow">
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-anton uppercase text-xl text-ax-text">My Record</h1>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/[0.05] border border-ax-cardBorder text-ax-textDim uppercase tracking-wide">
-              {dbRoleMap[player.playing_role] ?? player.playing_role.replace(/_/g, ' ')}
-            </span>
-          </div>
-          <p className="text-xs text-ax-textFaint mt-0.5">{player.full_name} · Association-verified match data only</p>
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+        <p className="font-barlow-semi text-[11px] font-bold uppercase tracking-[0.18em] text-ax-accentBright">Your record</p>
+        <h1 className="font-anton uppercase text-2xl sm:text-[30px] text-ax-text mt-1">Hi, {firstName}</h1>
+      </motion.div>
+
+      {/* Hero. The mockup's headline here was a fabricated "average is up 6
+          runs this season" delta and a "Log a match" CTA for self-reported
+          entry — neither is real: /api/my-record's trend is monthly total
+          runs, not a period-over-period average, and this page's own footer
+          note below states self-reported match data is never included in
+          the record. Both dropped; the hero instead surfaces the one real,
+          unambiguous fact (verified match count) that used to live in the
+          badge this replaces. */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="rounded-ax-lg border border-ax-cardBorder p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-5"
+        style={{ background: 'linear-gradient(120deg, rgba(255,138,30,0.08), var(--ax-bg-soft) 55%)' }}
+      >
+        <div className="max-w-xl">
+          <p className="font-barlow-semi text-[11px] font-bold uppercase tracking-[0.18em] text-ax-accentBright">
+            {roleLabel} · {percentile.district}
+          </p>
+          <h2 className="font-anton uppercase text-xl sm:text-2xl text-ax-text mt-1.5 leading-tight">
+            {summary.matches > 0
+              ? `${summary.matches} verified match${summary.matches === 1 ? '' : 'es'} on your record`
+              : 'No verified matches on your record yet'}
+          </h2>
+          <p className="text-[13.5px] text-ax-textDim mt-2.5 leading-relaxed max-w-md">
+            Only association-approved match data enters your record and AthlasX score. Self-reported data is never included.
+          </p>
         </div>
-        <div className="flex items-center gap-2 text-[10px]">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-ax-md bg-[rgba(56,211,159,0.1)] border border-[rgba(56,211,159,0.2)] text-ax-ok font-bold">
-            <Shield className="w-3 h-3" />
-            {summary.matches} verified matches
-          </div>
+        <div className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-ax-md bg-[rgba(56,211,159,0.1)] border border-[rgba(56,211,159,0.2)] text-ax-ok text-[11px] font-bold">
+          <Shield className="w-3.5 h-3.5" />
+          Verified only
         </div>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-        <Card className="p-5 relative">
-          <span className="absolute top-4 right-5 text-[10px] font-bold px-2 py-1 rounded-ax-sm border border-[rgba(255,138,30,0.25)] bg-[rgba(255,138,30,0.1)] text-ax-accentBright uppercase tracking-wide">
-            Tier · {score.tier}
-          </span>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <p className="text-[10px] font-bold text-ax-textFaint uppercase tracking-widest mb-1">AthlasX Score</p>
-              <div className="flex items-end gap-3">
-                <span className="text-5xl font-black text-ax-text tabular-nums">{score.total}</span>
-                <div className="flex items-center gap-1.5 pb-1">
-                  <TrendingUp className="w-4 h-4 text-ax-accentBright" />
-                </div>
-              </div>
-              {percentile.value !== null ? (
-                <p className="text-[11px] text-ax-textFaint mt-1.5">
-                  <span className="text-ax-text font-bold">Top {(100 - percentile.value).toFixed(0)}%</span> of {percentile.ageCategory} {player.playing_role.replace(/_/g, ' ')}s in {percentile.district} <span className="text-ax-textFaint/70">({percentile.cohortSize} players)</span>
+        <Card className="p-5">
+          <div className="flex items-start justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-5 min-w-0">
+              <RingGauge value={score.total} max={100} label={score.total} sublabel="AthlasX" size={92} strokeWidth={9} />
+              <div className="min-w-0">
+                <p className="text-lg font-bold text-ax-text">{player.full_name}</p>
+                <p className="text-xs text-ax-textFaint mt-0.5">
+                  {roleLabel} · {player.district}{player.academy ? ` · ${player.academy}` : ''}
                 </p>
-              ) : (
-                <p className="text-[11px] text-ax-textFaint/70 mt-1.5">Not enough {percentile.ageCategory} {player.playing_role.replace(/_/g, ' ')}s in {percentile.district} yet for a percentile ({percentile.cohortSize} so far)</p>
-              )}
+                {percentile.value !== null ? (
+                  <p className="text-[11px] text-ax-textFaint mt-2">
+                    <span className="text-ax-text font-bold">Top {(100 - percentile.value).toFixed(0)}%</span> of {percentile.ageCategory} {player.playing_role.replace(/_/g, ' ')}s in {percentile.district} <span className="text-ax-textFaint/70">({percentile.cohortSize} players)</span>
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-ax-textFaint/70 mt-2">Not enough {percentile.ageCategory} {player.playing_role.replace(/_/g, ' ')}s in {percentile.district} yet for a percentile ({percentile.cohortSize} so far)</p>
+                )}
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 w-full sm:w-auto sm:min-w-[280px]">
-              {[
-                { label: 'Batting', value: score.batting, shown: score.batting > 0 ? score.batting.toFixed(1) : '—' },
-                { label: 'Bowling', value: score.bowling, shown: score.bowling > 0 ? score.bowling.toFixed(1) : '—' },
-                { label: 'Fitness', value: score.fitnessAssessed ? score.fitness : 0, shown: score.fitnessAssessed ? score.fitness.toFixed(1) : '0' },
-              ].map(t => (
-                <div key={t.label} className="p-2.5 rounded-ax-md border border-ax-cardBorder bg-white/[0.02]">
-                  <p className="text-[9px] font-bold text-ax-textFaint uppercase tracking-wide">{t.label}</p>
-                  <p className="text-sm font-black text-ax-text tabular-nums">{t.shown}<span className="text-[9px] text-ax-textFaint font-medium">/10</span></p>
-                  <div className="h-1 rounded-full bg-white/[0.06] mt-1.5 overflow-hidden">
-                    <div className="h-full rounded-full bg-ax-accent" style={{ width: `${Math.min(100, Math.max(0, (t.value / 10) * 100))}%` }} />
-                  </div>
-                  {t.label === 'Fitness' && !score.fitnessAssessed && <p className="text-[8px] text-ax-textFaint/70 mt-1">Not assessed</p>}
+            <span className="shrink-0 text-[10px] font-bold px-2 py-1 rounded-ax-sm border border-[rgba(255,138,30,0.25)] bg-[rgba(255,138,30,0.1)] text-ax-accentBright uppercase tracking-wide">
+              Tier · {score.tier}
+            </span>
+          </div>
+
+          {/* Real tier ladder — score.tier (Rising/Developing/Advanced/Elite)
+              is the actual field; this just visualizes where it sits. */}
+          <div className="flex items-center gap-1.5 mt-4">
+            {TIER_LADDER.map((t, i) => (
+              <div key={t} className="flex items-center flex-1 last:flex-none">
+                <span className={cn('text-[9px] font-bold uppercase tracking-wide whitespace-nowrap', t === score.tier ? 'text-ax-accentBright' : 'text-ax-textFaint/60')}>{t}</span>
+                {i < TIER_LADDER.length - 1 && <div className={cn('h-px flex-1 mx-2', TIER_LADDER.indexOf(score.tier) > i ? 'bg-ax-accent' : 'bg-ax-cardBorder')} />}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mt-4">
+            {[
+              { label: 'Batting', value: score.batting, shown: score.batting > 0 ? score.batting.toFixed(1) : '—' },
+              { label: 'Bowling', value: score.bowling, shown: score.bowling > 0 ? score.bowling.toFixed(1) : '—' },
+              { label: 'Fitness', value: score.fitnessAssessed ? score.fitness : 0, shown: score.fitnessAssessed ? score.fitness.toFixed(1) : '0' },
+            ].map(t => (
+              <div key={t.label} className="p-2.5 rounded-ax-md border border-ax-cardBorder bg-white/[0.02]">
+                <p className="text-[9px] font-bold text-ax-textFaint uppercase tracking-wide">{t.label}</p>
+                <p className="text-sm font-black text-ax-text tabular-nums">{t.shown}<span className="text-[9px] text-ax-textFaint font-medium">/10</span></p>
+                <div className="h-1 rounded-full bg-white/[0.06] mt-1.5 overflow-hidden">
+                  <div className="h-full rounded-full bg-ax-accent" style={{ width: `${Math.min(100, Math.max(0, (t.value / 10) * 100))}%` }} />
                 </div>
-              ))}
-            </div>
+                {t.label === 'Fitness' && !score.fitnessAssessed && <p className="text-[8px] text-ax-textFaint/70 mt-1">Not assessed</p>}
+              </div>
+            ))}
           </div>
         </Card>
       </motion.div>
@@ -157,6 +201,38 @@ export default function RecordPage() {
             </div>
           ))}
         </div>
+      </motion.div>
+
+      {/* Score trend — real, from PlayerWeek.rolling_4week_average, only
+          populated for players who've been through coach-supervised
+          weekly assessment. No fabricated line for players without it. */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+        <Card className="p-5">
+          <p className="text-sm font-bold text-ax-text mb-0.5">Score trend</p>
+          <p className="text-xs text-ax-textFaint mb-4">
+            {scoreTrend.length >= 2
+              ? `Last ${scoreTrend.length} weekly assessments${scoreTrend.length >= 2 ? ` · ${scoreTrend[scoreTrend.length - 1].score > scoreTrend[0].score ? '+' : ''}${(scoreTrend[scoreTrend.length - 1].score - scoreTrend[0].score).toFixed(1)} since ${new Date(scoreTrend[0].week).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}` : ''}`
+              : 'No weekly assessment history yet'}
+          </p>
+          {scoreTrend.length >= 2 ? (
+            <ResponsiveContainer width="100%" height={160}>
+              <AreaChart data={scoreTrend} margin={{ top: 0, right: 0, left: -24, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gScore" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#FF8A1E" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="#FF8A1E" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="week" tickFormatter={(w: string) => new Date(w).toLocaleDateString('en-IN', { month: 'short' })} tick={{ fill: 'rgba(245,245,240,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: 'rgba(245,245,240,0.4)', fontSize: 10 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<ChartTip />} />
+                <Area type="monotone" dataKey="score" name="AthlasX score" stroke="#FF8A1E" strokeWidth={2} fill="url(#gScore)" dot={{ r: 3, fill: '#FF8A1E' }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-xs text-ax-textFaint/70 py-8 text-center">Score history builds up once your coach starts weekly assessments.</p>
+          )}
+        </Card>
       </motion.div>
 
       <div className="grid lg:grid-cols-2 gap-4">
@@ -256,13 +332,6 @@ export default function RecordPage() {
           </motion.div>
         ))}
       </div>
-
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="flex items-start gap-2.5 p-4 rounded-ax-lg border border-ax-cardBorder bg-white/[0.02]">
-        <Zap className="w-3.5 h-3.5 text-ax-textFaint mt-0.5 shrink-0" />
-        <p className="text-[10px] text-ax-textFaint leading-relaxed">
-          Only association-approved match data enters your record and AthlasX score. Self-reported data is never included.
-        </p>
-      </motion.div>
     </div>
   )
 }
