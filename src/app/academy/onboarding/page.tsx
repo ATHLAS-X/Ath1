@@ -13,26 +13,34 @@ import Link from 'next/link'
 import { ACADEMY_SELF_SERVE_ENABLED } from '@/lib/feature-flags'
 
 /*
- * Academy self-serve onboarding — restyled to match the authoritative
- * export design/import/export_v2/export/academy-onboarding-v3.html/.css
- * (2026-09-06 zip), which supersedes the earlier v3 mockup's inline-only
- * spec with a real rail : form two-column layout, section-headers for
- * Step 3, and a 6-box OTP grid. Field set, step order, and copy match that
- * export exactly, with the two deviations already confirmed with the user
- * for this flow, both still true:
- *   - Step 1 adds email+password alongside the export's phone+OTP-only
- *     content, since phone-only auth has no sign-in path anywhere else in
- *     this codebase.
- *   - Steps 3-4 (Facilities & Staff, Programs) are collected here for
- *     fidelity to the mockup but NOT persisted — the Academy Prisma model
- *     has no columns for ground type, coach certifications, age groups,
- *     fees, or BCCI/state-association affiliation.
+ * Academy self-serve onboarding — compressed from 5 steps to 3
+ * (2026-09, per explicit request) by deleting the old Step 3 "Facilities &
+ * Staff" and Step 4 "Programs" steps rather than merely re-labeling them.
+ * Those two steps were never wired to the server: this file's own prior
+ * header comment said so ("the Academy Prisma model has no columns for
+ * ground type, coach certifications, age groups, fees, or BCCI/state-
+ * association affiliation"), but that comment had gone stale — the
+ * bcci_affiliated / bcci_affiliation_id / state_assoc_affiliated /
+ * state_assoc_names / head_coach_name fields ARE included in the POST
+ * /api/academy/onboard payload below and ARE persisted (confirmed by
+ * reading that route directly, not by trusting the comment). Those five
+ * fields move into Step 2 as a "Coaching & Affiliation" section. Every
+ * other Step 3/4 field — ground type, practice nets, capacity, bowling
+ * machine, head-coach certification, ex-professional-on-staff name/level,
+ * assistant coach count, age groups, formats, batch timings, fee range —
+ * had no matching Academy column and was never sent to the server; those
+ * are cut outright, not hidden, since keeping them would mean asking
+ * academies to fill in fields that get silently discarded. If any of that
+ * data becomes real product scope later, it needs actual schema columns
+ * and a route change before it belongs back in a wizard.
  *
- * Per the design-rollout convention used by the other three onboarding
- * flows, the top PLAYER/COACH/ACADEMY/SCOUT pill-row switcher visible in
- * the export's screenshots is NOT built — that's the mockup file's own
- * internal preview switcher for its ROLE_FLOWS engine, not a feature for
- * signed-up users.
+ * Original 5-step version's design provenance (still true for what
+ * remains): matches design/import/export_v2/export/academy-onboarding-v3.
+ * html/.css structurally, with the same two confirmed deviations —
+ * Step 1 adds email+password alongside the export's phone+OTP-only
+ * content (no phone-only auth path exists anywhere else in this app), and
+ * the export's top PLAYER/COACH/ACADEMY/SCOUT pill-row switcher is that
+ * mockup file's own internal preview switcher, not a feature built here.
  */
 
 const anton = Anton({ subsets: ['latin'], weight: '400', variable: '--font-anton' })
@@ -68,12 +76,10 @@ const OPTCARD_CLS = (active: boolean) => cn(
 )
 const SECTION_H_CLS = 'font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.08em] text-[1.02rem] font-bold text-[color:var(--text)]'
 
-const TOTAL_STEPS = 5
+const TOTAL_STEPS = 3
 const STEPS = [
   { key: 'account', label: 'Account', sublabel: 'Phone + OTP' },
-  { key: 'identity', label: 'Academy Identity', sublabel: 'Name, location, type' },
-  { key: 'facilities', label: 'Facilities & Staff', sublabel: 'Ground, coaches' },
-  { key: 'programs', label: 'Programs', sublabel: 'Ages, formats, fees' },
+  { key: 'identity', label: 'Academy Identity', sublabel: 'Name, location, coaching' },
   { key: 'golive', label: 'Go Live', sublabel: 'Invite & launch' },
 ]
 const STATES = ['Andhra Pradesh', 'Assam', 'Bihar', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Odisha', 'Punjab', 'Rajasthan', 'Tamil Nadu', 'Telangana', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal']
@@ -83,9 +89,6 @@ const ACADEMY_TYPES = [
   { v: 'Trust / NGO', s: 'Non-profit entity', icon: Shield },
   { v: 'Sports Club', s: 'Club-affiliated', icon: Globe },
 ]
-const AGE_GROUPS = ['U-10', 'U-12', 'U-14', 'U-16', 'U-19', 'U-23', 'Senior']
-const FORMATS = ['T20', 'ODI', 'Red-ball', 'All']
-const FEE_RANGES = ['Free', '< 1K', '1K–3K', '3K–7K', '7K+']
 
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -94,16 +97,6 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
         active ? 'bg-[color:var(--ov14)] border-[color:var(--accent)] text-[color:var(--accent-bright)]' : 'bg-[color:var(--field-bg)] border-[color:var(--card-border)] text-[color:var(--text-dim)] hover:border-white/30 hover:text-[color:var(--text)]')}>
       {label}
     </button>
-  )
-}
-
-function NumStep({ value, onChange, min, max }: { value: number; onChange: (v: number) => void; min: number; max: number }) {
-  return (
-    <div className="inline-flex items-center border border-[color:var(--card-border)] rounded-[9px] overflow-hidden bg-[color:var(--field-bg)]">
-      <button type="button" onClick={() => onChange(Math.max(min, value - 1))} className="w-[38px] h-[42px] font-bold text-[color:var(--text)] hover:bg-[color:var(--ov14)] hover:text-[color:var(--accent-bright)] transition-colors">−</button>
-      <span className="w-14 text-center text-[0.98rem] font-bold text-[color:var(--text)] border-x border-[color:var(--card-border)] h-[42px] leading-[42px]">{value}</span>
-      <button type="button" onClick={() => onChange(Math.min(max, value + 1))} className="w-[38px] h-[42px] font-bold text-[color:var(--text)] hover:bg-[color:var(--ov14)] hover:text-[color:var(--accent-bright)] transition-colors">+</button>
-    </div>
   )
 }
 
@@ -145,41 +138,23 @@ export default function AcademyOnboardingPage() {
   const [designation, setDesignation] = useState('')
   const [logoUploaded, setLogoUploaded] = useState(false)
 
-  // Step 3 — Facilities & staff (UI only, not persisted)
-  const [groundType, setGroundType] = useState('Turf')
-  const [nets, setNets] = useState(4)
-  const [capacity, setCapacity] = useState('')
-  const [bowlingMachine, setBowlingMachine] = useState('No')
+  // Step 2 continued — Coaching & Affiliation. Moved here from the old
+  // Step 3/4 (both deleted): these five fields are the only ones from
+  // those steps that the API actually persists (see header comment).
   const [hcName, setHcName] = useState('')
-  const [hcCert, setHcCert] = useState('')
-  const [exPro, setExPro] = useState('No')
-  const [exName, setExName] = useState('')
-  const [exLevel, setExLevel] = useState('')
-  const [assistants, setAssistants] = useState(1)
-
-  // Step 4 — Programs (UI only, not persisted)
-  const [ageGroups, setAgeGroups] = useState<string[]>([])
-  const [formats, setFormats] = useState<string[]>([])
-  const [timing, setTiming] = useState('')
-  const [feeRange, setFeeRange] = useState('')
   const [bcci, setBcci] = useState('No')
   const [bcciId, setBcciId] = useState('')
   const [sca, setSca] = useState('No')
   const [scaName, setScaName] = useState('')
 
-  // Step 5 — Go Live (invite/batch are dev-only affordances, not wired to
-  // a real invite or batch-creation call here — same "collect, don't
-  // persist" scope as steps 3-4)
+  // Step 3 — Go Live (invite/batch are dev-only affordances, not wired to
+  // a real invite or batch-creation call here)
   const [inviteMobile, setInviteMobile] = useState('')
   const [inviteSent, setInviteSent] = useState(false)
   const [batchName, setBatchName] = useState('')
   const [batchCreated, setBatchCreated] = useState(false)
 
   const [done, setDone] = useState(false)
-
-  function toggle(arr: string[], set: (v: string[]) => void, v: string) {
-    set(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v])
-  }
 
   async function sendOtp() {
     if (locksRef.current.has('send-otp')) return
@@ -245,8 +220,7 @@ export default function AcademyOnboardingPage() {
 
   function canProceed() {
     if (step === 1) return otpVerified && Boolean(email && password)
-    if (step === 2) return Boolean(academyName && city && district && state && contactName)
-    if (step === 3) return Boolean(hcName)
+    if (step === 2) return Boolean(academyName && city && district && state && contactName && hcName)
     return true
   }
 
@@ -286,9 +260,10 @@ export default function AcademyOnboardingPage() {
       // The server re-verifies the OTP at submit time (verifyAcademyOtp)
       // rather than trusting client state — if that recheck fails after the
       // client already showed "verified" (stale/expired/already-used
-      // requestId), don't strand the user behind a generic error on Step 5.
-      // Drop back to Step 1 with a fresh Send-OTP prompt, keeping every
-      // other step's fields intact so they only redo the OTP, not the wizard.
+      // requestId), don't strand the user behind a generic error on the
+      // final step. Drop back to Step 1 with a fresh Send-OTP prompt,
+      // keeping every other step's fields intact so they only redo the
+      // OTP, not the wizard.
       if (/incorrect or expired otp|phone verification is required/i.test(message)) {
         const recoveryMessage = "We couldn't confirm your verification — please verify again to finish."
         setOtpVerified(false)
@@ -347,7 +322,7 @@ export default function AcademyOnboardingPage() {
               <h1 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[42px] text-[color:var(--text)]">
                 Set up your <b className="text-[color:var(--accent)] font-normal">academy.</b>
               </h1>
-              <p className="mt-3.5 text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[22rem]">Five steps. Roster-ready in under 10 minutes. Everything auto-saves.</p>
+              <p className="mt-3.5 text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[22rem]">Three steps. Roster-ready in under 5 minutes. Everything auto-saves.</p>
             </div>
 
             <StepRail steps={STEPS} currentIndex={step - 1} className="mt-8" />
@@ -370,7 +345,7 @@ export default function AcademyOnboardingPage() {
 
                   {step === 1 && (
                     <>
-                      <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step 1 of 5</p>
+                      <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step {step} of {TOTAL_STEPS}</p>
                       <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[40px] text-[color:var(--text)] mb-2">Create your account</h2>
                       <p className="text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[32rem] mb-7">We&apos;ll text a one-time code to verify your WhatsApp number.</p>
 
@@ -430,17 +405,17 @@ export default function AcademyOnboardingPage() {
                         </div>
                         <div>
                           <Label className={LABEL_CLS}>Password<span className="text-[color:var(--accent)] ml-0.5">*</span></Label>
-                          <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Choose a password" autoComplete="new-password"
+                          <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Choose a password" autoComplete="new-password" minLength={10}
                             className={cn(FIELD_CLS, 'mt-1.5')} />
                         </div>
-                        <p className="text-[11px] text-[color:var(--text-faint)]">Email + password sign you back in later — WhatsApp OTP only verifies this number belongs to you now.</p>
+                        <p className="text-[11px] text-[color:var(--text-faint)]">At least 10 characters, with letters and numbers. Email + password sign you back in later — WhatsApp OTP only verifies this number belongs to you now.</p>
                       </div>
                     </>
                   )}
 
                   {step === 2 && (
                     <>
-                      <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step 2 of 5</p>
+                      <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step {step} of {TOTAL_STEPS}</p>
                       <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[40px] text-[color:var(--text)] mb-2">Academy identity</h2>
                       <p className="text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[32rem] mb-7">Tell us about your academy. This appears on your public profile — scouts and players will see this.</p>
 
@@ -501,7 +476,7 @@ export default function AcademyOnboardingPage() {
                         </div>
                       </div>
 
-                      <div>
+                      <div className="mb-6">
                         <Label className={LABEL_CLS}>Academy Logo<span className="text-[color:var(--text-faint)] font-medium tracking-normal normal-case ml-1.5">optional</span></Label>
                         <button type="button" onClick={() => setLogoUploaded(true)}
                           className="w-full mt-1.5 flex flex-col items-center gap-1.5 p-7 rounded-[11px] border-2 border-dashed border-[color:var(--accent)] bg-[color:var(--ov08)] hover:bg-[color:var(--ov14)] transition-colors">
@@ -510,104 +485,15 @@ export default function AcademyOnboardingPage() {
                           <span className="text-[0.74rem] text-[color:var(--text-faint)]">PNG, JPG or PDF — max 5 MB</span>
                         </button>
                       </div>
-                    </>
-                  )}
 
-                  {step === 3 && (
-                    <>
-                      <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step 3 of 5</p>
-                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[40px] text-[color:var(--text)] mb-2">Facilities & staff</h2>
-                      <p className="text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[32rem] mb-2">What you offer on the ground, and who&apos;s coaching.</p>
-
-                      <div className="flex items-baseline gap-2.5 mt-1 mb-4">
-                        <h3 className={SECTION_H_CLS}>Facilities</h3>
-                        <span className="text-[0.76rem] text-[color:var(--text-faint)]">Ground & equipment</span>
+                      <div className="flex items-baseline gap-2.5 pt-5 mb-4 border-t border-[color:var(--card-border)]">
+                        <h3 className={SECTION_H_CLS}>Coaching & Affiliation</h3>
+                        <span className="text-[0.76rem] text-[color:var(--text-faint)]">Who&apos;s coaching, and who backs you</span>
                       </div>
 
-                      <div className="mb-4">
-                        <Label className={LABEL_CLS}>Ground Type</Label>
-                        <div className="flex gap-2 mt-1.5">{['Turf', 'Matting', 'Both'].map(v => <Chip key={v} label={v} active={groundType === v} onClick={() => setGroundType(v)} />)}</div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <Label className={LABEL_CLS}>Practice Nets</Label>
-                          <div className="mt-1.5"><NumStep value={nets} onChange={setNets} min={0} max={30} /></div>
-                        </div>
-                        <div>
-                          <Label className={LABEL_CLS}>Approx Capacity<span className="text-[color:var(--text-faint)] font-medium tracking-normal normal-case ml-1.5">optional</span></Label>
-                          <Input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} placeholder="e.g. 60 players" className={cn(FIELD_CLS, 'mt-1.5')} />
-                        </div>
-                      </div>
-                      <div className="mb-6">
-                        <Label className={LABEL_CLS}>Bowling Machine Available</Label>
-                        <div className="flex gap-2 mt-1.5">{['Yes', 'No'].map(v => <Chip key={v} label={v} active={bowlingMachine === v} onClick={() => setBowlingMachine(v)} />)}</div>
-                      </div>
-
-                      <div className="flex items-baseline gap-2.5 pt-5 mt-1 mb-4 border-t border-[color:var(--card-border)]">
-                        <h3 className={SECTION_H_CLS}>Staff</h3>
-                        <span className="text-[0.76rem] text-[color:var(--text-faint)]">Head coach & team</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <Label className={LABEL_CLS}>Head Coach Name<span className="text-[color:var(--accent)] ml-0.5">*</span></Label>
-                          <Input value={hcName} onChange={e => setHcName(e.target.value)} placeholder="Full name" className={cn(FIELD_CLS, 'mt-1.5')} />
-                        </div>
-                        <div>
-                          <Label className={LABEL_CLS}>Head Coach Certification</Label>
-                          <select value={hcCert} onChange={e => setHcCert(e.target.value)}
-                            className={cn(FIELD_CLS, 'mt-1.5 w-full px-3.5 appearance-none cursor-pointer')}>
-                            <option value="" className="bg-[#141312]">Select certification</option>
-                            {['BCCI L1', 'BCCI L2', 'BCCI L3', 'NCA', 'NIS', 'Other'].map(c => <option key={c} value={c} className="bg-[#141312]">{c}</option>)}
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="mb-1">
-                        <Label className={LABEL_CLS}>Ex-Professional on Staff?</Label>
-                        <div className="flex gap-2 mt-1.5">{['Yes', 'No'].map(v => <Chip key={v} label={v} active={exPro === v} onClick={() => setExPro(v)} />)}</div>
-                        {exPro === 'Yes' && (
-                          <div className="grid grid-cols-2 gap-4 p-[0.9rem] mt-[0.7rem] rounded-[10px] bg-[color:var(--field-bg)] border border-[color:var(--card-border)]">
-                            <div>
-                              <Label className={LABEL_CLS}>Name</Label>
-                              <Input value={exName} onChange={e => setExName(e.target.value)} placeholder="Full name" className={cn(FIELD_CLS, 'mt-1.5')} />
-                            </div>
-                            <div>
-                              <Label className={LABEL_CLS}>Highest Level Played</Label>
-                              <Input value={exLevel} onChange={e => setExLevel(e.target.value)} placeholder="e.g. Ranji Trophy, IPL" className={cn(FIELD_CLS, 'mt-1.5')} />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="mt-5">
-                        <Label className={LABEL_CLS}>Assistant Coaches</Label>
-                        <div className="mt-1.5"><NumStep value={assistants} onChange={setAssistants} min={0} max={20} /></div>
-                      </div>
-                    </>
-                  )}
-
-                  {step === 4 && (
-                    <>
-                      <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step 4 of 5</p>
-                      <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[40px] text-[color:var(--text)] mb-2">Programs</h2>
-                      <p className="text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[32rem] mb-7">What you run, for whom, and at what price.</p>
-
-                      <div className="mb-4">
-                        <Label className={LABEL_CLS}>Age Groups</Label>
-                        <div className="flex flex-wrap gap-2 mt-1.5">{AGE_GROUPS.map(v => <Chip key={v} label={v} active={ageGroups.includes(v)} onClick={() => toggle(ageGroups, setAgeGroups, v)} />)}</div>
-                      </div>
-                      <div className="mb-4">
-                        <Label className={LABEL_CLS}>Formats</Label>
-                        <div className="flex flex-wrap gap-2 mt-1.5">{FORMATS.map(v => <Chip key={v} label={v} active={formats.includes(v)} onClick={() => toggle(formats, setFormats, v)} />)}</div>
-                      </div>
-                      <div className="mb-4">
-                        <Label className={LABEL_CLS}>Batch Timings</Label>
-                        <div className="flex gap-2 mt-1.5">{['Morning', 'Evening', 'Both'].map(v => <Chip key={v} label={v} active={timing === v} onClick={() => setTiming(v)} />)}</div>
-                      </div>
-                      <div className="mb-4">
-                        <Label className={LABEL_CLS}>Monthly Fee Range</Label>
-                        <div className="flex flex-wrap gap-2 mt-1.5">{FEE_RANGES.map(v => <Chip key={v} label={v} active={feeRange === v} onClick={() => setFeeRange(v)} />)}</div>
+                      <div className="mb-5">
+                        <Label className={LABEL_CLS}>Head Coach Name<span className="text-[color:var(--accent)] ml-0.5">*</span></Label>
+                        <Input value={hcName} onChange={e => setHcName(e.target.value)} placeholder="Full name" className={cn(FIELD_CLS, 'mt-1.5')} />
                       </div>
 
                       <div className="mb-4">
@@ -633,9 +519,9 @@ export default function AcademyOnboardingPage() {
                     </>
                   )}
 
-                  {step === 5 && (
+                  {step === 3 && (
                     <>
-                      <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step 5 of 5</p>
+                      <p className="font-[family-name:var(--font-barlow-semi)] uppercase tracking-[0.18em] text-[11px] font-bold text-[color:var(--accent-bright)] mb-1.5">Step {step} of {TOTAL_STEPS}</p>
                       <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal leading-[0.92] text-[40px] text-[color:var(--text)] mb-2">Go live</h2>
                       <p className="text-sm leading-relaxed text-[color:var(--text-dim)] max-w-[32rem] mb-7">Bring your team on board, or jump straight to your dashboard.</p>
 
@@ -684,7 +570,7 @@ export default function AcademyOnboardingPage() {
                 </motion.div>
               </AnimatePresence>
 
-              {error && step !== 5 && step !== 1 && (
+              {error && step !== TOTAL_STEPS && step !== 1 && (
                 <p className="mt-4 text-xs text-[color:var(--bad)]">{error}</p>
               )}
             </div>
