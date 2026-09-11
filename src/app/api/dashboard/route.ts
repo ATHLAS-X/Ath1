@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { calculateAthlasXScore } from '@/lib/athlasx-score'
 import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { requireRole } from '@/lib/require-auth'
-import { resolveAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedAssociationScope } from '@/lib/association/verification-gate'
 import { verifiedPerformancesByPlayer } from '@/lib/verified-performances'
 
 export const dynamic = 'force-dynamic'
@@ -12,31 +12,32 @@ export async function GET(req: NextRequest) {
   const auth = await requireRole(req, ['association', 'selection_panel', 'coach', 'athlasx_ops'])
   if (auth instanceof NextResponse) return auth
 
-  // association is now derived from the caller's own membership (null scope
-  // = athlasx_ops, unrestricted; otherwise the first association they're
-  // actually staff on) — never an arbitrary "first row in the table" pick.
-  const scope = await resolveAssociationScope(auth.user)
-  const association = scope === null
-    ? await db.association.findFirst()
-    : scope.length > 0 ? await db.association.findFirst({ where: { id: { in: scope } } }) : null
-  const players = association
-    ? await db.playerProfile.findMany({ where: { association_id: association.id, consent_status: { not: 'withdrawn' } } })
-    : []
-  // NOT YET SCOPED — flagging rather than silently leaving unfixed:
-  // registrations/pendingIngest/formDropAlerts/trialCycles/totalIngestJobs/
-  // session/claimedCount/alerts/activity below are still global counts
-  // across every association, not filtered to `association`/`scope`. Full
-  // per-query scoping here is a larger rewrite than this auth-hardening
-  // pass covers — the route is now un-servable to an anonymous caller
-  // (the actual finding this pass fixes), but a real association_staff
-  // user today still sees cross-association aggregate numbers.
-  const registrations = await db.registration.count()
-  const pendingIngest = await db.ingestJob.count({ where: { status: 'pending_review' } })
-  const formDropAlerts = await db.trendAlert.count({ where: { flag_type: 'form_drop' } })
-  const trialCycles = await db.trialCycle.count()
-  const totalIngestJobs = await db.ingestJob.count()
-  const session = await db.selectionSession.findFirst({ orderBy: { created_at: 'desc' } })
-  const claimedCount = await db.playerProfile.count({ where: { claim_status: 'claimed' } })
+  // Every association-scoped query below is filtered through this same
+  // value: `undefined` (no filter — true cross-association view) for
+  // athlasx_ops, `{ in: scope }` for everyone else. A caller with an empty
+  // scope (pending/rejected verification, or no staff row at all) gets
+  // `{ in: [] }`, which Prisma matches against nothing — every count below
+  // correctly comes back zero rather than leaking another association's
+  // data. This replaces the prior version of this route, which left these
+  // aggregates unscoped entirely (see tests/integration/
+  // dashboard-association-scope.test.ts for the regression test) — and
+  // separately fixes a second bug in the process: the old `association`
+  // lookup used `db.association.findFirst()` for athlasx_ops too, which
+  // silently narrowed even an unrestricted ops caller's player/score data
+  // down to whichever association happened to be first in the table.
+  const scope = await resolveVerifiedAssociationScope(auth.user)
+  const assocFilter = scope === null ? undefined : { in: scope }
+
+  const players = await db.playerProfile.findMany({
+    where: { association_id: assocFilter, consent_status: { not: 'withdrawn' } },
+  })
+  const registrations = await db.registration.count({ where: { trial_cycle: { association_id: assocFilter } } })
+  const pendingIngest = await db.ingestJob.count({ where: { status: 'pending_review', association_id: assocFilter } })
+  const formDropAlerts = await db.trendAlert.count({ where: { flag_type: 'form_drop', player: { association_id: assocFilter } } })
+  const trialCycles = await db.trialCycle.count({ where: { association_id: assocFilter } })
+  const totalIngestJobs = await db.ingestJob.count({ where: { association_id: assocFilter } })
+  const session = await db.selectionSession.findFirst({ where: { association_id: assocFilter }, orderBy: { created_at: 'desc' } })
+  const claimedCount = await db.playerProfile.count({ where: { claim_status: 'claimed', association_id: assocFilter } })
 
   let gradingLabel = 'Not started'
   let gradingDone = false
@@ -48,10 +49,14 @@ export async function GET(req: NextRequest) {
     gradingDone = possible > 0 && gradeCount === possible
   }
 
-  const trackedCount = await db.trendAlert.count()
+  const trackedCount = await db.trendAlert.count({ where: { player: { association_id: assocFilter } } })
 
   // Registration trend — grouped by day from real Registration rows
-  const regs = await db.registration.findMany({ select: { created_at: true }, orderBy: { created_at: 'asc' } })
+  const regs = await db.registration.findMany({
+    where: { trial_cycle: { association_id: assocFilter } },
+    select: { created_at: true },
+    orderBy: { created_at: 'asc' },
+  })
   const byDay = new Map<string, number>()
   let running = 0
   for (const r of regs) {
@@ -85,7 +90,11 @@ export async function GET(req: NextRequest) {
   // Active flags
   // Same principle as the players list above — a withdrawn player must not
   // be surfaced via active flags/recent activity either.
-  const allAlerts = await db.trendAlert.findMany({ orderBy: { triggered_at: 'desc' }, take: 6 })
+  const allAlerts = await db.trendAlert.findMany({
+    where: { player: { association_id: assocFilter } },
+    orderBy: { triggered_at: 'desc' },
+    take: 6,
+  })
   const alertPlayers = await db.playerProfile.findMany({
     where: { id: { in: allAlerts.map(a => a.player_id) }, consent_status: { not: 'withdrawn' } },
   })
@@ -100,8 +109,8 @@ export async function GET(req: NextRequest) {
   }))
 
   // Recent activity — merged from ingest jobs + trend alerts + trial cycles
-  const recentJobs = await db.ingestJob.findMany({ orderBy: { created_at: 'desc' }, take: 3 })
-  const recentCycles = await db.trialCycle.findMany({ orderBy: { created_at: 'desc' }, take: 2 })
+  const recentJobs = await db.ingestJob.findMany({ where: { association_id: assocFilter }, orderBy: { created_at: 'desc' }, take: 3 })
+  const recentCycles = await db.trialCycle.findMany({ where: { association_id: assocFilter }, orderBy: { created_at: 'desc' }, take: 2 })
   const activity = [
     ...recentJobs.map(j => ({ text: `${j.source} sync ${j.status === 'pending_review' ? 'queued' : j.status} — ${j.player_rows} rows`, type: 'ingest', time: j.created_at })),
     ...alerts.slice(0, 3).map(a => ({
