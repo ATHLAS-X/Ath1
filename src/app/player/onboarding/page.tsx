@@ -208,7 +208,7 @@ Your data is retained for as long as your account is active. You can request acc
 
 Because the date of birth entered in Stage 1 indicates this player is under 18, this consent must be given by the player's parent or legal guardian, not the player themselves. By continuing, the person completing this step confirms they are the parent or legal guardian of the player named in this form, and that they consent to AthlasX collecting and processing the player's personal data as described in the Data collection & use consent above.
 
-The guardian's own identity has been independently verified via Aadhaar OTP in Stage 2, separately from the player's own verification — this is required specifically so that guardian consent under the DPDP Act is given by a real, verified adult, not merely asserted by checking a box.
+The guardian completes a one-time OTP confirmation tied to the Aadhaar number provided in Stage 2, separately from the player's own confirmation — this requires an active verification step, not merely checking a box.
 
 The guardian may withdraw this consent at any time by contacting AthlasX. Withdrawing consent for a minor player will restrict that player's profile from being processed or shown to any selection panel or association until the player turns 18 and can independently re-consent, or a new guardian consent is given.
 
@@ -837,8 +837,8 @@ export default function OnboardingPage() {
                           { label: 'State', value: form.state || '—' },
                           { label: 'Role', value: form.playingRole || '—' },
                           { label: 'Batting', value: form.battingStyle || '—' },
-                          { label: 'Aadhaar', value: aadhaar.last4 ? `Verified · ••••${aadhaar.last4}` : 'Not verified' },
-                          ...(minor ? [{ label: 'Guardian Aadhaar', value: guardianAadhaar.last4 ? `Verified · ••••${guardianAadhaar.last4}` : 'Not verified' }] : []),
+                          { label: 'Aadhaar', value: aadhaar.last4 ? `OTP confirmed · ••••${aadhaar.last4}` : 'Not confirmed' },
+                          ...(minor ? [{ label: 'Guardian Aadhaar', value: guardianAadhaar.last4 ? `OTP confirmed · ••••${guardianAadhaar.last4}` : 'Not confirmed' }] : []),
                           { label: 'Footage', value: [form.batting_url, form.bowling_url].filter(Boolean).length + ' clips added' },
                         ].map(row => (
                           <div key={row.label} className="flex justify-between text-sm py-2 border-b border-[color:var(--card-border)]">
@@ -917,7 +917,7 @@ function AadhaarBlock({ label, state, setState, onSend, onVerify }: {
     return (
       <div className="flex items-center gap-2.5 p-3.5 rounded-[9px] border border-[color:var(--ok)]/40 bg-[color:var(--ok)]/10 text-[color:var(--ok)]">
         <ShieldCheck className="w-4 h-4 shrink-0" />
-        <span className="text-sm font-semibold">{label} verified — ••••{state.last4}</span>
+        <span className="text-sm font-semibold">{label} OTP confirmed — ••••{state.last4}</span>
       </div>
     )
   }
