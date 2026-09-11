@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { BattingStyle, BowlingStyleEnum, CompetitiveLevel, Format, Gender, PlayingRoleEnum } from '@prisma/client'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
-import { hashPassword } from '@/lib/password'
+import { hashPassword, validatePasswordStrength } from '@/lib/password'
 import { consumeVerifiedAadhaar } from '@/lib/aadhaar-verification'
+import { rateLimit } from '@/lib/rate-limit'
 
 // docs/AthlasX_Master_Data_Points.docx Player Phase 1 (HIGH) — the wizard's
 // <select> already sends the enum's own values directly (see the "value"
@@ -118,6 +119,19 @@ export async function POST(req: NextRequest) {
     || !gender || !city || !enrollmentDate || Number.isNaN(enrollmentDate.getTime()) || !highestLevelRepresented
   ) {
     return NextResponse.json({ error: 'Identity and playing profile are required' }, { status: 400 })
+  }
+
+  // Account-creation attempts weren't rate-limited at all (only the Aadhaar
+  // OTP step was) — keyed by email, same "identity being targeted" pattern
+  // authenticateWithPassword uses for login.
+  const signupLimit = rateLimit('player-onboard-signup', email, 5, 3600)
+  if (!signupLimit.success) {
+    return NextResponse.json({ error: 'Too many signup attempts. Please try again later.' }, { status: 429 })
+  }
+
+  const passwordError = validatePasswordStrength(password)
+  if (passwordError) {
+    return NextResponse.json({ error: passwordError }, { status: 400 })
   }
 
   const minor = isUnder18(dob)

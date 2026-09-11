@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
-import { hashPassword } from '@/lib/password'
+import { hashPassword, validatePasswordStrength } from '@/lib/password'
 import { verifyAcademyOtp } from '@/lib/academy-onboarding-otp'
 import { rateLimit } from '@/lib/rate-limit'
 
@@ -46,6 +46,16 @@ export async function POST(req: NextRequest) {
 
   if (!email || !password || !coachName || !associationId) {
     return NextResponse.json({ error: 'Account, name, and association are required' }, { status: 400 })
+  }
+
+  const signupLimit = rateLimit('coach-onboard-signup', email, 5, 3600)
+  if (!signupLimit.success) {
+    return NextResponse.json({ error: 'Too many signup attempts. Please try again later.' }, { status: 429 })
+  }
+
+  const passwordError = validatePasswordStrength(password)
+  if (passwordError) {
+    return NextResponse.json({ error: passwordError }, { status: 400 })
   }
 
   const association = await db.association.findUnique({ where: { id: associationId }, select: { id: true } })

@@ -594,8 +594,9 @@ export default function OnboardingPage() {
                           </div>
                           <div className="space-y-1.5">
                             <Label className={LABEL_CLS}>Password *</Label>
-                            <Input type="password" value={form.password} onChange={e => update('password', e.target.value)} placeholder="Choose a password" autoComplete="new-password"
+                            <Input type="password" value={form.password} onChange={e => update('password', e.target.value)} placeholder="Choose a password" autoComplete="new-password" minLength={10}
                               className={FIELD_CLS} />
+                            <p className="text-[11px] text-[color:var(--text-faint)]">At least 10 characters, with letters and numbers.</p>
                           </div>
                         </div>
 

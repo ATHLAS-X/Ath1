@@ -361,10 +361,10 @@ export default function CoachOnboardingPage() {
                           </div>
                           <div>
                             <Label className={LABEL_CLS}>Password<span className="text-[color:var(--accent)] ml-0.5">*</span></Label>
-                            <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Choose a password" autoComplete="new-password" className={cn(FIELD_CLS, 'mt-1.5')} />
+                            <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Choose a password" autoComplete="new-password" minLength={10} className={cn(FIELD_CLS, 'mt-1.5')} />
                           </div>
                         </div>
-                        <p className="text-[11px] text-[color:var(--text-faint)] mb-4">Email + password sign you back in later — WhatsApp OTP only verifies this number belongs to you now.</p>
+                        <p className="text-[11px] text-[color:var(--text-faint)] mb-4">At least 10 characters, with letters and numbers. Email + password sign you back in later — WhatsApp OTP only verifies this number belongs to you now.</p>
 
                         <div className="grid grid-cols-2 gap-4 mb-5">
                           <div>

@@ -44,7 +44,7 @@ const post = (body: unknown) =>
 
 const adultBody = {
   email: 'arjun@test.local',
-  password: 'a-strong-password',
+  password: 'a-strong-password-123',
   fullName: 'Arjun Sharma',
   dob: '2000-01-15',
   district: 'Kanpur',
