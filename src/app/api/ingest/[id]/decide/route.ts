@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Prisma } from '@prisma/client'
 import { db } from '@/lib/db'
 import { requireRole } from '@/lib/require-auth'
-import { resolveRequestedAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedRequestedAssociationScope } from '@/lib/association/verification-gate'
 import { resolveIdentity } from '@/lib/identity-resolution'
 import { enqueueAcademyCapture } from '@/lib/academy-capture'
 import type { NormalizedIngestPayload } from '@/lib/ingest/types'
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'Job is not pending review' }, { status: 409 })
   }
   if (job.association_id) {
-    const scope = await resolveRequestedAssociationScope(auth.user, job.association_id)
+    const scope = await resolveVerifiedRequestedAssociationScope(auth.user, job.association_id)
     if (scope !== null && !scope.includes(job.association_id)) {
       return NextResponse.json({ error: 'Forbidden — not scoped to this association' }, { status: 403 })
     }

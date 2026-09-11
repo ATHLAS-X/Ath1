@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/require-auth'
-import { resolveAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedAssociationScope } from '@/lib/association/verification-gate'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const squad = await db.squad.findUnique({ where: { id: params.id }, select: { association_id: true } })
   if (!squad) return NextResponse.json({ error: 'Squad not found' }, { status: 404 })
 
-  const scope = await resolveAssociationScope(auth.user)
+  const scope = await resolveVerifiedAssociationScope(auth.user)
   if (scope !== null && !scope.includes(squad.association_id)) {
     return NextResponse.json({ error: 'Forbidden — not scoped to this association' }, { status: 403 })
   }

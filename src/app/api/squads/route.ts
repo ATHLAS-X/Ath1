@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/require-auth'
-import { resolveAssociationScope, resolveRequestedAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedAssociationScope, resolveVerifiedRequestedAssociationScope } from '@/lib/association/verification-gate'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
 
-  const scope = await resolveAssociationScope(auth.user)
+  const scope = await resolveVerifiedAssociationScope(auth.user)
   const squads = await db.squad.findMany({
     where: scope === null ? undefined : {
       OR: [
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'associationId, name, and season are required' }, { status: 400 })
   }
 
-  const scope = await resolveRequestedAssociationScope(auth.user, associationId)
+  const scope = await resolveVerifiedRequestedAssociationScope(auth.user, associationId)
   if (scope !== null && !scope.includes(associationId)) {
     return NextResponse.json({ error: 'Forbidden — not scoped to this association' }, { status: 403 })
   }

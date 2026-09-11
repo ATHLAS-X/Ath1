@@ -1,6 +1,6 @@
 import { db } from '@/lib/db'
 import type { SessionUser } from '@/lib/require-auth'
-import { resolveAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedAssociationScope } from '@/lib/association/verification-gate'
 
 /**
  * A caller can act on a squad if they're athlasx_ops (unrestricted),
@@ -16,7 +16,7 @@ export async function canAccessSquad(user: SessionUser, squadId: string): Promis
   const squad = await db.squad.findUnique({ where: { id: squadId }, select: { association_id: true } })
   if (!squad) return false
 
-  const scope = await resolveAssociationScope(user)
+  const scope = await resolveVerifiedAssociationScope(user)
   if (scope !== null && scope.includes(squad.association_id)) return true
 
   const membership = await db.squadCoach.findFirst({

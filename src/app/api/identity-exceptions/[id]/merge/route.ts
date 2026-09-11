@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireRole } from '@/lib/require-auth'
-import { resolveAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedAssociationScope } from '@/lib/association/verification-gate'
 import { AttachSnapshotMissingError, attachSkippedPerformance } from '@/lib/identity-exception-attach'
 
 // Merge: attach the skipped row onto an explicit surviving candidate.
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!exception) return NextResponse.json({ error: 'Exception not found' }, { status: 404 })
   if (exception.status !== 'OPEN') return NextResponse.json({ error: 'Exception already resolved' }, { status: 409 })
 
-  const scope = await resolveAssociationScope(auth.user)
+  const scope = await resolveVerifiedAssociationScope(auth.user)
   if (scope !== null && !scope.includes(exception.association_id)) {
     return NextResponse.json({ error: 'Forbidden — not scoped to this association' }, { status: 403 })
   }

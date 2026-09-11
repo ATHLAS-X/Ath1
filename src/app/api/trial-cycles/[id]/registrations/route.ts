@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/require-auth'
-import { resolveAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedAssociationScope } from '@/lib/association/verification-gate'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const cycle = await db.trialCycle.findUnique({ where: { id: cycleId }, select: { association_id: true } })
   if (!cycle) return NextResponse.json({ error: 'Trial cycle not found' }, { status: 404 })
 
-  const scope = await resolveAssociationScope(auth.user)
+  const scope = await resolveVerifiedAssociationScope(auth.user)
   if (scope !== null && !scope.includes(cycle.association_id)) {
     return NextResponse.json({ error: 'Forbidden — not scoped to this association' }, { status: 403 })
   }

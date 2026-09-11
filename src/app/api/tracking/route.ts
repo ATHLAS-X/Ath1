@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/require-auth'
-import { resolveAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedAssociationScope } from '@/lib/association/verification-gate'
 import { visibilityWhere } from '@/lib/player-visibility'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   // Scoped the same way every other cross-association player read now is:
   // own association, plus any player who opted into cross_association (or
   // franchise_scout, while that tier is enabled).
-  const scope = await resolveAssociationScope(auth.user)
+  const scope = await resolveVerifiedAssociationScope(auth.user)
 
   const alerts = await db.trendAlert.findMany({
     orderBy: { triggered_at: 'desc' },

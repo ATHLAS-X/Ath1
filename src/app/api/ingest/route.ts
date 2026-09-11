@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, requireRole } from '@/lib/require-auth'
-import { resolveAssociationScope, resolveRequestedAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedAssociationScope, resolveVerifiedRequestedAssociationScope } from '@/lib/association/verification-gate'
 import { resolveIngestSource } from '@/lib/ingest/registry'
 import type { IngestSourceKey } from '@/lib/ingest/types'
 
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   // closed for jobs created going forward (the 4 seed rows predate the
   // column and have association_id: null, so they show for everyone —
   // acceptable for fixture data, not a live leak).
-  const scope = await resolveAssociationScope(auth.user)
+  const scope = await resolveVerifiedAssociationScope(auth.user)
   const jobs = await db.ingestJob.findMany({
     where: scope === null ? undefined : { OR: [{ association_id: { in: scope } }, { association_id: null }] },
     orderBy: { created_at: 'desc' },
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'associationId, sourceKey, and payload are required' }, { status: 400 })
   }
 
-  const scope = await resolveRequestedAssociationScope(auth.user, associationId)
+  const scope = await resolveVerifiedRequestedAssociationScope(auth.user, associationId)
   if (scope !== null && !scope.includes(associationId)) {
     return NextResponse.json({ error: 'Forbidden — not scoped to this association' }, { status: 403 })
   }

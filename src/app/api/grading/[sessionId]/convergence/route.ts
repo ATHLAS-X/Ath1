@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireRole } from '@/lib/require-auth'
-import { resolveAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedAssociationScope } from '@/lib/association/verification-gate'
 
 // Aggregates every selector's grade per player into a ConvergenceView
 // (src/types/index.ts). Refuses to return anything until the chair has
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest, { params }: { params: { sessionId: s
   // the caller has actually submitted a grade in this session (proving
   // they were a real participant on this panel, not just any authenticated
   // user guessing a sessionId).
-  const scope = await resolveAssociationScope(auth.user)
+  const scope = await resolveVerifiedAssociationScope(auth.user)
   const isScopedStaff = scope === null || scope.includes(session.association_id)
   if (!isScopedStaff) {
     const isChair = session.chair_id === auth.user.id

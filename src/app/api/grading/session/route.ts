@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireRole } from '@/lib/require-auth'
-import { resolveAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedAssociationScope } from '@/lib/association/verification-gate'
 import { verifiedPerformancesByPlayer } from '@/lib/verified-performances'
 
 export const dynamic = 'force-dynamic'
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
   const auth = await requireRole(req, ['selection_panel', 'association', 'athlasx_ops'])
   if (auth instanceof NextResponse) return auth
 
-  const staffScope = await resolveAssociationScope(auth.user)
+  const staffScope = await resolveVerifiedAssociationScope(auth.user)
   const unrestricted = staffScope === null
   const selectorProfile = unrestricted
     ? null

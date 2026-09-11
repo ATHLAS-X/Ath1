@@ -3,7 +3,7 @@ import { db } from '@/lib/db'
 import { calculateAthlasXScore, getProvenanceLabel } from '@/lib/athlasx-score'
 import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { requireAuth } from '@/lib/require-auth'
-import { resolveAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedAssociationScope } from '@/lib/association/verification-gate'
 import { verifiedPerformancesByPlayer } from '@/lib/verified-performances'
 
 export const dynamic = 'force-dynamic'
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   // here — visibility_tier's cross-association opt-in has no separate
   // action to take on top of this, since every player in the result is
   // already that one association's own roster by construction.
-  const scope = await resolveAssociationScope(auth.user)
+  const scope = await resolveVerifiedAssociationScope(auth.user)
   if (scope !== null && scope.length === 0) return NextResponse.json({ candidates: [], totalSelectors: 0 })
 
   // A player who withdrew consent must never be surfaced here again —

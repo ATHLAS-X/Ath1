@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth, getSessionUser } from '@/lib/require-auth'
-import { resolveRequestedAssociationScope } from '@/lib/association-scope'
+import { resolveVerifiedRequestedAssociationScope } from '@/lib/association/verification-gate'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   // associationId is client-supplied — never trust it directly. It's only
   // honoured if the caller's own AssociationStaff membership actually
   // covers it (or the caller is athlasx_ops).
-  const scope = await resolveRequestedAssociationScope(auth.user, associationId)
+  const scope = await resolveVerifiedRequestedAssociationScope(auth.user, associationId)
   if (scope !== null && !scope.includes(associationId)) {
     return NextResponse.json({ error: 'Forbidden — not scoped to this association' }, { status: 403 })
   }
