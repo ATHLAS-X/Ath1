@@ -1,29 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { AssociationType } from '@prisma/client'
 import { db } from '@/lib/db'
+import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { hashPassword, validatePasswordStrength } from '@/lib/password'
-import { requireRole } from '@/lib/require-auth'
+import { rateLimit } from '@/lib/rate-limit'
+import { ASSOCIATION_SELF_SERVE_ENABLED } from '@/lib/feature-flags'
 
 const ASSOCIATION_TYPES = new Set<AssociationType>(['state', 'district'])
 
-// Was public self-serve association onboarding — removed 2026-09-06
-// (docs/AthlasX_Pivot_Compliance_Audit_and_Role_Prompts.md's Prompt A-1,
-// decision: path (a)). It let anyone self-attest a "data-sharing consent"
-// checkbox and immediately receive a real AssociationStaff row with the
-// same privileges every association-scope.ts chokepoint trusts — inverting
-// the pivot doc's W1 workflow, where AthlasX Ops verifies a signed
-// data-sharing agreement first.
-//
-// Now an AthlasX-Ops-only internal tool (src/app/(dashboard)/ops/associations/new)
-// hits this same endpoint after that verification happens offline — gated
-// on requireRole(["athlasx_ops"]) rather than public. The new staff member
-// is NOT signed in as themselves here (unlike the old self-serve flow,
-// where the creator and the new staff account were the same person) — Ops
-// creates the account, the association's own nominated staff member signs
-// in separately with credentials Ops hands them.
+// The public self-serve counterpart to POST /api/associations/onboard
+// (which stays athlasx_ops-only — do not weaken that route or merge these
+// two). This one does NOT get to skip verification the way the Ops route
+// does: it creates the Association with verification_status: 'pending'
+// explicitly (never relying on the schema default for this path, so the
+// intent reads directly in this file rather than living only in
+// schema.prisma), and — unlike the Ops route — signs the creator in
+// immediately, since here the person submitting the form IS the
+// association's own nominated staff member. Real association-scoped
+// access is withheld until AthlasX Ops approves: see
+// src/lib/association/verification-gate.ts, which every association-
+// scoped route in this codebase now resolves scope through instead of
+// trusting AssociationStaff membership alone.
 export async function POST(req: NextRequest) {
-  const auth = await requireRole(req, ['athlasx_ops'])
-  if (auth instanceof NextResponse) return auth
+  if (!ASSOCIATION_SELF_SERVE_ENABLED) {
+    return NextResponse.json({ error: 'Association sign-up is not available yet' }, { status: 403 })
+  }
 
   let body: Record<string, unknown>
   try {
@@ -38,32 +39,26 @@ export async function POST(req: NextRequest) {
     : undefined
   const state = String(body.state ?? '').trim()
   const parentAssociationId = body.parentAssociationId ? String(body.parentAssociationId) : undefined
-
-  // No `name` field exists on the User model anywhere in this schema
-  // (checked directly) — email is the only identifying field a staff
-  // account carries today, so a display name is deliberately not
-  // collected here rather than accepted and silently discarded.
   const email = String(body.email ?? '').trim().toLowerCase()
   const password = String(body.password ?? '')
-
-  // Renamed in spirit, not in wire shape: this now attests that the calling
-  // Ops user has verified a real, offline-signed data-sharing agreement —
-  // not that the association self-attested one. Still required explicitly,
-  // still not defaulted to true.
   const dataSharingSigned = body.dataSharingSigned === true
 
   if (!name || !type || !state || !email || !password) {
     return NextResponse.json({ error: 'Association identity and staff account details are required' }, { status: 400 })
   }
 
+  const signupLimit = rateLimit('association-self-serve-signup', email, 5, 3600)
+  if (!signupLimit.success) {
+    return NextResponse.json({ error: 'Too many signup attempts. Please try again later.' }, { status: 429 })
+  }
+
   const passwordError = validatePasswordStrength(password)
   if (passwordError) {
     return NextResponse.json({ error: passwordError }, { status: 400 })
   }
-  // Type 'district' may optionally nest under a parent state association —
-  // never required, since not every district association has one on file
-  // yet (per docs/AthlasX_System_Design_and_Functionality_Reference.md,
-  // UP alone has ~40 district associations, many pre-dating this platform).
+
+  // Same optional-parent rule as the Ops route — never required, not
+  // every district association has a parent on file yet.
   if (type === 'district' && parentAssociationId) {
     const parent = await db.association.findUnique({ where: { id: parentAssociationId }, select: { id: true, type: true } })
     if (!parent || parent.type !== 'state') {
@@ -71,10 +66,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // This is the literal field the pivot document's own validation backlog
-  // names as blocking everything ("Will an association actually share? ...
-  // blocks: everything") — it must be an explicit, informed agreement, not
-  // a decorative checkbox defaulted to true.
   if (!dataSharingSigned) {
     return NextResponse.json({ error: 'Data-sharing consent must be explicitly accepted to complete onboarding' }, { status: 400 })
   }
@@ -90,6 +81,9 @@ export async function POST(req: NextRequest) {
           state,
           parent_id: type === 'district' ? parentAssociationId : undefined,
           data_sharing_signed: true,
+          // Explicit, not the schema default — this is the one field this
+          // whole feature exists to get right.
+          verification_status: 'pending',
         },
       })
 
@@ -112,11 +106,9 @@ export async function POST(req: NextRequest) {
       return { user: createdUser, association: createdAssociation }
     })
 
-    // Does NOT sign in as the new staff account (unlike the old self-serve
-    // flow) — the calling user is an Ops staffer, not the association's own
-    // nominated staff member. Ops hands the new staff member their
-    // credentials out of band; they sign in themselves at /auth.
-    return NextResponse.json({ associationId: association.id, staffUserId: user.id })
+    const res = NextResponse.json({ associationId: association.id })
+    const token = await encodeSessionToken({ id: user.id, email: user.email, role: user.role })
+    return applySessionCookie(res, token)
   } catch (err) {
     if (isUniqueViolation(err)) {
       return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 })
