@@ -1,5 +1,5 @@
 import type { UserRole } from '@/types'
-import { ACADEMY_SELF_SERVE_ENABLED } from '@/lib/feature-flags'
+import { ACADEMY_SELF_SERVE_ENABLED, FRANCHISE_SCOUT_ENABLED } from '@/lib/feature-flags'
 
 export type ChromeNavItem = {
   label: string
@@ -57,6 +57,7 @@ export const NAV_SECTIONS: ChromeNavSection[] = [
     roles: ['athlasx_ops'],
     items: [
       { label: 'Create Association', href: '/ops/associations/new' },
+      { label: 'Pending Associations', href: '/ops/associations/pending' },
     ],
   },
   {
@@ -71,10 +72,25 @@ export const NAV_SECTIONS: ChromeNavSection[] = [
     ],
   },
   {
-    label: 'Account',
-    roles: ['player', 'selection_panel', 'coach', 'association', 'athlasx_ops', 'academy_admin'],
+    label: 'Scout',
+    roles: ['scout', 'athlasx_ops'],
     items: [
-      { label: 'Notifications', href: '/notifications', badge: '3' },
+      { label: 'Candidate Pool', href: '/scout' },
+    ],
+  },
+  {
+    label: 'Account',
+    roles: ['player', 'selection_panel', 'coach', 'association', 'athlasx_ops', 'academy_admin', 'scout'],
+    items: [
+      // No `badge` — was a hardcoded '3' shown to every role regardless of
+      // real state. There's no Notification model anywhere in the schema
+      // to compute a real unread count from (confirmed via grep), so
+      // showing nothing is the honest state until one exists, not a
+      // fabricated number. /notifications itself already handles "nothing
+      // to show" correctly (see that page's own empty-state copy) — this
+      // just stops the sidebar from promising something the page doesn't
+      // back up.
+      { label: 'Notifications', href: '/notifications' },
       { label: 'Settings', href: '/settings' },
     ],
   },
@@ -85,6 +101,9 @@ export function navSectionsForRole(role: string): ChromeNavSection[] {
     // The Academy nav section is part of the self-serve academy-admin
     // surface flagged off by default — see feature-flags.ts.
     .filter((section) => section.label !== 'Academy' || ACADEMY_SELF_SERVE_ENABLED)
+    // Scout dashboard is data-safety-gated the same way — see
+    // FRANCHISE_SCOUT_ENABLED's own comment and scout/layout.tsx.
+    .filter((section) => section.label !== 'Scout' || FRANCHISE_SCOUT_ENABLED)
 }
 
 export function navHrefsForRole(role: string): string[] {
@@ -112,6 +131,7 @@ const ROLE_HOME: Record<string, string> = {
   athlasx_ops: '/dashboard',
   selection_panel: '/selection',
   academy_admin: '/academy',
+  scout: '/scout',
 }
 
 export function rootDestination(session: { user?: { id?: string; role?: string } } | null): string {
@@ -126,6 +146,7 @@ const ROLE_LABELS: Record<string, string> = {
   association: 'Association',
   athlasx_ops: 'AthlasX Ops',
   academy_admin: 'Academy Admin',
+  scout: 'Scout',
 }
 
 export function chromeIdentity(user?: { email?: string | null; role?: string } | null): {

@@ -49,6 +49,7 @@ enum UserRole {
   association
   athlasx_ops
   academy_admin
+  scout
 
   @@schema("athlasx")
 }
@@ -291,6 +292,7 @@ model User {
   squad_coach_memberships      SquadCoach[]
   advisory_notes_given         CoachAdvisoryNote[]
   academy                      Academy?
+  scout_profile                 ScoutProfile?
 
   @@map("users")
   @@schema("athlasx")
@@ -307,6 +309,11 @@ model Association {
   state                     String
   cricheroes_association_id String?
   data_sharing_signed       Boolean         @default(false)
+  // Self-serve submissions (fresh wizard, 2026-09) land here as 'pending'
+  // until AthlasX Ops approves — closing the exact gap Prompt A-1 removed
+  // self-serve for. Ops-created associations (src/app/api/associations/onboard)
+  // default to 'approved' since that path already IS the verification step.
+  verification_status       AssociationVerificationStatus @default(approved)
   created_at                DateTime        @default(now()) @db.Timestamptz(6)
 
   players             PlayerProfile[]
@@ -342,6 +349,53 @@ model AssociationStaff {
 
   @@unique([association_id, user_id])
   @@map("association_staff")
+  @@schema("athlasx")
+}
+
+enum AssociationVerificationStatus {
+  pending
+  approved
+  rejected
+
+  @@schema("athlasx")
+}
+
+// Scout — self-serve role (2026-09). Visibility into player data is NOT
+// governed by this model or by ScoutVerificationStatus: it's governed
+// entirely by src/lib/player-visibility.ts's existing FRANCHISE_SCOUT_ENABLED
+// + isAdult(player.dob) enforcement, which already hard-excludes every
+// minor regardless of this role or flag. verification_status here is about
+// scout-organization legitimacy (is this a real franchise/academy?), a
+// separate concern from player-data safety, which was already closed
+// before this model existed.
+model ScoutProfile {
+  id                  String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String                  @unique @db.Uuid
+  user                User                    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  org_name            String
+  org_type            ScoutOrgType
+  contact_name        String?
+  contact_phone       String?
+  verification_status ScoutVerificationStatus @default(pending)
+  created_at          DateTime                @default(now()) @db.Timestamptz(6)
+
+  @@map("scout_profiles")
+  @@schema("athlasx")
+}
+
+enum ScoutOrgType {
+  franchise
+  academy_recruiting_arm
+  independent
+
+  @@schema("athlasx")
+}
+
+enum ScoutVerificationStatus {
+  pending
+  approved
+  rejected
+
   @@schema("athlasx")
 }
 

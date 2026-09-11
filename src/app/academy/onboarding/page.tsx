@@ -733,8 +733,8 @@ export default function AcademyOnboardingPage() {
             <h2 className="font-[family-name:var(--font-anton)] uppercase font-normal text-[clamp(30px,4vw,44px)] leading-[0.92] text-[color:var(--text)]">
               {academyName || 'Your academy'} is <b className="text-[color:var(--accent)] font-normal">live.</b>
             </h2>
-            <p className="text-[0.95rem] text-[color:var(--text-dim)] leading-relaxed max-w-[28rem] mx-auto">Your academy profile is submitted and pending verification. Invite links are active — start adding players now.</p>
-            <button onClick={() => router.push('/dashboard')}
+            <p className="text-[0.95rem] text-[color:var(--text-dim)] leading-relaxed max-w-[28rem] mx-auto">Your academy profile is ready to use. Invite links are active — start adding players now.</p>
+            <button onClick={() => router.push('/')}
               className="mt-2 px-6 py-3 rounded-[9px] text-sm font-[family-name:var(--font-barlow-semi)] uppercase tracking-wide font-bold bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_8px_22px_-8px_rgba(255,138,30,0.7)] hover:bg-[color:var(--accent-bright)] transition-colors">
               Go to Dashboard
             </button>

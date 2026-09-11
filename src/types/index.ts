@@ -6,6 +6,7 @@ export type UserRole =
   | 'association'
   | 'athlasx_ops'
   | 'academy_admin'
+  | 'scout'
 
 // ─── Cricket enums ────────────────────────────────────────────────────────────
 export type BattingStyle = 'Right-handed' | 'Left-handed'

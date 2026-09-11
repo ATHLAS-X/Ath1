@@ -22,10 +22,18 @@ import { FRANCHISE_SCOUT_ENABLED } from '@/lib/feature-flags'
 
 const ADULT_AGE_YEARS = 18
 
-export function isAdult(dob: Date): boolean {
+/** The DOB cutoff itself — anyone born on/before this date is an adult.
+ *  Exported so query-side filters (`dob: { lte: adultDobCutoff() } `) use
+ *  the exact same cutoff as isAdult() below, rather than a second
+ *  hand-rolled `setFullYear` computation drifting out of sync with it. */
+export function adultDobCutoff(): Date {
   const cutoff = new Date()
   cutoff.setFullYear(cutoff.getFullYear() - ADULT_AGE_YEARS)
-  return dob <= cutoff
+  return cutoff
+}
+
+export function isAdult(dob: Date): boolean {
+  return dob <= adultDobCutoff()
 }
 
 /**
@@ -47,11 +55,27 @@ export function visibilityWhere(viewerScope: string[] | null): Prisma.PlayerProf
     { visibility_tier: 'cross_association' },
   ]
   if (FRANCHISE_SCOUT_ENABLED) {
-    const cutoff = new Date()
-    cutoff.setFullYear(cutoff.getFullYear() - ADULT_AGE_YEARS)
-    clauses.push({ visibility_tier: 'franchise_scout', dob: { lte: cutoff } })
+    clauses.push(franchiseScoutWhere())
   }
   return { OR: clauses }
+}
+
+/**
+ * The franchise_scout slice on its own — adult-only, and an
+ * always-false clause when FRANCHISE_SCOUT_ENABLED is off (rather than
+ * throwing or returning `undefined`, so a caller that forgets to check
+ * the flag first still gets zero rows, not an unfiltered query). This is
+ * the exact fragment visibilityWhere() itself ORs in above — the scout
+ * dashboard's own candidate query should use this directly rather than
+ * re-deriving "adult + franchise_scout" a third time.
+ */
+export function franchiseScoutWhere(): Prisma.PlayerProfileWhereInput {
+  // dob < epoch is unreachable for any real player row — an always-false
+  // clause that doesn't need a type-mismatched literal (id is @db.Uuid;
+  // comparing it to an arbitrary non-UUID string would error at the DB
+  // level rather than just matching nothing).
+  if (!FRANCHISE_SCOUT_ENABLED) return { dob: { lt: new Date(0) } }
+  return { visibility_tier: 'franchise_scout', dob: { lte: adultDobCutoff() } }
 }
 
 /** Single-record check, for routes that fetch one player by ID directly

@@ -477,7 +477,7 @@ export default function OnboardingPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to save profile')
       clearProgress()
       toast.success('Profile created. Your match record will populate as data is ingested.')
-      router.push('/record')
+      router.push('/')
     } catch (err) {
       console.error(err)
       const message = err instanceof Error ? err.message : 'Failed to save profile. Please try again.'

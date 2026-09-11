@@ -537,7 +537,7 @@ export default function CoachOnboardingPage() {
                 </button>
               )}
               <button
-                onClick={() => done ? router.push('/coach') : handleNext()}
+                onClick={() => done ? router.push('/') : handleNext()}
                 disabled={!done && (!canProceed() || loading || transitioning)}
                 className={cn('flex items-center gap-2 px-6 py-[0.78rem] rounded-[9px] font-[family-name:var(--font-barlow-semi)] uppercase tracking-wide font-bold text-[0.92rem] transition-all',
                   done || (canProceed() && !loading && !transitioning)
