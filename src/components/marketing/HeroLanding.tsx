@@ -29,25 +29,6 @@ const PANELS = [
   { area: 'p7', src: '/images/hero/tennis-sunburst.jpg', alt: 'Stylised tennis player against a radiating sunburst of warm colour', objectPosition: '50% 30%' },
 ]
 
-const FEATURES = [
-  {
-    title: 'Association Ingest',
-    body: 'Historical tournament and scorecard data flows in from state and district associations, normalized and confidence-scored before anything downstream trusts it.',
-  },
-  {
-    title: 'Identity Resolution',
-    body: 'Every performance resolves to a canonical player identity — no duplicate profiles, no lost history across seasons and formats.',
-  },
-  {
-    title: 'Blind Selection',
-    body: 'Selectors grade independently; no one sees a peer’s score until the chair unlocks convergence. The single most valuable design choice in the pathway.',
-  },
-  {
-    title: 'In-Season Tracking',
-    body: 'Form drops, workload spikes, and participation gaps surface automatically from verified match data — never self-reported.',
-  },
-]
-
 export default function HeroLanding() {
   return (
     <div className={`${anton.variable} ${barlow.variable} ${barlowSemi.variable}`}>
@@ -124,20 +105,6 @@ export default function HeroLanding() {
         </div>
       </div>
 
-      {/* ── Feature grid — unchanged content, restyled to match the dark/orange palette ── */}
-      <div className="bg-[color:var(--bg)] px-6 sm:px-10 py-16" style={HERO_VARS}>
-        <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="p-5 text-left rounded-2xl border border-white/[0.08] bg-white/[0.03]">
-              <h3 className="font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-wide mb-2 text-[color:var(--accent-bright)]">{f.title}</h3>
-              <p className="font-[family-name:var(--font-barlow)] text-xs text-white/60 leading-relaxed">{f.body}</p>
-            </div>
-          ))}
-        </div>
-        <p className="font-[family-name:var(--font-barlow)] mt-12 text-center text-xs text-white/40">
-          AthlasX &mdash; Cricket talent intelligence for the association pathway.
-        </p>
-      </div>
     </div>
   )
 }
