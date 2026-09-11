@@ -136,7 +136,7 @@ const ROLE_HOME: Record<string, string> = {
 }
 
 export function rootDestination(session: { user?: { id?: string; role?: string } } | null): string {
-  if (!session?.user?.id) return '/api/auth/signin?callbackUrl=/dashboard'
+  if (!session?.user?.id) return '/auth'
   return ROLE_HOME[session.user.role ?? ''] ?? '/dashboard'
 }
 

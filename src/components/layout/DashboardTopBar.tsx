@@ -72,7 +72,7 @@ export default function DashboardTopBar() {
             </Link>
             <button
               type="button"
-              onClick={() => signOut({ callbackUrl: '/api/auth/signin' })}
+              onClick={() => signOut({ callbackUrl: '/auth' })}
               className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-ax-textDim hover:text-ax-bad hover:bg-white/[0.04] transition-colors text-left"
             >
               <LogOut className="w-4 h-4" /> Log out

@@ -84,6 +84,12 @@ export function applySessionCookie(res: NextResponse, token: string): NextRespon
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET,
+  // Without this, NextAuth falls back to its own unstyled built-in page at
+  // /api/auth/signin for any internal redirect (expired session, a bare
+  // signIn() call, etc.) — this app has its own real sign-in/sign-up UI at
+  // /auth (src/app/auth/page.tsx) and that default page should never be
+  // reachable.
+  pages: { signIn: "/auth" },
   providers: [
     CredentialsProvider({
       name: "Credentials",

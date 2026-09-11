@@ -4,8 +4,9 @@
  * The existing shell used to show every nav section and a hardcoded
  * "Hritvik Garg / AthlasX Ops" identity. Ticket 07 makes that policy
  * honest: nav is filtered by the session role, the profile chrome shows
- * the session email and role, and an anonymous visit to / is sent to
- * NextAuth's built-in sign-in.
+ * the session email and role, and an anonymous visit to / is sent to the
+ * app's own /auth page (NextAuth's built-in sign-in page is deliberately
+ * unreachable — see src/lib/auth.ts's pages.signIn).
  */
 import { describe, it, expect } from 'vitest'
 import { chromeIdentity, navHrefsForRole, rootDestination } from '@/lib/chrome'
@@ -53,8 +54,8 @@ describe('navHrefsForRole', () => {
 })
 
 describe('rootDestination', () => {
-  it('sends an anonymous visit to NextAuth built-in sign-in', () => {
-    expect(rootDestination(null)).toBe('/api/auth/signin?callbackUrl=/dashboard')
+  it('sends an anonymous visit to the app\'s own /auth page', () => {
+    expect(rootDestination(null)).toBe('/auth')
   })
 
   it('sends a signed-in visit with no role to the dashboard (fallback)', () => {
