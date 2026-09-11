@@ -1,94 +1,84 @@
-﻿# Athlasx
-India's cricket talent discovery platform.
+# AthlasX
 
-India's Cricket Talent Discovery Platform — Next.js 14 (App Router) + TypeScript + Tailwind, NeonDB Postgres, NextAuth (Credentials + JWT).
+India's cricket talent discovery platform — connecting players, coaches, academies, associations, and scouts around verified performance data.
+
+**Stack:** Next.js 14.2.35 (App Router) · TypeScript · Tailwind (`ax-*` design tokens) · Prisma 6 / Postgres (Supabase) · NextAuth (Credentials provider, JWT sessions) · Framer Motion · Sentry (`@sentry/nextjs`).
+
+For a complete, page-by-page and route-by-route reference — every button and form field, the full API surface, security mechanisms, and the database schema — see **[docs/AthlasX_Complete_Platform_Reference.md](docs/AthlasX_Complete_Platform_Reference.md)**. This README only covers getting the app running locally.
+
+## Roles
+
+`player` · `coach` · `association` · `academy_admin` · `scout` · `selection_panel` · `athlasx_ops`. Each role has its own onboarding flow and dashboard (see `src/lib/chrome.ts` for the nav/role map). Academy and Scout self-serve signup are gated behind feature flags in `src/lib/feature-flags.ts`.
 
 ## Environment Variables
 
-All required, set in `.env.local` for development and as Vercel Project Environment Variables for production:
+Copy `.env.local.example` to `.env.local` and fill in:
 
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | NeonDB Postgres connection string (`postgresql://user:pass@host/db?sslmode=require`) |
-| `NEXTAUTH_SECRET` | 32+ byte random secret. Generate with `openssl rand -base64 32` |
-| `NEXTAUTH_URL` | Public site URL. `http://localhost:3000` locally, `https://<your-app>.vercel.app` in prod |
-| `UPSTASH_REDIS_REST_URL` | Optional. Upstash Redis REST URL for shared rate limiting across instances. Falls back to an in-memory limiter (single-process, dev-only) if unset. |
-| `UPSTASH_REDIS_REST_TOKEN` | Optional. Upstash Redis REST token, paired with `UPSTASH_REDIS_REST_URL`. |
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | yes | Pooled Supabase Postgres connection string (Supavisor, `:6543`) — used for all runtime queries |
+| `DATABASE_DIRECT_URL` | yes | Direct, non-pooled Postgres connection (`:5432`) — used for `prisma generate`/introspection and for applying `prisma/manual_migrations/*.sql` |
+| `NEXTAUTH_SECRET` | yes | 32+ byte random secret. Generate with `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | yes | `http://localhost:3000` locally, your deployed URL in production |
+| `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN` | no | Sentry error reporting. The SDK no-ops safely with these unset — `error.tsx` still shows its fallback screen, it just doesn't report anywhere |
+| `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | no | Enables source-map upload at build time. Without them the build still succeeds; Sentry's webpack plugin just skips that step |
 
 ## Local Setup
 
-Project location: `C:\Users\saura\AthlasX`
-
-```powershell
-cd C:\Users\saura\AthlasX
-# Ensure .env.local has DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL set
-npm install
-npm run db:init   # applies lib/schema.sql to Neon
-npm run dev       # serves at http://localhost:3000
+```bash
+npm install          # postinstall runs `prisma generate` automatically
+# fill in .env.local (see above)
+npm run dev           # serves at http://localhost:3000
 ```
 
-## Deploy to Vercel + NeonDB
+`npm install`'s `postinstall` hook generates the Prisma client from `prisma/schema.prisma`. If the schema changes, re-run `npx prisma generate` manually.
 
-1. **Create Neon project** at https://neon.tech → copy the pooled Postgres connection string.
-2. **Run schema once locally** against the Neon DB: `npm run db:init` (or paste `lib/schema.sql` into the Neon SQL editor).
-3. **Push the repo** to GitHub.
-4. **Import the repo in Vercel** (Framework preset auto-detects Next.js).
-5. In **Vercel → Settings → Environment Variables**, add:
-   - `DATABASE_URL` = your Neon pooled connection string
-   - `NEXTAUTH_SECRET` = `openssl rand -base64 32`
-   - `NEXTAUTH_URL` = `https://<your-app>.vercel.app`
-6. **Deploy.** First build will create the production site.
-7. After domain is live, update `NEXTAUTH_URL` to the final domain if you attach a custom domain.
+## Database
 
-The Neon serverless driver (`@neondatabase/serverless`) works with Vercel Edge and Node runtimes out of the box — no additional config required.
+Schema lives in `prisma/schema.prisma`, all models pinned to a dedicated `"athlasx"` Postgres schema. This project does **not** use `prisma migrate` — there's no `prisma/migrations/` directory. Schema is applied directly (`prisma db push`), and any change that needs a reviewable SQL diff goes into `prisma/manual_migrations/*.sql`, applied by hand:
 
-## Academy Onboarding Setup
-
-The academy admin surface (sign-up → onboarding wizard → dashboard → players / coaches / fitness) is data-backed end to end. Follow these steps to bring it online from scratch.
-
-### 1. Database setup
-
-AthlasX uses NeonDB Postgres. If you'd rather mirror the original Supabase-shaped prompts, the env keys are reserved in `.env.local.example` — wire up your own client and the surface code works as-is.
-
-- Create a Neon project at https://neon.tech and copy the pooled connection string into `DATABASE_URL` (or your equivalent Supabase URL + service-role key).
-- The default schema lives at `lib/schema.sql`.
-
-### 2. Run the academy migrations
-
-```powershell
-npx tsx scripts/migrations/players-page.ts         # invite tokens + perf summary + fitness assessments
-npx tsx scripts/migrations/coaches-fitness-pages.ts # soft-delete on academy_coaches
+```bash
+npx prisma db execute --file prisma/manual_migrations/<file>.sql --url "$DATABASE_DIRECT_URL"
 ```
 
-### Auth/security hardening (rate limiting + Aadhaar OTP)
+Always use `DATABASE_DIRECT_URL` for schema/DDL operations, never the pooled `DATABASE_URL` — see `docs/AthlasX_Complete_Platform_Reference.md` §6 for why.
 
-- `prisma/0003_aadhaar_otps.sql` adds the `aadhaar_otps` table (hashed OTPs for the Aadhaar verify step, mirroring `phone_otps`). Run it once against your DB, or re-run `npm run db:init` (it's folded into `lib/schema.sql` too — both are idempotent).
-- Login, signup, phone-OTP-send, and Aadhaar-OTP-initiate are now rate-limited. Without `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` set, limits are enforced in-memory per process — fine for local dev, but not shared across multiple server instances or serverless cold starts. Set the Upstash env vars in production for a shared limiter.
+To seed a minimal realistic dataset (one association, a few shadow player profiles, a grading session, weekly tracking data):
 
-Each script is idempotent — re-run safely after pulling new code.
-
-### 3. Enable phone OTP (Aadhaar verification)
-
-If you swap in Supabase Auth, enable **Auth → Providers → Phone (SMS)** in the Supabase dashboard before testing the player Aadhaar OTP step. On the Neon/NextAuth path the OTP flow is simulated for V1; production should wire a real SMS provider into `/api/onboarding/aadhaar/initiate`.
-
-### 4. Storage bucket for `academy-assets`
-
-Academy logos upload to a path controlled by `lib/onboarding-server.ts → saveUpload()`. Two options:
-
-- **Local development**: files are written to `public/uploads/<userId>/academy-assets/` so Next can serve them from `/uploads/...` automatically. Nothing extra to configure.
-- **Production (Supabase Storage)**: create a public bucket named `academy-assets` in the Supabase dashboard, enable public read, then replace the body of `saveUpload()` with a Supabase Storage upload that returns the public URL. The rest of the academy code (logo upload, preview, persistence into `academies.logo_url`) remains unchanged.
-
-### 5. Run the app
-
-```powershell
-npm install
-npm run dev
+```bash
+npx tsx prisma/seed.ts
 ```
 
-Visit http://localhost:3000 and follow:
+## Running Tests
 
-1. Land on the home page → click **Academy** in the role picker.
-2. Sign up → log in → land on the onboarding wizard at `/academy/onboarding`.
-3. Logo (optional) → first coach → first players (CSV or single) → review → **Go to Dashboard**.
-4. The dashboard (`/academy/dashboard`) and nav stubs (Players, Coaches, Fitness, Settings) take over from there.
+Tests run against an isolated `athlasx_test` Postgres schema derived from the real one — it never touches live data.
 
+```bash
+npm run test:setup-db     # provisions the athlasx_test schema
+npm run test:ci           # unit + integration + security + known-defects suites
+npm run test:teardown-db  # drops the athlasx_test schema
+```
+
+Granular scripts: `test:unit`, `test:integration`, `test:security`, `test:coverage`, `test:e2e` (Playwright). `tests/known-defects/` is a deliberate exception — those tests are *expected* to fail until the documented defect they track is actually fixed; don't "fix" them by loosening the assertion.
+
+## Other Scripts
+
+| Command | Does |
+|---|---|
+| `npm run build` | Production build |
+| `npm run start` | Serve a production build |
+| `npm run lint` | `next lint` |
+| `npm run audit:js` | `npm audit` |
+
+## Project Structure
+
+```
+src/app/              Next.js App Router — pages under (dashboard)/ are role-gated, api/ is the backend
+src/lib/               Auth, rate-limiting, verification gates, feature flags, scoring, OTP stubs
+src/components/        Shared UI (ax.* design-token components) and role-specific components
+prisma/schema.prisma   Full data model
+prisma/manual_migrations/  Hand-applied SQL diffs (see Database above)
+prisma/seed.ts         Minimal dev/demo dataset
+tests/                 unit/ integration/ security/ known-defects/
+docs/                  Reference docs, including the full platform reference linked above
+```
