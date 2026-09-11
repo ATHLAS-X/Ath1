@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Loader2, Users, MapPin, Award, ShieldOff, ShieldAlert } from 'lucide-react'
+import { Loader2, Users, MapPin, Award, ShieldOff } from 'lucide-react'
 import { RingGauge } from '@/components/ui/ring-gauge'
 
 // Scout's real home page (src/lib/chrome.ts's ROLE_HOME['scout']).
@@ -23,6 +23,14 @@ import { RingGauge } from '@/components/ui/ring-gauge'
 // history table backs a trend for any one candidate — confirmed with the
 // user this pass, kept dropped by their choice rather than adding a new
 // schema table for it.
+//
+// The "pending verification" banner that used to live here is gone: a
+// real gate now exists (src/lib/scout/verification-gate.ts +
+// scout/layout.tsx's server-side redirect to /scout/pending), so a scout
+// whose ScoutProfile isn't approved yet never reaches this page at all —
+// the banner would be unreachable dead code for the only audience it was
+// ever meant for, same conclusion the association dashboard's own
+// equivalent investigation reached.
 const ABOVE_THRESHOLD = 65
 
 interface ScoutCandidate {
@@ -113,21 +121,6 @@ export default function ScoutPage() {
         <p className="font-barlow-semi text-[11px] font-bold uppercase tracking-[0.18em] text-ax-accentBright">Scout dashboard</p>
         <h1 className="font-anton uppercase text-2xl sm:text-[30px] text-ax-text mt-1">Talent Pool</h1>
       </motion.div>
-
-      {/* ScoutProfile.verification_status starts 'pending' on every scout
-          account (src/app/api/scout/onboard/route.ts) and nothing in this
-          codebase reads it to gate anything yet — no Ops approval surface
-          exists for scouts the way ops/associations/pending/page.tsx exists
-          for associations, so a scout account has no path to any other
-          state today. This banner is the "no indication anywhere" gap
-          flagged in docs/AthlasX_Onboarding_to_Dashboard_Routing_Master_Prompt.md
-          — informational only, does not block or filter candidate data. */}
-      <div className="flex items-start gap-3 p-4 rounded-ax-xl border border-[rgba(255,138,30,0.2)] bg-[rgba(255,138,30,0.08)]">
-        <ShieldAlert className="w-4 h-4 text-ax-accentBright mt-0.5 shrink-0" />
-        <p className="text-xs text-ax-accentBright">
-          Your scout account is pending AthlasX Ops verification. You&apos;ll see full functionality once approved.
-        </p>
-      </div>
 
       {error && (
         <div className="flex items-center gap-2 p-4 rounded-ax-lg border border-ax-bad/30 bg-ax-bad/[0.08] text-ax-bad text-sm">

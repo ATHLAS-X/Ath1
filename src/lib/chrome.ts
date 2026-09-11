@@ -58,6 +58,7 @@ export const NAV_SECTIONS: ChromeNavSection[] = [
     items: [
       { label: 'Create Association', href: '/ops/associations/new' },
       { label: 'Pending Associations', href: '/ops/associations/pending' },
+      { label: 'Pending Scouts', href: '/ops/scouts/pending' },
     ],
   },
   {

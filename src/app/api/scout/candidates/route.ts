@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { requireRole } from '@/lib/require-auth'
 import { FRANCHISE_SCOUT_ENABLED } from '@/lib/feature-flags'
 import { franchiseScoutWhere } from '@/lib/player-visibility'
+import { isScoutVerified } from '@/lib/scout/verification-gate'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +26,13 @@ export async function GET(req: NextRequest) {
   // list rather than relying on a single query-shape to be the only thing
   // standing between "flag off" and "scout sees nobody".
   if (!FRANCHISE_SCOUT_ENABLED) return NextResponse.json({ candidates: [] })
+
+  // Same "empty scope means see nothing" contract association-scoped
+  // routes already follow (src/lib/association/verification-gate.ts) — a
+  // scout whose ScoutProfile isn't yet approved gets an explicit empty
+  // list here too, independent of the page-shell redirect in
+  // scout/layout.tsx, in case this route is ever hit directly.
+  if (!(await isScoutVerified(auth.user))) return NextResponse.json({ candidates: [] })
 
   const players = await db.playerProfile.findMany({
     where: {
