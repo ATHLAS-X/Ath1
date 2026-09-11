@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs/config";
+
 /**
  * Content-Security-Policy — every source below was verified against what
  * this app actually loads, not copy-pasted as a default:
@@ -78,6 +80,12 @@ const SECURITY_HEADERS = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Required on Next.js 14.x for instrumentation.ts's register() hook to
+  // actually run (stable without this flag from Next 15 on) — Sentry's
+  // server/edge init depends on it.
+  experimental: {
+    instrumentationHook: true,
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "img.youtube.com" },
@@ -124,4 +132,25 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// Wraps the config to inject Sentry's build-time plugin (source-map
+// upload, release tagging). Safe to leave enabled with no Sentry account
+// configured yet: without SENTRY_AUTH_TOKEN the plugin logs a warning and
+// skips the upload step rather than failing the build (confirmed against
+// the installed @sentry/nextjs's own getBuildPluginOptions, which passes
+// an unset authToken straight through to @sentry/webpack-plugin's own
+// documented no-op-without-a-token behavior).
+//
+// tunnelRoute: client-side error reports are proxied through this app's
+// own /monitoring path instead of going directly to Sentry's ingest
+// domain — keeps the existing connect-src 'self' CSP directive above
+// intact with no third-party exception needed.
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: true,
+  tunnelRoute: "/monitoring",
+  webpack: {
+    treeshake: { removeDebugLogging: true },
+  },
+});

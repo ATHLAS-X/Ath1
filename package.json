@@ -25,6 +25,7 @@
     "@hookform/resolvers": "^5.4.0",
     "@neondatabase/serverless": "^0.9.4",
     "@prisma/client": "^6.19.3",
+    "@sentry/nextjs": "^10.74.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
     "bcryptjs": "^2.4.3",
