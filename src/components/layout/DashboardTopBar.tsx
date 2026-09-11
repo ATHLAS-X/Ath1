@@ -38,10 +38,10 @@ export default function DashboardTopBar() {
   return (
     <header className="h-14 flex items-center justify-between gap-4 px-4 sm:px-6 border-b border-ax-cardBorder bg-ax-bgSoft lg:ml-60">
       <div className="flex items-center gap-4 min-w-0">
-        <Link href="/" className="hidden sm:flex items-center gap-1 shrink-0 font-barlow-semi uppercase tracking-[0.18em] font-bold text-sm text-ax-text">
+        <Link href="/" className="hidden sm:flex lg:hidden items-center gap-1 shrink-0 font-barlow-semi uppercase tracking-[0.18em] font-bold text-sm text-ax-text">
           Athlas<span className="text-ax-accent">X</span>
         </Link>
-        <span className="hidden sm:block w-px h-5 bg-ax-cardBorder shrink-0" />
+        <span className="hidden sm:block lg:hidden w-px h-5 bg-ax-cardBorder shrink-0" />
         <h1 className="font-anton uppercase text-base sm:text-lg text-ax-text truncate">{title}</h1>
       </div>
 
