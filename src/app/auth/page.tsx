@@ -7,7 +7,6 @@ import Image from 'next/image'
 import { Anton, Barlow, Barlow_Semi_Condensed } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
-import { ACADEMY_SELF_SERVE_ENABLED } from '@/lib/feature-flags'
 
 /*
  * New front door for sign-in and role-based sign-up. Does not replace
@@ -61,7 +60,7 @@ const TILES = [
 export default function AuthPage() {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>('signin')
-  const [role, setRole] = useState<Role | null>(null)
+  const [role, setRole] = useState<Role | null>('player')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -80,18 +79,62 @@ export default function AuthPage() {
     router.push('/')
   }
 
-  function handleRoleSelect(next: Role) {
-    setRole(next)
-    if (next === 'player') { router.push('/player/onboarding'); return }
-    if (next === 'academy' && ACADEMY_SELF_SERVE_ENABLED) { router.push('/academy/onboarding'); return }
-    if (next === 'coach') { router.push('/coach/onboarding'); return }
-    // Association is no longer self-serve — AthlasX Ops verifies a
-    // data-sharing agreement offline and creates the account directly
-    // (pivot doc W1; decision made 2026-09-06 after this was found to
-    // invert that trust model). Falls through to the unavailable notice.
+  const ROLE_WIZARD_PATH: Record<'player' | 'coach' | 'academy' | 'scout' | 'association', string> = {
+    player: '/player/onboarding',
+    coach: '/coach/onboarding',
+    academy: '/academy/onboarding',
+    scout: '/scout/onboarding',
+    association: '/onboarding/association',
   }
 
-  const roleUnavailable = role === 'scout' || role === 'association' || (role === 'academy' && !ACADEMY_SELF_SERVE_ENABLED)
+  // Temporary: association/academy/scout used to stop here with a flag-
+  // gated "not yet available" notice and no way past it. Per explicit
+  // instruction, that gating is removed at THIS picker level for now —
+  // selecting any of the three navigates straight to its own onboarding
+  // page, full stop. Each destination page still independently checks its
+  // own feature flag (ASSOCIATION_SELF_SERVE_ENABLED / ACADEMY_SELF_SERVE_ENABLED
+  // / SCOUT_SELF_SERVE_ENABLED) and will show its own not-available state
+  // if that flag is still off — this change only removes the auth page's
+  // own redundant pre-check, not those pages' real gates.
+  function handleRoleSelect(next: Role) {
+    setRole(next)
+    setError(null)
+    if (next === 'association' || next === 'academy' || next === 'scout') {
+      router.push(ROLE_WIZARD_PATH[next])
+    }
+  }
+
+  const roleAvailable = role === 'player' || role === 'coach'
+  const roleUnavailable = false
+
+  // Creates the bare account (email+password+role, no profile yet) and
+  // signs the caller in, then hands off to that role's existing onboarding
+  // wizard — which now runs authenticated and only attaches a profile to
+  // the user_id already on the session, instead of collecting email+
+  // password itself and creating the account at the very end.
+  async function handleRoleSignUp(e: React.FormEvent) {
+    e.preventDefault()
+    if (!roleAvailable) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, email, password }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data?.error ?? 'Could not create your account. Please try again.')
+        setSubmitting(false)
+        return
+      }
+      router.push(ROLE_WIZARD_PATH[role as 'player' | 'coach' | 'academy' | 'scout'])
+    } catch {
+      setError('Could not create your account. Please try again.')
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className={cn(anton.variable, barlow.variable, barlowSemi.variable)} style={AUTH_VARS}>
@@ -134,7 +177,7 @@ export default function AuthPage() {
             className="absolute inset-0 pointer-events-none"
             style={{ background: 'radial-gradient(120% 60% at 100% 0%, rgba(255,138,30,0.08), transparent 60%)' }}
           />
-          <div className="relative w-full max-w-md mx-auto lg:mx-0">
+          <div className="relative w-full max-w-md lg:max-w-none mx-auto lg:mx-0">
             <p className="font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--accent-bright)] mb-1.5">
               {mode === 'signup' ? 'Join AthlasX' : 'Welcome back'}
             </p>
@@ -205,33 +248,56 @@ export default function AuthPage() {
               </form>
             ) : (
               <div className="space-y-4">
-                <p className="font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.14em] text-white/60">I am a&hellip;</p>
-                <div className="grid grid-cols-2 gap-2" role="group" aria-label="Select your role">
-                  {ROLES.map((r) => (
-                    <button
-                      key={r.value} type="button" aria-pressed={role === r.value}
-                      onClick={() => handleRoleSelect(r.value)}
-                      className={cn(
-                        'flex items-center gap-2.5 text-left px-3.5 py-3 rounded-[10px] border-[1.5px] transition-colors',
-                        role === r.value ? 'border-[color:var(--accent)] bg-[rgba(255,138,30,0.14)]' : 'border-white/[0.14] bg-white/[0.06] hover:border-white/30',
-                      )}
-                    >
-                      <span>
-                        <span className="block text-sm font-bold text-white">{r.label}</span>
-                        <span className="block text-[11px] text-white/60">{r.blurb}</span>
-                      </span>
-                    </button>
-                  ))}
+                <div>
+                  <label htmlFor="signup-role" className="font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.14em] text-white/60">
+                    I am a&hellip;
+                  </label>
+                  <select
+                    id="signup-role"
+                    value={role ?? 'player'}
+                    onChange={(e) => handleRoleSelect(e.target.value as Role)}
+                    className="mt-1.5 w-full px-3.5 py-3 rounded-[9px] bg-white/[0.06] border border-white/[0.14] text-sm text-white focus:outline-none focus:border-[color:var(--accent)] focus:bg-white/[0.09] transition-colors appearance-none"
+                  >
+                    {ROLES.map((r) => (
+                      <option key={r.value} value={r.value} className="bg-[#1a1a1a] text-white">
+                        {r.label} — {r.blurb}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 {roleUnavailable && (
                   <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/[0.08]">
                     <p className="text-xs font-bold text-amber-400">Not yet available</p>
                     <p className="text-[11px] text-white/60 mt-1">
-                      {role === 'scout' && 'Scout accounts are not yet supported on AthlasX — there is no scout-facing role or workflow in the current platform.'}
+                      {role === 'scout' && 'Scout sign-up is built but not yet turned on — check back soon.'}
                       {role === 'association' && 'Association accounts aren’t self-serve. AthlasX Ops sets these up directly after your data-sharing agreement is verified — reach out to get started.'}
                       {role === 'academy' && 'Academy sign-up isn’t available yet. If your academy’s data is already tracked through a district or state association, it will show up automatically.'}
                     </p>
                   </div>
+                )}
+                {roleAvailable && (
+                  <form onSubmit={handleRoleSignUp} className="space-y-3 pt-1">
+                    <input
+                      type="email" required value={email} placeholder="Email address"
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full px-3.5 py-3 rounded-[9px] bg-white/[0.06] border border-white/[0.14] text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] focus:bg-white/[0.09] transition-colors"
+                    />
+                    <div className="space-y-1">
+                      <input
+                        type="password" required minLength={10} value={password} placeholder="Choose a password" autoComplete="new-password"
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full px-3.5 py-3 rounded-[9px] bg-white/[0.06] border border-white/[0.14] text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] focus:bg-white/[0.09] transition-colors"
+                      />
+                      <p className="text-[11px] text-white/40">At least 10 characters, with letters and numbers.</p>
+                    </div>
+                    {error && <p role="status" className="text-xs text-[#ff8a7e]">{error}</p>}
+                    <button
+                      type="submit" disabled={submitting}
+                      className="font-[family-name:var(--font-barlow-semi)] w-full py-3.5 rounded-[10px] text-base font-bold uppercase tracking-wide bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_10px_26px_-10px_rgba(255,138,30,0.8)] hover:bg-[color:var(--accent-bright)] transition-colors disabled:opacity-50"
+                    >
+                      {submitting ? 'Creating account…' : 'Continue'}
+                    </button>
+                  </form>
                 )}
               </div>
             )}
