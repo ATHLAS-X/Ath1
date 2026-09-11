@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { AcademyType, PlayerCountRange } from '@prisma/client'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
-import { hashPassword } from '@/lib/password'
+import { hashPassword, validatePasswordStrength } from '@/lib/password'
 import { verifyAcademyOtp } from '@/lib/academy-onboarding-otp'
 import { academyGate } from '@/lib/academy/gate'
 import { rateLimit } from '@/lib/rate-limit'
@@ -77,6 +77,16 @@ export async function POST(req: NextRequest) {
 
   if (!email || !password || !academyName || !district || !state) {
     return NextResponse.json({ error: 'Account and academy identity fields are required' }, { status: 400 })
+  }
+
+  const signupLimit = rateLimit('academy-onboard-signup', email, 5, 3600)
+  if (!signupLimit.success) {
+    return NextResponse.json({ error: 'Too many signup attempts. Please try again later.' }, { status: 429 })
+  }
+
+  const passwordError = validatePasswordStrength(password)
+  if (passwordError) {
+    return NextResponse.json({ error: passwordError }, { status: 400 })
   }
 
   // docs/AthlasX_Master_Data_Points.docx Phase 1 (HIGH) fields — all
