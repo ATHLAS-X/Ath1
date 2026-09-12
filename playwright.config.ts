@@ -24,7 +24,12 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
     command: 'npx next start -p 3210',
-    url: 'http://127.0.0.1:3210/dashboard',
+    // Was '/dashboard' — that page is now gated behind a real session
+    // (requirePageRole -> notFound() for a signed-out request), so an
+    // unauthenticated readiness probe got a 404 forever and Playwright's
+    // webServer never considered the (perfectly healthy) server "ready",
+    // timing out at 180s every run. '/' has no auth gate and always 200s.
+    url: 'http://127.0.0.1:3210/',
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },

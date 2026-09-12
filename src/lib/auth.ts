@@ -3,8 +3,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { encode } from "next-auth/jwt";
 import type { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { comparePassword } from "@/lib/password";
+import { comparePassword, compareDummyForTiming } from "@/lib/password";
 import { rateLimit } from "@/lib/rate-limit";
+import { extractClientIp } from "@/lib/request-ip";
 
 export interface AuthenticatedUser {
   id: string;
@@ -12,9 +13,50 @@ export interface AuthenticatedUser {
   role: string;
 }
 
+// Per-account cap stays at 10/15min (unchanged). This second bucket is
+// keyed by IP instead of email, so a spray attack that stays under the
+// per-email cap by trying many DIFFERENT emails from one source still gets
+// caught. Deliberately higher than the per-email max: a shared IP (office
+// NAT, campus network, mobile carrier CGNAT) can legitimately represent
+// many real users, and this bucket exists to catch spray patterns, not to
+// further restrict a single legitimate user who already has their own
+// per-email limit.
+const LOGIN_IP_MAX_ATTEMPTS = 30;
+const LOGIN_IP_WINDOW_SECONDS = 900;
+
+// Throttling + visibility only, per instruction — NOT account lockout.
+// Fires once when an account's failed-attempt count in the window first
+// reaches this threshold (not on every attempt past it), as a structured
+// log line something could eventually alert on (e.g. a log-based monitor).
+// No new notification channel is wired up in this pass.
+const FAILED_LOGIN_ALERT_THRESHOLD = 5;
+const FAILED_LOGIN_ALERT_WINDOW_SECONDS = 900;
+
+function recordFailedLoginForAlerting(email: string): void {
+  // A separate, effectively-unbounded bucket used purely as a counter —
+  // it never itself blocks anything (max is far above any real attempt
+  // count), it just tracks how many failures happened in the window so
+  // this can log exactly once at the threshold crossing.
+  const counter = rateLimit("login-failure-alert-count", email, 1_000_000, FAILED_LOGIN_ALERT_WINDOW_SECONDS);
+  const failuresSoFar = 1_000_000 - counter.remaining;
+  if (failuresSoFar === FAILED_LOGIN_ALERT_THRESHOLD) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      JSON.stringify({
+        event: "auth.repeated_failed_logins",
+        email,
+        failureCount: failuresSoFar,
+        windowSeconds: FAILED_LOGIN_ALERT_WINDOW_SECONDS,
+        note: "throttling only (see login-password rate limit) — no account lockout applied",
+      }),
+    );
+  }
+}
+
 export async function authenticateWithPassword(
   email: string,
   password: string,
+  ip?: string,
 ): Promise<AuthenticatedUser | null> {
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail || !password) return null;
@@ -24,16 +66,30 @@ export async function authenticateWithPassword(
   // submitted email (the account being targeted), same "identity being
   // targeted" pattern claim/start uses for phone.
   const limit = rateLimit("login-password", normalizedEmail, 10, 900);
-  if (!limit.success) return null;
+  const ipLimit = rateLimit("login-password-ip", ip ?? "unknown", LOGIN_IP_MAX_ATTEMPTS, LOGIN_IP_WINDOW_SECONDS);
+  if (!limit.success || !ipLimit.success) return null;
 
   const user = await db.user.findUnique({
     where: { email: normalizedEmail },
     select: { id: true, email: true, role: true, password_hash: true },
   });
 
-  if (!user?.password_hash) return null;
+  if (!user?.password_hash) {
+    // Timing-attack normalization: without this, "no such user" returns
+    // immediately while a wrong-password attempt below goes on to run a
+    // real bcrypt.compare — a measurable, exploitable timing difference
+    // that lets an attacker enumerate valid emails. Burn the same bcrypt
+    // cost here against a fixed dummy hash so both paths take comparable
+    // time; the result is discarded, only the elapsed work matters.
+    await compareDummyForTiming(password);
+    recordFailedLoginForAlerting(normalizedEmail);
+    return null;
+  }
   const ok = await comparePassword(password, user.password_hash);
-  if (!ok) return null;
+  if (!ok) {
+    recordFailedLoginForAlerting(normalizedEmail);
+    return null;
+  }
 
   return {
     id: user.id,
@@ -97,9 +153,10 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials.password) return null;
-        return authenticateWithPassword(credentials.email, credentials.password);
+        const ip = extractClientIp(req?.headers ?? {});
+        return authenticateWithPassword(credentials.email, credentials.password, ip);
       },
     }),
   ],

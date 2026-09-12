@@ -10,6 +10,18 @@ export async function comparePassword(password: string, hash: string): Promise<b
   return bcrypt.compare(password, hash);
 }
 
+// Precomputed once at module load (not per request) — used only to burn
+// comparable bcrypt time when authenticateWithPassword (src/lib/auth.ts)
+// finds no matching user, so that path isn't measurably faster than a real
+// wrong-password attempt (which does run bcrypt.compare against a real
+// hash). Never used to authenticate anything; the fixed input value has no
+// significance beyond being stable across process restarts.
+const DUMMY_HASH_FOR_TIMING = bcrypt.hashSync("timing-normalization-only-not-a-real-account", SALT_ROUNDS);
+
+export async function compareDummyForTiming(password: string): Promise<void> {
+  await bcrypt.compare(password, DUMMY_HASH_FOR_TIMING);
+}
+
 const MIN_PASSWORD_LENGTH = 10;
 // Top-of-list rockyou-style passwords plus obvious site-specific guesses —
 // blocked outright regardless of length/character-class checks below.
@@ -18,6 +30,11 @@ const COMMON_PASSWORDS = new Set([
   "qwerty", "qwerty123", "111111", "123123", "abc123", "letmein", "welcome",
   "admin123", "iloveyou", "athlasx", "athlasx123", "cricket", "cricket123",
 ]);
+
+// Exported so callers doing an additional check beyond this function (e.g.
+// the signup route's Have I Been Pwned lookup in src/lib/hibp.ts) can reuse
+// the exact same user-facing message rather than a second, driftable copy.
+export const PASSWORD_TOO_COMMON_MESSAGE = "This password is too common — please choose a different one";
 
 /**
  * Server-side password-strength gate for account creation. Signup previously
@@ -34,7 +51,7 @@ export function validatePasswordStrength(password: string): string | null {
     return "Password must contain both letters and numbers";
   }
   if (COMMON_PASSWORDS.has(password.toLowerCase())) {
-    return "This password is too common — please choose a different one";
+    return PASSWORD_TOO_COMMON_MESSAGE;
   }
   return null;
 }

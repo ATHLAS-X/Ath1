@@ -65,6 +65,32 @@ export default function AuthPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotSubmitted, setForgotSubmitted] = useState(false)
+  const [forgotError, setForgotError] = useState<string | null>(null)
+
+  async function handleForgotSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setForgotError(null)
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      })
+      // Deliberately treated the same whether res.ok or not, except for a
+      // real network/parse failure — the API itself always responds with
+      // the same generic message regardless of whether the account exists.
+      await res.json().catch(() => ({}))
+      setForgotSubmitted(true)
+    } catch {
+      setForgotError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
@@ -211,7 +237,47 @@ export default function AuthPage() {
               </button>
             </div>
 
-            {mode === 'signin' ? (
+            {mode === 'signin' && forgotOpen ? (
+              forgotSubmitted ? (
+                <div className="space-y-3">
+                  <p role="status" className="text-sm text-white/80">
+                    If an account exists for that email, a password reset link has been sent.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setForgotOpen(false); setForgotSubmitted(false); setForgotEmail('') }}
+                    className="text-[color:var(--accent-bright)] hover:underline text-sm"
+                  >
+                    Back to sign in
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotSubmit} className="space-y-3">
+                  <p className="text-sm text-white/60">
+                    Enter your account email — we&apos;ll send a reset link if it matches an account.
+                  </p>
+                  <input
+                    type="email" required value={forgotEmail} placeholder="Email address"
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className="w-full px-3.5 py-3 rounded-[9px] bg-white/[0.06] border border-white/[0.14] text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] focus:bg-white/[0.09] transition-colors"
+                  />
+                  {forgotError && <p role="status" className="text-xs text-[#ff8a7e]">{forgotError}</p>}
+                  <button
+                    type="submit" disabled={submitting}
+                    className="font-[family-name:var(--font-barlow-semi)] w-full py-3.5 rounded-[10px] text-base font-bold uppercase tracking-wide bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_10px_26px_-10px_rgba(255,138,30,0.8)] hover:bg-[color:var(--accent-bright)] transition-colors disabled:opacity-50"
+                  >
+                    {submitting ? 'Sending…' : 'Send reset link'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForgotOpen(false)}
+                    className="text-white/60 hover:text-white text-sm"
+                  >
+                    Back to sign in
+                  </button>
+                </form>
+              )
+            ) : mode === 'signin' ? (
               <form onSubmit={handleSignIn} className="space-y-3">
                 <input
                   type="email" required value={email} placeholder="Email address"
@@ -232,7 +298,7 @@ export default function AuthPage() {
                   </label>
                   <button
                     type="button"
-                    onClick={() => toast.info('Password reset isn’t wired up yet.')}
+                    onClick={() => setForgotOpen(true)}
                     className="text-[color:var(--accent-bright)] hover:underline"
                   >
                     Forgot password?

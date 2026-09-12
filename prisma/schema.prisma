@@ -293,8 +293,38 @@ model User {
   advisory_notes_given         CoachAdvisoryNote[]
   academy                      Academy?
   scout_profile                 ScoutProfile?
+  password_reset_tokens        PasswordResetToken[]
 
   @@map("users")
+  @@schema("athlasx")
+}
+
+// ─── Password reset tokens ───────────────────────────────────────────────
+// Single-use, short-TTL (30 min, enforced in application code via
+// expires_at) tokens for the self-serve password-reset flow
+// (POST /api/auth/forgot-password, POST /api/auth/reset-password). Only a
+// SHA-256 hash of the raw token is ever stored here — same principle as
+// password_hash itself — so reading this table alone can never produce a
+// usable token; the raw token exists only in the emailed link and briefly
+// in the request that redeems it. consumed_at (not a DELETE) both enforces
+// single-use (checked + set together, see src/lib/password-reset.ts) and
+// leaves an audit trail of prior resets, same reasoning as PhoneOtp above.
+// DRAFT ONLY — not yet applied to the live DB. See
+// prisma/manual_migrations/password_reset_tokens.sql; do not run it
+// without a separate, explicit go-ahead (same gate as every other schema
+// change this engagement).
+model PasswordResetToken {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id     String    @db.Uuid
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  token_hash  String    @unique
+  expires_at  DateTime  @db.Timestamptz(6)
+  consumed_at DateTime? @db.Timestamptz(6)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id])
+  @@index([expires_at])
+  @@map("password_reset_tokens")
   @@schema("athlasx")
 }
 

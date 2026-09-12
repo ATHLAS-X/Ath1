@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { UserRole } from '@prisma/client'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
-import { hashPassword, validatePasswordStrength } from '@/lib/password'
+import { hashPassword, validatePasswordStrength, PASSWORD_TOO_COMMON_MESSAGE } from '@/lib/password'
 import { rateLimit } from '@/lib/rate-limit'
 import { ACADEMY_SELF_SERVE_ENABLED } from '@/lib/feature-flags'
+import { isSameOriginRequest } from '@/lib/same-origin'
+import { isPasswordBreached } from '@/lib/hibp'
 
 // The auth page's role picker used to jump straight into a wizard with no
 // account behind it yet — email+password were collected mid-wizard and the
@@ -23,6 +25,14 @@ const SIGNUP_ROLES: Record<string, UserRole> = {
 }
 
 export async function POST(req: NextRequest) {
+  // This route mints a session cookie outside NextAuth's own CSRF-protected
+  // handler, relying otherwise only on sameSite:lax — see same-origin.ts's
+  // header comment for why a same-origin check, not a token scheme, is the
+  // right amount of defense here.
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+  }
+
   let body: Record<string, unknown>
   try {
     body = await req.json()
@@ -50,6 +60,15 @@ export async function POST(req: NextRequest) {
   const passwordError = validatePasswordStrength(password)
   if (passwordError) {
     return NextResponse.json({ error: passwordError }, { status: 400 })
+  }
+
+  // Real breach check beyond the ~19-entry hardcoded list, via HIBP's
+  // k-anonymity range API (isPasswordBreached only ever sends a 5-char
+  // hash prefix, never the password). Fails open on any API problem — see
+  // hibp.ts's own comment — so an outage here never blocks signup; the
+  // hardcoded list above already ran and is the fallback, not a second tier.
+  if (await isPasswordBreached(password)) {
+    return NextResponse.json({ error: PASSWORD_TOO_COMMON_MESSAGE }, { status: 400 })
   }
 
   const passwordHash = await hashPassword(password)
