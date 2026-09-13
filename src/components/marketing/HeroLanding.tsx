@@ -80,7 +80,7 @@ export default function HeroLanding() {
             Sign In
           </a>
           <a
-            href="/auth"
+            href="/auth?mode=signup"
             className="font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-wide px-5 py-2.5 rounded-lg bg-[color:var(--accent)] text-[#1a0e02] hover:bg-[color:var(--accent-bright)] transition-colors shadow-[0_8px_22px_-8px_rgba(255,138,30,0.7)]"
           >
             Signup

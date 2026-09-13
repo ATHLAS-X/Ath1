@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import Image from 'next/image'
 import { Anton, Barlow, Barlow_Semi_Condensed } from 'next/font/google'
@@ -57,9 +57,13 @@ const TILES = [
   { src: '/images/hero/cricket.jpg', alt: 'Cricketer in national kit against a smoke-coloured sky' },
 ]
 
-export default function AuthPage() {
+function AuthPageInner() {
   const router = useRouter()
-  const [mode, setMode] = useState<Mode>('signin')
+  const searchParams = useSearchParams()
+  // Landing page's "Signup" link passes ?mode=signup so this page opens
+  // straight on the Sign Up tab instead of always defaulting to Sign In
+  // regardless of which account-bar link was actually clicked.
+  const [mode, setMode] = useState<Mode>(searchParams.get('mode') === 'signup' ? 'signup' : 'signin')
   const [role, setRole] = useState<Role | null>('player')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -92,17 +96,33 @@ export default function AuthPage() {
     }
   }
 
+  // Synchronous lock, not just the `submitting` state — setSubmitting(true)
+  // doesn't disable the button until React actually re-renders, so two
+  // clicks issued back-to-back in the same tick could both fire
+  // handleSignIn before that render happens. Same useRef<Set> pattern
+  // already used in src/app/player/onboarding/page.tsx for exactly this.
+  const locksRef = useRef<Set<string>>(new Set())
+
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
+    if (locksRef.current.has('signin')) return
+    locksRef.current.add('signin')
     setSubmitting(true)
     setError(null)
-    const result = await signIn('credentials', { email, password, redirect: false })
-    setSubmitting(false)
-    if (result?.error) {
-      setError('Incorrect email or password.')
-      return
+    try {
+      const result = await signIn('credentials', { email, password, redirect: false })
+      if (result?.error) {
+        setError('Incorrect email or password.')
+        setSubmitting(false)
+        return
+      }
+      // Left `submitting` true through the redirect on success, same as
+      // handleRoleSignUp below — avoids a flash of the re-enabled button
+      // right before navigation away from this page.
+      router.push('/')
+    } finally {
+      locksRef.current.delete('signin')
     }
-    router.push('/')
   }
 
   const ROLE_WIZARD_PATH: Record<'player' | 'coach' | 'academy' | 'scout' | 'association', string> = {
@@ -113,54 +133,33 @@ export default function AuthPage() {
     association: '/onboarding/association',
   }
 
-  // Temporary: association/academy/scout used to stop here with a flag-
-  // gated "not yet available" notice and no way past it. Per explicit
-  // instruction, that gating is removed at THIS picker level for now —
-  // selecting any of the three navigates straight to its own onboarding
-  // page, full stop. Each destination page still independently checks its
-  // own feature flag (ASSOCIATION_SELF_SERVE_ENABLED / ACADEMY_SELF_SERVE_ENABLED
-  // / SCOUT_SELF_SERVE_ENABLED) and will show its own not-available state
-  // if that flag is still off — this change only removes the auth page's
-  // own redundant pre-check, not those pages' real gates.
+  // All five roles now route straight to their own onboarding wizard with
+  // no pre-check and no bare-account pre-creation at this picker level —
+  // player and coach used to POST /api/auth/signup here first, but their
+  // wizards' own /api/player/onboard and /api/coach/onboard routes already
+  // create the account themselves (email+password+profile in one
+  // transaction), so the pre-creation only ever produced a duplicate-email
+  // 409 once the wizard tried to create the same account again. Each
+  // destination page still independently checks its own feature flag
+  // (ASSOCIATION_SELF_SERVE_ENABLED / ACADEMY_SELF_SERVE_ENABLED /
+  // SCOUT_SELF_SERVE_ENABLED) and shows its own not-available state if
+  // still off — this page never pre-empts that.
   function handleRoleSelect(next: Role) {
     setRole(next)
     setError(null)
-    if (next === 'association' || next === 'academy' || next === 'scout') {
-      router.push(ROLE_WIZARD_PATH[next])
-    }
+    router.push(ROLE_WIZARD_PATH[next])
   }
 
-  const roleAvailable = role === 'player' || role === 'coach'
+  // handleRoleSelect only fires when the <select> actually changes value —
+  // 'player' is the default, so a visitor happy with that default never
+  // triggers it. This button is the explicit affordance for that case (and
+  // for re-confirming any other already-selected role); it's the only way
+  // off this screen when the dropdown is left untouched.
+  function handleContinue() {
+    if (role) router.push(ROLE_WIZARD_PATH[role])
+  }
+
   const roleUnavailable = false
-
-  // Creates the bare account (email+password+role, no profile yet) and
-  // signs the caller in, then hands off to that role's existing onboarding
-  // wizard — which now runs authenticated and only attaches a profile to
-  // the user_id already on the session, instead of collecting email+
-  // password itself and creating the account at the very end.
-  async function handleRoleSignUp(e: React.FormEvent) {
-    e.preventDefault()
-    if (!roleAvailable) return
-    setSubmitting(true)
-    setError(null)
-    try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, email, password }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setError(data?.error ?? 'Could not create your account. Please try again.')
-        setSubmitting(false)
-        return
-      }
-      router.push(ROLE_WIZARD_PATH[role as 'player' | 'coach' | 'academy' | 'scout'])
-    } catch {
-      setError('Could not create your account. Please try again.')
-      setSubmitting(false)
-    }
-  }
 
   return (
     <div className={cn(anton.variable, barlow.variable, barlowSemi.variable)} style={AUTH_VARS}>
@@ -341,30 +340,16 @@ export default function AuthPage() {
                     </p>
                   </div>
                 )}
-                {roleAvailable && (
-                  <form onSubmit={handleRoleSignUp} className="space-y-3 pt-1">
-                    <input
-                      type="email" required value={email} placeholder="Email address"
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-3.5 py-3 rounded-[9px] bg-white/[0.06] border border-white/[0.14] text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] focus:bg-white/[0.09] transition-colors"
-                    />
-                    <div className="space-y-1">
-                      <input
-                        type="password" required minLength={10} value={password} placeholder="Choose a password" autoComplete="new-password"
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-3.5 py-3 rounded-[9px] bg-white/[0.06] border border-white/[0.14] text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] focus:bg-white/[0.09] transition-colors"
-                      />
-                      <p className="text-[11px] text-white/40">At least 10 characters, with letters and numbers.</p>
-                    </div>
-                    {error && <p role="status" className="text-xs text-[#ff8a7e]">{error}</p>}
-                    <button
-                      type="submit" disabled={submitting}
-                      className="font-[family-name:var(--font-barlow-semi)] w-full py-3.5 rounded-[10px] text-base font-bold uppercase tracking-wide bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_10px_26px_-10px_rgba(255,138,30,0.8)] hover:bg-[color:var(--accent-bright)] transition-colors disabled:opacity-50"
-                    >
-                      {submitting ? 'Creating account…' : 'Continue'}
-                    </button>
-                  </form>
-                )}
+                <p className="text-xs text-white/40">
+                  Choosing a different role above takes you straight there. Happy with &ldquo;{ROLES.find((r) => r.value === (role ?? 'player'))?.label}&rdquo;? Continue below — it collects your email and password there.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleContinue}
+                  className="font-[family-name:var(--font-barlow-semi)] w-full py-3.5 rounded-[10px] text-base font-bold uppercase tracking-wide bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_10px_26px_-10px_rgba(255,138,30,0.8)] hover:bg-[color:var(--accent-bright)] transition-colors"
+                >
+                  Continue
+                </button>
               </div>
             )}
 
@@ -394,5 +379,13 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthPageInner />
+    </Suspense>
   )
 }

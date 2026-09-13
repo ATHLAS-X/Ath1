@@ -74,67 +74,59 @@ test.describe('A18 — Scout routes to /scout/onboarding', () => {
   })
 })
 
-test.describe('A19 — Player/Coach reveal the inline account form', () => {
-  test('player (default) shows email/password inputs', async ({ page }) => {
+test.describe('A19 — Player/Coach now route away with no bare-account pre-creation', () => {
+  // Fixed: /auth no longer pre-creates a bare account for Player/Coach (see
+  // P9/C9 in the onboarding e2e suites). Player is the default role, so
+  // choosing it needs an explicit Continue click (there's no <select>
+  // onChange to hook since the value never changes) — Coach and the other
+  // three roles still navigate immediately on selection.
+  test('player (default): Continue navigates to /player/onboarding, no inline form, no signup call', async ({ page }) => {
+    const signupCalls: string[] = []
+    page.on('request', (r) => {
+      if (r.url().includes('/api/auth/signup')) signupCalls.push(r.url())
+    })
     await page.goto('/auth')
     await page.getByRole('tab', { name: 'Sign Up' }).click()
-    await expect(page.getByPlaceholder('Email address')).toBeVisible()
-    await expect(page.getByPlaceholder('Choose a password')).toBeVisible()
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.waitForURL(/\/player\/onboarding$/, { timeout: 15_000 })
+    expect(signupCalls, 'no bare-account signup request should ever fire for Player').toHaveLength(0)
   })
 
-  test('coach shows email/password inputs, stays on /auth', async ({ page }) => {
+  test('coach navigates to /coach/onboarding on selection, no inline form, no signup call', async ({ page }) => {
+    const signupCalls: string[] = []
+    page.on('request', (r) => {
+      if (r.url().includes('/api/auth/signup')) signupCalls.push(r.url())
+    })
     await page.goto('/auth')
     await page.getByRole('tab', { name: 'Sign Up' }).click()
     await page.getByLabel('I am a…').selectOption('coach')
-    await expect(page).toHaveURL(/\/auth$/)
-    await expect(page.getByPlaceholder('Email address')).toBeVisible()
-    await expect(page.getByPlaceholder('Choose a password')).toBeVisible()
+    await page.waitForURL(/\/coach\/onboarding$/, { timeout: 15_000 })
+    expect(signupCalls, 'no bare-account signup request should ever fire for Coach').toHaveLength(0)
   })
 })
 
 test.describe('A20 — roleUnavailable notice is dead code', () => {
   // NOT written as a passing behavioral test — there is no reachable state
-  // in which this notice block can render. src/app/auth/page.tsx line 108
-  // hardcodes `const roleUnavailable = false` unconditionally; the block
-  // that reads it (lines 268-277, the amber "Not yet available" card
-  // covering scout/association/academy copy) is therefore unreachable —
-  // every one of those three roles is caught earlier by handleRoleSelect
-  // (line 99) navigating away immediately (see A16-A18 above), so the
-  // signup form's own render branch for roleUnavailable never even
-  // executes with role set to one of those three by the time a paint
-  // happens. Confirmed by direct source read, not by trying every possible
-  // input — there is no code path left that sets roleUnavailable to true.
+  // in which this notice block can render. Now that Player/Coach also
+  // navigate away immediately (A19, fixed this pass), handleRoleSelect
+  // navigates away for ALL FIVE roles the instant one is picked, so the
+  // signup form's role-picker screen never stays mounted long enough for
+  // roleUnavailable's amber "Not yet available" card to matter for any role.
   test('FINDING: roleUnavailable is hardcoded false — this UI notice can never render', async ({}, testInfo) => {
     testInfo.annotations.push({
       type: 'finding',
       description:
-        'DEAD CODE — src/app/auth/page.tsx:108 `const roleUnavailable = false` is an unconditional ' +
-        'constant, and the amber "Not yet available" notice block at lines 268-277 (with role-specific ' +
-        'copy for scout/association/academy) is gated entirely behind it. Every role that block\'s copy ' +
-        'was written for is intercepted earlier by handleRoleSelect (line 99-105), which navigates away ' +
-        'via router.push() the instant that role is selected — so the signup form never renders with one ' +
-        'of those roles selected long enough for this branch to matter. Recommend either deleting the ' +
-        'dead block and the associated copy, or reinstating a real condition if the intent is to bring ' +
-        'back an in-page notice instead of a hard navigation for any of these three roles.',
+        'DEAD CODE — src/app/auth/page.tsx\'s `const roleUnavailable = false` is an unconditional constant, ' +
+        'and the amber "Not yet available" notice block gated behind it is therefore unreachable. Every one ' +
+        'of the five roles is now caught by handleRoleSelect navigating away via router.push() the instant ' +
+        'it is selected (see A16-A19), so this notice never renders regardless of which role is picked. ' +
+        'Recommend deleting the dead block and roleUnavailable, or reinstating a real condition if an ' +
+        'in-page notice is ever wanted instead of a hard navigation.',
     })
   })
 })
 
-test.describe('A21 — password too short, client and server', () => {
-  test('client-side: minLength=10 blocks submission before any request fires', async ({ page }) => {
-    await page.goto('/auth')
-    await page.getByRole('tab', { name: 'Sign Up' }).click()
-    const signupCalls: string[] = []
-    page.on('request', (r) => {
-      if (r.url().includes('/api/auth/signup')) signupCalls.push(r.url())
-    })
-    await page.getByPlaceholder('Email address').fill(uniqueEmail('a21-short'))
-    await page.getByPlaceholder('Choose a password').fill('Ab1')
-    await page.getByRole('button', { name: 'Continue' }).click()
-    await page.waitForTimeout(400)
-    expect(signupCalls, 'minLength=10 should block the request client-side').toHaveLength(0)
-  })
-
+test.describe('A21 — password too short, server', () => {
   test('server-side: hitting the API directly with a short password still 400s', async ({ page, baseURL }) => {
     const res = await signupRequest(page, baseURL!, { role: 'player', email: uniqueEmail('a21-short-api'), password: 'Ab1' })
     expect(res.status()).toBe(400)
@@ -181,11 +173,9 @@ test.describe('A24 — valid strong password creates the account and signs in', 
     expect(session?.user?.role).toBe('player')
   })
 
-  test('UI flow redirects to ROLE_WIZARD_PATH[role] (/player/onboarding)', async ({ page }) => {
+  test('UI flow redirects to ROLE_WIZARD_PATH[role] (/player/onboarding) — see A19, Continue navigates for the default role', async ({ page }) => {
     await page.goto('/auth')
     await page.getByRole('tab', { name: 'Sign Up' }).click()
-    await page.getByPlaceholder('Email address').fill(uniqueEmail('a24-ui'))
-    await page.getByPlaceholder('Choose a password').fill('GenuinelyStrong123')
     await page.getByRole('button', { name: 'Continue' }).click()
     await page.waitForURL(/\/player\/onboarding$/, { timeout: 15_000 })
   })
@@ -266,27 +256,22 @@ test.describe('A29 — signup rate limiting: 6th attempt for one email within an
   })
 })
 
-test.describe('A30 — signup password field autocomplete', () => {
-  test('autoComplete="new-password"', async ({ page }) => {
-    await page.goto('/auth')
-    await page.getByRole('tab', { name: 'Sign Up' }).click()
-    await expect(page.getByPlaceholder('Choose a password')).toHaveAttribute('autocomplete', 'new-password')
-  })
+test.describe('A30 — signup password field autocomplete (now owned by each wizard, not /auth)', () => {
+  // The email/password inputs this test targeted lived on /auth itself
+  // before this pass; they now live on the destination wizard (e.g.
+  // /player/onboarding's own Stage 1 form), which already has its own
+  // autoComplete="new-password" attribute and its own coverage in that
+  // wizard's onboarding-player.spec.ts suite. Nothing left on /auth to
+  // check for this specific role-picker screen.
+  test.skip(true, 'password field moved off /auth onto each destination wizard — see onboarding-player.spec.ts')
 })
 
-test.describe('A31 — network failure during signup fetch', () => {
-  test('generic error shown, submit button re-enabled', async ({ page }) => {
-    await page.route('**/api/auth/signup', (route) => route.abort('failed'))
-    await page.goto('/auth')
-    await page.getByRole('tab', { name: 'Sign Up' }).click()
-    await page.getByPlaceholder('Email address').fill(uniqueEmail('a31-networkfail'))
-    await page.getByPlaceholder('Choose a password').fill('GenuinelyStrong123')
-    const btn = page.getByRole('button', { name: 'Continue' })
-    await btn.click()
-    await expect(page.getByText('Could not create your account. Please try again.')).toBeVisible()
-    await expect(btn).toBeEnabled()
-    await expect(btn).toHaveText('Continue')
-  })
+test.describe('A31 — network failure during signup fetch (now owned by each wizard, not /auth)', () => {
+  // Same reasoning as A30: /auth no longer fires /api/auth/signup for
+  // Player/Coach, so a network-failure-during-signup scenario no longer
+  // exists on this page — it would need to be tested against each wizard's
+  // own final-submit call instead.
+  test.skip(true, 'signup request moved off /auth onto each destination wizard\'s own onboard endpoint')
 })
 
 test.describe('A32 — Continue with Google', () => {

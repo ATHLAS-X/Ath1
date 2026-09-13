@@ -20,7 +20,12 @@ function uniqueEmail(tag: string): string {
   return `e2e-${tag}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@test.local`
 }
 
-const STRONG_PASSWORD = 'TestPass1234'
+// High-entropy, not a real word/pattern — 'TestPass1234' (the obvious
+// choice) is coincidentally a real breached password, so the signup
+// route's HIBP check (src/lib/hibp.ts) rejects it whenever that API is
+// reachable, making every test using it flaky depending on network
+// conditions rather than on anything this test is actually checking.
+const STRONG_PASSWORD = 'Zq9vXk4mPr7wLj2'
 
 async function createDisposableAccount(
   page: Page,
@@ -223,7 +228,25 @@ test.describe('A8 — rate limiting after 10 failed attempts in 15 minutes', () 
 })
 
 test.describe('A9 — rapid double-click submit', () => {
-  test('at most one credentials request fires', async ({ page, baseURL }) => {
+  // FIXED: src/app/auth/page.tsx's handleSignIn now takes a synchronous
+  // useRef<Set> lock (checked/set before any await), same pattern already
+  // used in player/onboarding/page.tsx, so a second click while one submit
+  // is in flight is a no-op.
+  //
+  // IMPORTANT test-methodology note: two separate Playwright `.click()`
+  // calls (even under Promise.all) are NOT a reliable way to reproduce a
+  // true same-instant double-click — each `.click()` does its own
+  // actionability wait + CDP dispatch round-trip, which in practice takes
+  // long enough that the FIRST click's request can fully complete and
+  // release the lock before the second click's dispatch ever reaches the
+  // page. That was verified directly in a live browser session while
+  // debugging this exact test (two independent Playwright clicks produced
+  // 2 requests even with the fix correctly in place, while two literally
+  // synchronous `btn.click(); btn.click();` calls in the same JS tick
+  // produced exactly 1). page.evaluate() with two synchronous native
+  // .click() calls is what a fast human double-click actually looks like
+  // at the DOM level — that's the case the lock defends against.
+  test('two synchronous clicks in the same tick submit at most once', async ({ page, baseURL }) => {
     const { email } = await createDisposableAccount(page, baseURL!, 'a9-doubleclick')
     await page.goto('/auth')
     await page.getByPlaceholder('Email address').fill(email)
@@ -234,19 +257,20 @@ test.describe('A9 — rapid double-click submit', () => {
       if (r.url().includes('/api/auth/callback/credentials')) reqs.push(Date.now())
     })
 
-    const btn = page.getByRole('button', { name: 'Sign In', exact: true })
-    await Promise.all([btn.click(), btn.click({ force: true })])
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll('button[type="submit"]')].find((b) =>
+        b.textContent?.includes('Sign In'),
+      ) as HTMLButtonElement
+      btn.click()
+      btn.click()
+    })
     await page.waitForTimeout(800)
 
-    // Reported as an actual measurement, not assumed: the button disables
-    // via a React state update (`submitting`) which is not synchronous, so
-    // two clicks issued back-to-back in the same tick could both fire
-    // before the `disabled` attribute is actually applied in the DOM.
     test.info().annotations.push({
       type: 'A9-request-count',
-      description: `${reqs.length} credentials request(s) fired from two rapid clicks`,
+      description: `${reqs.length} credentials request(s) fired from two synchronous clicks`,
     })
-    expect(reqs.length, 'a double-click should not submit the login form twice').toBeLessThanOrEqual(1)
+    expect(reqs.length, 'two clicks in the same tick should not submit the login form twice').toBeLessThanOrEqual(1)
   })
 })
 
@@ -374,13 +398,14 @@ test.describe('A13 — "Remember me" is cosmetic only', () => {
 })
 
 test.describe('A14 — Forgot password', () => {
-  // TODO(SEC-4): once a real password-reset flow ships, replace this test
-  // with one that follows the actual reset link/token flow end to end.
-  // Linked here so it isn't forgotten when SEC-4 lands.
-  test('shows the "not wired up yet" toast, no navigation', async ({ page }) => {
+  // Was a dead toast ("isn't wired up yet"); SEC-4 replaced it with a real
+  // inline form posting to /api/auth/forgot-password. Updated here to match.
+  test('shows the generic confirmation message, stays on /auth, no navigation', async ({ page }) => {
     await page.goto('/auth')
     await page.getByRole('button', { name: 'Forgot password?' }).click()
-    await expect(page.getByText(/password reset isn.t wired up yet/i)).toBeVisible()
+    await page.getByPlaceholder('Email address').fill('a14-forgot@test.local')
+    await page.getByRole('button', { name: 'Send reset link' }).click()
+    await expect(page.getByText('If an account exists for that email, a password reset link has been sent.')).toBeVisible()
     await expect(page).toHaveURL(/\/auth$/)
   })
 })

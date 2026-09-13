@@ -24,18 +24,35 @@ const ROLE_HOME: Record<string, string> = {
   scout: '/scout',
 }
 
+// Mirrors src/lib/session-role-refresh.ts's PRIVILEGED_ROLES, same
+// literal-copy convention as ROLE_HOME above. These four roles now get
+// re-checked against the DB on every request (the stale-JWT-role audit
+// fix) — a forged session for one of them, backed by no real user row,
+// correctly resolves to an empty role and falls back to /dashboard rather
+// than being trusted for its claimed destination. Non-privileged roles
+// aren't DB-checked at all, so a forged id is still fine for them and they
+// keep landing on their real claimed home.
+const PRIVILEGED_ROLES = new Set(['athlasx_ops', 'association', 'academy_admin', 'scout'])
+
 test.describe('L1 — signed-out visit renders the hero', () => {
   test('hero content and both account-bar links are present', async ({ page }) => {
     const res = await page.goto('/')
     expect(res?.status()).toBe(200)
     await expect(page.getByRole('heading', { name: /athlasx/i })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Sign In' })).toHaveAttribute('href', '/auth')
-    await expect(page.getByRole('link', { name: 'Signup' })).toHaveAttribute('href', '/auth')
+    // Signup carries ?mode=signup (see L3) so /auth opens on the right tab.
+    await expect(page.getByRole('link', { name: 'Signup' })).toHaveAttribute('href', '/auth?mode=signup')
   })
 })
 
 test.describe('L2 — signed-in visit redirects before hero renders', () => {
-  for (const [role, home] of Object.entries(ROLE_HOME)) {
+  for (const [role, claimedHome] of Object.entries(ROLE_HOME)) {
+    // A forged session for a privileged role has no real backing User row,
+    // so the DB re-check (session-role-refresh.ts) correctly demotes it to
+    // an empty role, landing on the generic /dashboard fallback instead of
+    // the role-specific page a REAL account of that role would reach.
+    const home = PRIVILEGED_ROLES.has(role) ? '/dashboard' : claimedHome
+
     test(`role=${role} → ${home}, at the HTTP layer (no flash of hero content)`, async ({ page, baseURL }) => {
       const jwt = await forgedSessionJwt({ role })
       const cookie = `${cookieName()}=${jwt}`
@@ -74,23 +91,21 @@ test.describe('L3 — account-bar links navigate, tab pre-selection', () => {
     await expect(page.getByRole('tab', { name: 'Sign In' })).toHaveAttribute('aria-selected', 'true')
   })
 
-  // KNOWN GAP — see src/app/auth/page.tsx line ~62: `mode` is hardcoded to
-  // 'signin' on mount regardless of how the visitor arrived; both the
-  // landing page's "Sign In" and "Signup" links point at the identical
-  // bare "/auth" href (HeroLanding.tsx lines 76-87), with nothing (no query
-  // param, no hash) distinguishing which one was clicked. This test
-  // intentionally asserts the Sign Up tab is pre-selected after clicking
-  // "Signup" and is EXPECTED TO FAIL today — that failure is the record
-  // that the gap still exists. Do not silence it with test.fail() or an
-  // annotation; when this starts passing, the gap has been fixed for real.
+  // FIXED (was a documented, deliberately-failing KNOWN GAP): the landing
+  // page's "Signup" link now carries ?mode=signup (HeroLanding.tsx), and
+  // /auth reads it via useSearchParams to pick its initial tab
+  // (src/app/auth/page.tsx). "Sign In" still points at bare "/auth" — the
+  // two links are now genuinely different URLs, which is the actual fix,
+  // not just a passing assertion.
   test('Signup navigates to /auth with the Sign Up tab pre-selected', async ({ page }) => {
     await page.goto('/')
     const signInHref = await page.getByRole('link', { name: 'Sign In' }).getAttribute('href')
     const signupHref = await page.getByRole('link', { name: 'Signup' }).getAttribute('href')
-    expect(signInHref, 'both links currently point at the identical URL — this is the root cause').toBe(signupHref)
+    expect(signInHref, 'the two links must be genuinely different URLs now, not just different labels on the same href').not.toBe(signupHref)
+    expect(signupHref).toContain('mode=signup')
 
     await page.getByRole('link', { name: 'Signup' }).click()
-    await expect(page).toHaveURL(/\/auth$/)
+    await expect(page).toHaveURL(/\/auth\?mode=signup$/)
     await expect(page.getByRole('tab', { name: 'Sign Up' })).toHaveAttribute('aria-selected', 'true')
   })
 })
@@ -168,7 +183,8 @@ test.describe('L6 — keyboard-only navigation reaches both account-bar links', 
     expect(seen, 'expected to Tab onto both Sign In and Signup').toEqual(
       expect.arrayContaining(['Sign In', 'Signup']),
     )
-    expect(focusedHref).toBe('/auth')
+    // Last one tabbed to is Signup, which now carries ?mode=signup (see L3).
+    expect(focusedHref).toBe('/auth?mode=signup')
   })
 })
 
