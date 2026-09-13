@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { comparePassword, compareDummyForTiming } from "@/lib/password";
 import { rateLimit } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
+import { refreshPrivilegedRole } from "@/lib/session-role-refresh";
 
 export interface AuthenticatedUser {
   id: string;
@@ -172,8 +173,22 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
+        // requirePageSession/requirePageRole (src/lib/require-page-session.ts)
+        // read session.user.role for every page-shell gate via
+        // getServerSession — same stale-claim exposure require-auth.ts's
+        // getSessionUser had for API routes, fixed the same way here: the
+        // four privileged roles get re-checked against the DB on every
+        // call, everyone else pays no extra query. See
+        // session-role-refresh.ts's own doc for why this is deliberately
+        // asymmetric (revocation is immediate, promotion waits for login).
+        const claimedRole = (token.role as string) ?? "";
+        const role = await refreshPrivilegedRole(token.id as string, claimedRole);
+        // role === null means the account was deleted mid-session — there is
+        // no clean way to force-sign-out from inside this callback, so this
+        // sets a role no requirePageRole allowlist will ever contain,
+        // producing the same "not found" outcome as an unauthenticated visit.
         (session.user as { id?: string; role?: string; email?: string }).id = token.id as string;
-        (session.user as { id?: string; role?: string; email?: string }).role = token.role as string;
+        (session.user as { id?: string; role?: string; email?: string }).role = role ?? "";
         (session.user as { id?: string; role?: string; email?: string }).email = token.email as string;
       }
       return session;

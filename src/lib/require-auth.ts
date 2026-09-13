@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
+import { refreshPrivilegedRole } from "@/lib/session-role-refresh";
 
 export interface SessionUser {
   id: string;
@@ -16,14 +17,26 @@ export interface SessionUser {
  * tests/security/auth-and-consent.test.ts does — have no such context, so
  * getToken is the only form of session verification that's actually
  * testable this way.
+ *
+ * For the four privileged roles (see session-role-refresh.ts), the role
+ * used for every authorization decision below is re-checked against the
+ * DB on every call, not trusted from the JWT claim — a demoted/revoked
+ * privileged account stops working with its old permissions on its very
+ * next request, instead of continuing until its 30-day session naturally
+ * expires. Player/coach sessions take none of this extra cost.
  */
 export async function getSessionUser(req: NextRequest): Promise<SessionUser | null> {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token?.id) return null;
+
+  const claimedRole = (token.role as string) ?? "";
+  const role = await refreshPrivilegedRole(token.id as string, claimedRole);
+  if (role === null) return null; // account no longer exists — force re-auth
+
   return {
     id: token.id as string,
     email: (token.email as string) ?? "",
-    role: (token.role as string) ?? "",
+    role,
   };
 }
 
