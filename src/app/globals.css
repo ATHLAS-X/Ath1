@@ -90,3 +90,12 @@ body {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.75); }
 }
+
+/* Recolor the native date-input calendar glyph to read against our dark
+ * fields. WebKit/Blink-only pseudo-element — Firefox has no equivalent hook
+ * and renders its own (already dark-mode-aware) icon, so this is additive,
+ * not a replacement for cross-browser behavior. */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
