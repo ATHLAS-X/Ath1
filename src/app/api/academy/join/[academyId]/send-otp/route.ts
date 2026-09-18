@@ -21,7 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: { academyId: 
     return NextResponse.json({ error: "phone must be a 10-digit number" }, { status: 400 });
   }
 
-  const limit = rateLimit("academy-join-otp-send", digits, 5, 3600);
+  const limit = await rateLimit("academy-join-otp-send", digits, 5, 3600);
   if (!limit.success) {
     return NextResponse.json({ error: "Too many OTP requests. Try again later." }, { status: 429 });
   }

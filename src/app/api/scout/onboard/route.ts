@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   if (mobile.length !== 10 || !requestId || !otp) {
     return NextResponse.json({ error: 'Phone verification is required' }, { status: 400 })
   }
-  const otpVerifyLimit = rateLimit('scout-onboard-otp-verify', mobile, 10, 3600)
+  const otpVerifyLimit = await rateLimit('scout-onboard-otp-verify', mobile, 10, 3600)
   if (!otpVerifyLimit.success) {
     return NextResponse.json({ error: 'Too many verification attempts. Try again later.' }, { status: 429 })
   }
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Account and organization details are required' }, { status: 400 })
   }
 
-  const signupLimit = rateLimit('scout-onboard-signup', email, 5, 3600)
+  const signupLimit = await rateLimit('scout-onboard-signup', email, 5, 3600)
   if (!signupLimit.success) {
     return NextResponse.json({ error: 'Too many signup attempts. Please try again later.' }, { status: 429 })
   }

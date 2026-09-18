@@ -20,6 +20,7 @@ vi.mock('@/lib/db', async () => ({
 }))
 vi.mock('@/lib/send-password-reset-email', () => ({
   sendPasswordResetEmail: vi.fn(),
+  canDeliverPasswordResetEmail: () => true,
 }))
 
 const { createPasswordResetToken, consumePasswordResetToken } = await import('@/lib/password-reset')

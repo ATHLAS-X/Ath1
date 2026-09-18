@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   // trivially bypassed by simply requesting a fresh code instead of
   // guessing against the same one. Keyed by phone, not claimId, since a
   // claim doesn't exist yet on the very first call.
-  const limit = rateLimit('claim-otp-send', phone, 5, 3600)
+  const limit = await rateLimit('claim-otp-send', phone, 5, 3600)
   if (!limit.success) {
     logOtpEvent({ flowType: 'claim_player', event: 'rate_limited', phone })
     return NextResponse.json({ error: 'Too many OTP requests for this number. Try again later.' }, { status: 429 })

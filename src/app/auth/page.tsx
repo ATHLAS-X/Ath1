@@ -84,10 +84,17 @@ function AuthPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail }),
       })
-      // Deliberately treated the same whether res.ok or not, except for a
-      // real network/parse failure — the API itself always responds with
-      // the same generic message regardless of whether the account exists.
-      await res.json().catch(() => ({}))
+      const data = await res.json().catch(() => ({}))
+      // A 200 is the only "sent" signal, and the API makes it look identical
+      // whether or not the account exists. Every other status it returns — a
+      // bad origin (403), a malformed request (400), reset being unavailable in
+      // this environment (503) — is independent of the email entered, so
+      // showing it leaks nothing and stops this form claiming a link was sent
+      // when the request never got that far.
+      if (!res.ok) {
+        setForgotError(data?.error ?? 'Something went wrong. Please try again.')
+        return
+      }
       setForgotSubmitted(true)
     } catch {
       setForgotError('Something went wrong. Please try again.')

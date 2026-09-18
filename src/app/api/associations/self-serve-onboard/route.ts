@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Association identity and staff account details are required' }, { status: 400 })
   }
 
-  const signupLimit = rateLimit('association-self-serve-signup', email, 5, 3600)
+  const signupLimit = await rateLimit('association-self-serve-signup', email, 5, 3600)
   if (!signupLimit.success) {
     return NextResponse.json({ error: 'Too many signup attempts. Please try again later.' }, { status: 429 })
   }

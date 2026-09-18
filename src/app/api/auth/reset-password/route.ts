@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
   // Tokens are 256-bit random (unguessable) — this is a safety net against
   // a client retry-looping on one token, not the primary defense.
-  const limit = rateLimit('reset-password-attempt', token, 10, 900)
+  const limit = await rateLimit('reset-password-attempt', token, 10, 900)
   if (!limit.success) {
     return NextResponse.json({ error: 'Too many attempts. Please request a new reset link.' }, { status: 429 })
   }
@@ -48,7 +48,14 @@ export async function POST(req: NextRequest) {
   }
 
   const passwordHash = await hashPassword(password)
-  await db.user.update({ where: { id: consumed.userId }, data: { password_hash: passwordHash } })
+  // password_changed_at ends sessions that were signed in before this moment
+  // (see session-role-refresh.ts) — resetting because an account was
+  // compromised should also evict whoever compromised it.
+  await db.user.update({
+    where: { id: consumed.userId },
+    data: { password_hash: passwordHash, password_changed_at: new Date() },
+    select: { id: true },
+  })
 
   return NextResponse.json({ ok: true })
 }

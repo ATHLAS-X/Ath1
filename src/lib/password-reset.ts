@@ -35,6 +35,11 @@ export interface ConsumedPasswordReset {
  * NULL) rather than a plain update — two concurrent requests racing to
  * redeem the same token can both pass the initial read, but only one can
  * win that conditional write, so only one call ever returns a userId.
+ *
+ * The winning redemption also retires every other outstanding token for the
+ * same user, in the same transaction. Someone who requested three links
+ * because the first email was slow shouldn't be left with two that still
+ * work after their password has already changed.
  */
 export async function consumePasswordResetToken(token: string): Promise<ConsumedPasswordReset | null> {
   const tokenHash = hashResetToken(token);
@@ -43,11 +48,21 @@ export async function consumePasswordResetToken(token: string): Promise<Consumed
   if (row.consumed_at) return null;
   if (row.expires_at.getTime() < Date.now()) return null;
 
-  const result = await db.passwordResetToken.updateMany({
-    where: { id: row.id, consumed_at: null },
-    data: { consumed_at: new Date() },
+  const won = await db.$transaction(async (tx) => {
+    const now = new Date();
+    const result = await tx.passwordResetToken.updateMany({
+      where: { id: row.id, consumed_at: null },
+      data: { consumed_at: now },
+    });
+    if (result.count === 0) return false; // lost a race to a concurrent redemption
+
+    await tx.passwordResetToken.updateMany({
+      where: { user_id: row.user_id, consumed_at: null },
+      data: { consumed_at: now },
+    });
+    return true;
   });
-  if (result.count === 0) return null; // lost a race to a concurrent redemption
+  if (!won) return null;
 
   return { userId: row.user_id };
 }

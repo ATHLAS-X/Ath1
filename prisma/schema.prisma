@@ -282,6 +282,12 @@ model User {
   linked_player_id String?  @db.Uuid
   linked_staff_id  String?  @db.Uuid
   created_at       DateTime @default(now()) @db.Timestamptz(6)
+  // Stamped on every password change (reset or signed-in change). A
+  // privileged session signed in before this moment is rejected — see
+  // src/lib/session-role-refresh.ts. DRAFT ONLY: ships in
+  // prisma/manual_migrations/password_reset_tokens.sql, not yet applied to
+  // the live DB, and globally omitted in src/lib/db.ts until it is.
+  password_changed_at DateTime? @db.Timestamptz(6)
 
   player_profile               PlayerProfile?
   coach_profile                CoachProfile?

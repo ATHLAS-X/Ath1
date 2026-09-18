@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Phone verification is required' }, { status: 400 })
   }
   // Final-submit OTP re-check had no guess-rate bound — send-otp does.
-  const otpVerifyLimit = rateLimit('academy-onboard-otp-verify', mobile, 10, 3600)
+  const otpVerifyLimit = await rateLimit('academy-onboard-otp-verify', mobile, 10, 3600)
   if (!otpVerifyLimit.success) {
     return NextResponse.json({ error: 'Too many verification attempts. Try again later.' }, { status: 429 })
   }
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Account and academy identity fields are required' }, { status: 400 })
   }
 
-  const signupLimit = rateLimit('academy-onboard-signup', email, 5, 3600)
+  const signupLimit = await rateLimit('academy-onboard-signup', email, 5, 3600)
   if (!signupLimit.success) {
     return NextResponse.json({ error: 'Too many signup attempts. Please try again later.' }, { status: 429 })
   }

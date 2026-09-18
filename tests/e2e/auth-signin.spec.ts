@@ -399,13 +399,18 @@ test.describe('A13 — "Remember me" is cosmetic only', () => {
 
 test.describe('A14 — Forgot password', () => {
   // Was a dead toast ("isn't wired up yet"); SEC-4 replaced it with a real
-  // inline form posting to /api/auth/forgot-password. Updated here to match.
-  test('shows the generic confirmation message, stays on /auth, no navigation', async ({ page }) => {
+  // inline form posting to /api/auth/forgot-password. This suite runs against a
+  // production build, and production has no email provider yet — so the
+  // endpoint refuses up front (503) instead of claiming a link was sent that
+  // never will be (src/lib/send-password-reset-email.ts). This asserts that
+  // honest state; switch it back to the generic confirmation once a provider
+  // is wired in.
+  test('explains reset is unavailable in production, stays on /auth, no navigation', async ({ page }) => {
     await page.goto('/auth')
     await page.getByRole('button', { name: 'Forgot password?' }).click()
     await page.getByPlaceholder('Email address').fill('a14-forgot@test.local')
     await page.getByRole('button', { name: 'Send reset link' }).click()
-    await expect(page.getByText('If an account exists for that email, a password reset link has been sent.')).toBeVisible()
+    await expect(page.getByText(/Password reset by email isn.t available yet/)).toBeVisible()
     await expect(page).toHaveURL(/\/auth$/)
   })
 })

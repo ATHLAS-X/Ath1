@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { comparePassword, compareDummyForTiming } from "@/lib/password";
 import { rateLimit } from "@/lib/rate-limit";
 import { extractClientIp } from "@/lib/request-ip";
-import { refreshPrivilegedRole } from "@/lib/session-role-refresh";
+import { refreshPrivilegedRole, sessionAuthTime } from "@/lib/session-role-refresh";
 
 export interface AuthenticatedUser {
   id: string;
@@ -33,12 +33,12 @@ const LOGIN_IP_WINDOW_SECONDS = 900;
 const FAILED_LOGIN_ALERT_THRESHOLD = 5;
 const FAILED_LOGIN_ALERT_WINDOW_SECONDS = 900;
 
-function recordFailedLoginForAlerting(email: string): void {
+async function recordFailedLoginForAlerting(email: string): Promise<void> {
   // A separate, effectively-unbounded bucket used purely as a counter —
   // it never itself blocks anything (max is far above any real attempt
   // count), it just tracks how many failures happened in the window so
   // this can log exactly once at the threshold crossing.
-  const counter = rateLimit("login-failure-alert-count", email, 1_000_000, FAILED_LOGIN_ALERT_WINDOW_SECONDS);
+  const counter = await rateLimit("login-failure-alert-count", email, 1_000_000, FAILED_LOGIN_ALERT_WINDOW_SECONDS);
   const failuresSoFar = 1_000_000 - counter.remaining;
   if (failuresSoFar === FAILED_LOGIN_ALERT_THRESHOLD) {
     // eslint-disable-next-line no-console
@@ -66,8 +66,8 @@ export async function authenticateWithPassword(
   // password/OTP-adjacent endpoint in this codebase does. Keyed by the
   // submitted email (the account being targeted), same "identity being
   // targeted" pattern claim/start uses for phone.
-  const limit = rateLimit("login-password", normalizedEmail, 10, 900);
-  const ipLimit = rateLimit("login-password-ip", ip ?? "unknown", LOGIN_IP_MAX_ATTEMPTS, LOGIN_IP_WINDOW_SECONDS);
+  const limit = await rateLimit("login-password", normalizedEmail, 10, 900);
+  const ipLimit = await rateLimit("login-password-ip", ip ?? "unknown", LOGIN_IP_MAX_ATTEMPTS, LOGIN_IP_WINDOW_SECONDS);
   if (!limit.success || !ipLimit.success) return null;
 
   const user = await db.user.findUnique({
@@ -83,12 +83,12 @@ export async function authenticateWithPassword(
     // cost here against a fixed dummy hash so both paths take comparable
     // time; the result is discarded, only the elapsed work matters.
     await compareDummyForTiming(password);
-    recordFailedLoginForAlerting(normalizedEmail);
+    await recordFailedLoginForAlerting(normalizedEmail);
     return null;
   }
   const ok = await comparePassword(password, user.password_hash);
   if (!ok) {
-    recordFailedLoginForAlerting(normalizedEmail);
+    await recordFailedLoginForAlerting(normalizedEmail);
     return null;
   }
 
@@ -104,14 +104,16 @@ export const SESSION_COOKIE_NAME = "next-auth.session-token";
 
 /**
  * Encodes the same JWT claims the CredentialsProvider jwt callback writes
- * (`id`, `email`, `role`) so a Set-Cookie from a non-NextAuth route is
- * indistinguishable from a staff sign-in session.
+ * (`id`, `email`, `role`, `authTime`) so a Set-Cookie from a non-NextAuth
+ * route is indistinguishable from a staff sign-in session. `authTime` is
+ * what password-change revocation compares against — see
+ * sessionAuthTime in session-role-refresh.ts.
  */
 export async function encodeSessionToken(user: AuthenticatedUser): Promise<string> {
   const secret = process.env.NEXTAUTH_SECRET;
   if (!secret) throw new Error("NEXTAUTH_SECRET is not set");
   return encode({
-    token: { id: user.id, email: user.email, role: user.role },
+    token: { id: user.id, email: user.email, role: user.role, authTime: Date.now() },
     secret,
   });
 }
@@ -168,6 +170,10 @@ export const authOptions: NextAuthOptions = {
         token.id = u.id;
         token.role = u.role;
         token.email = u.email;
+        // Set once, here, at the real sign-in. Later calls to this callback
+        // (every time NextAuth re-issues the cookie) have no `user` and carry
+        // this claim forward unchanged — unlike `iat`, which they refresh.
+        token.authTime = Date.now();
       }
       return token;
     },
@@ -182,11 +188,12 @@ export const authOptions: NextAuthOptions = {
         // session-role-refresh.ts's own doc for why this is deliberately
         // asymmetric (revocation is immediate, promotion waits for login).
         const claimedRole = (token.role as string) ?? "";
-        const role = await refreshPrivilegedRole(token.id as string, claimedRole);
-        // role === null means the account was deleted mid-session — there is
-        // no clean way to force-sign-out from inside this callback, so this
-        // sets a role no requirePageRole allowlist will ever contain,
-        // producing the same "not found" outcome as an unauthenticated visit.
+        const role = await refreshPrivilegedRole(token.id as string, claimedRole, sessionAuthTime(token));
+        // role === null means the account was deleted, or its password changed
+        // after this session signed in — there is no clean way to
+        // force-sign-out from inside this callback, so this sets a role no
+        // requirePageRole allowlist will ever contain, producing the same
+        // "not found" outcome as an unauthenticated visit.
         (session.user as { id?: string; role?: string; email?: string }).id = token.id as string;
         (session.user as { id?: string; role?: string; email?: string }).role = role ?? "";
         (session.user as { id?: string; role?: string; email?: string }).email = token.email as string;

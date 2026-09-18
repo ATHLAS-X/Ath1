@@ -1,21 +1,37 @@
 /**
- * Stub email-sender for the password-reset flow. Checked first: no
- * email-sending infrastructure exists anywhere in this codebase (no
- * nodemailer/Resend/SendGrid/mailgun dependency in package.json, no usage
- * in src/ — confirmed via grep) — there is nothing to reuse.
+ * Password-reset email delivery. No email-sending infrastructure exists
+ * anywhere in this codebase yet (no nodemailer/Resend/SendGrid/mailgun
+ * dependency in package.json, no usage in src/), so there is no real
+ * delivery path.
  *
- * This is a clearly-named interface specifically so the reset flow is
- * fully testable end to end (POST /api/auth/forgot-password ->
- * a real token in the DB -> POST /api/auth/reset-password) before a real
- * provider is wired in as a separate piece of work. Every environment
- * without a real provider configured logs the link instead of sending it,
- * the same "disclose the dev-mode stub, don't fake success" pattern this
- * codebase already uses for OTP (see e.g. src/lib/aadhaar-verification.ts).
+ * Outside production the link is logged instead of sent, so the whole flow
+ * (POST /api/auth/forgot-password -> a real token in the DB -> POST
+ * /api/auth/reset-password) stays testable end to end — the same "disclose
+ * the dev-mode stub, don't fake success" pattern this codebase already uses
+ * for OTP (see e.g. src/lib/aadhaar-verification.ts).
+ *
+ * In production it refuses instead. Writing a working reset link into
+ * production logs would hand the account to anyone who can read them, and
+ * "succeeding" without sending anything tells users to wait for an email
+ * that never arrives.
  */
+
+/**
+ * Whether this environment can deliver a reset email. Callers must check
+ * this BEFORE looking the account up — see forgot-password/route.ts for why
+ * the order matters. When a real provider is wired in, this should return
+ * true whenever that provider's credentials are configured.
+ */
+export function canDeliverPasswordResetEmail(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
+
 export async function sendPasswordResetEmail(email: string, resetUrl: string): Promise<void> {
-  // TODO: wire a real provider (Resend, SendGrid, etc.) here as a separate
-  // task. Until then, every environment — including production — logs
-  // instead of sending; there is no real delivery path yet.
+  if (!canDeliverPasswordResetEmail()) {
+    // Backstop only — forgot-password checks canDeliverPasswordResetEmail()
+    // before the account lookup. Deliberately doesn't log the link.
+    throw new Error("No password-reset email provider is configured for this environment");
+  }
   // eslint-disable-next-line no-console
   console.log(
     JSON.stringify({

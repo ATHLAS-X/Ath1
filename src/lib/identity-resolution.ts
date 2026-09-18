@@ -1,8 +1,7 @@
-import type { Prisma, PrismaClient } from "@prisma/client";
-import { db } from "@/lib/db";
+import { db, type AppDbClient, type AppTransactionClient } from "@/lib/db";
 import { nameSimilarity, normalizeDistrict, NAME_SIMILARITY_HIGH_CONFIDENCE } from "@/lib/identity-normalize";
 
-type DbClient = PrismaClient | Prisma.TransactionClient;
+type DbClient = AppDbClient | AppTransactionClient;
 
 export interface ResolveIdentityInput {
   associationId: string;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import { refreshPrivilegedRole } from "@/lib/session-role-refresh";
+import { refreshPrivilegedRole, sessionAuthTime } from "@/lib/session-role-refresh";
 
 export interface SessionUser {
   id: string;
@@ -23,15 +23,17 @@ export interface SessionUser {
  * DB on every call, not trusted from the JWT claim — a demoted/revoked
  * privileged account stops working with its old permissions on its very
  * next request, instead of continuing until its 30-day session naturally
- * expires. Player/coach sessions take none of this extra cost.
+ * expires. The same lookup rejects a privileged session that signed in
+ * before the account's password last changed. Player/coach sessions take
+ * none of this extra cost.
  */
 export async function getSessionUser(req: NextRequest): Promise<SessionUser | null> {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
   if (!token?.id) return null;
 
   const claimedRole = (token.role as string) ?? "";
-  const role = await refreshPrivilegedRole(token.id as string, claimedRole);
-  if (role === null) return null; // account no longer exists — force re-auth
+  const role = await refreshPrivilegedRole(token.id as string, claimedRole, sessionAuthTime(token));
+  if (role === null) return null; // account gone, or password changed since sign-in — force re-auth
 
   return {
     id: token.id as string,
