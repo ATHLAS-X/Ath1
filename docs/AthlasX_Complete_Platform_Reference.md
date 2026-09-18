@@ -2,6 +2,8 @@
 
 Generated 2026-09-11 by direct code reading (every page and API route file read in full, not summarized from names) plus a live browser walkthrough of the running dev server. Every claim below is traceable to a file:line or a live screenshot — nothing here is inferred from naming conventions alone. Where something could not be verified live, that is stated explicitly rather than assumed.
 
+**Refreshed 2026-09-13 against `main` at `a70e233`.** Exactly one commit has touched application code since this document was first written — `a70e233` ("harden credentials auth and add self-serve password reset") — so the refresh is scoped to what that commit actually changed, re-read in full from the diff: the `/auth` page, one new page, two new API routes, five new `src/lib` modules, one new Prisma model, and every count that moved. Sections carrying new or corrected material: **§2, §4, §5, §6, §7, §8, Appendix A**. The refresh was source-only — there was **no second live browser walkthrough**, so no screenshot in §1 shows any password-reset UI, and every §1 caption still describes the 2026-09-11 capture. Note also that "this session" throughout this document means the original 2026-09-11 generation session, never this refresh; material added on 2026-09-13 is attributed to `a70e233` by hash.
+
 **Stack:** Next.js 14.2.35 (App Router) · TypeScript · Tailwind (custom `ax-*` design tokens) · Prisma 6 / Postgres (Supabase) · NextAuth (JWT sessions, credentials-only) · Framer Motion · Sentry (`@sentry/nextjs`, wired but no DSN configured yet).
 
 ---
@@ -52,6 +54,7 @@ All screenshots below were captured live against the running dev server (`npm ru
 - **`/record`, `/coach`, `/scout`, `/academy/**`** (player/coach/scout/academy_admin home dashboards) — no existing credentials were available for these roles that I could use without resetting a password (blocked — see §8), and creating brand-new accounts through the live multi-step OTP signup wizards wasn't completed in this pass. Fully documented from source in §3, including every button and every field.
 - **`/ops/associations/new`, `/ops/associations/pending`, `/ops/scouts/pending`** — require an `athlasx_ops` account; no self-serve path exists to create one and none of the existing `athlasx_ops` accounts' passwords were available. Fully documented from source in §3.
 - **`/trial-cycles/[id]/register`, `/trial-cycles/[id]/dossiers`** — require a real trial-cycle ID in the URL; documented from source in §3.
+- **`/auth`'s forgot-password panel and `/auth/reset-password`** — added after this gallery was captured (`a70e233`), and the 2026-09-13 refresh was source-only with no second browser pass. `auth-signin.png` above therefore still shows the pre-`a70e233` "Forgot password?" link. A live capture would also need the unapplied migration in §5 run first. Documented from source in §2.
 
 ---
 
@@ -75,7 +78,7 @@ No forms, no OTP, no fetches. `HeroLanding.tsx` renders a 7-photo CSS-grid colla
 ---
 
 ### `/auth` — `src/app/auth/page.tsx`
-**Audience:** Anonymous visitor signing in or signing up (player, coach, academy, scout, association). **Purpose:** Single front door — Sign In posts credentials directly via NextAuth; Sign Up for player/coach creates a bare account then routes into that role's wizard, while association/academy/scout are routed straight to their own wizard from the role picker (no bare-account step for those three).
+**Audience:** Anonymous visitor signing in or signing up (player, coach, academy, scout, association). **Purpose:** Single front door — Sign In posts credentials directly via NextAuth; Sign Up for player/coach creates a bare account then routes into that role's wizard, while association/academy/scout are routed straight to their own wizard from the role picker (no bare-account step for those three). Since `a70e233` this page also hosts a real self-serve password reset, as an inline panel swapped in over the sign-in form (`forgotOpen` state) rather than a route of its own — only the link-landing step is a separate page (`/auth/reset-password`, below).
 
 **Interactive elements:**
 
@@ -84,15 +87,35 @@ No forms, no OTP, no fetches. `HeroLanding.tsx` renders a 7-photo CSS-grid colla
 | "Sign In" / "Sign Up" tabs | local `setMode()` | Switches the visible form |
 | Sign In submit | `handleSignIn` → `signIn('credentials', {email,password,redirect:false})` | Error → "Incorrect email or password." inline. Success → `router.push('/')`, which redirects to the role home. |
 | "Remember me" | — | Purely visual, not wired to anything |
-| "Forgot password?" | `toast.info('Password reset isn't wired up yet.')` | Toast only — **no real password-reset flow exists anywhere in this codebase** |
+| "Forgot password?" | `setForgotOpen(true)` → panel → `POST /api/auth/forgot-password` | **Real flow as of `a70e233`.** Replaces the sign-in form with a single-email panel; on submit it always renders the same "If an account exists for that email, a password reset link has been sent." The client deliberately ignores the response status (only a network/parse failure shows an error) because the API returns that identical body whether or not the account exists. **No email is actually sent** — see §5. |
 | Role `<select>` | `handleRoleSelect` | `association`/`academy`/`scout` → immediately navigates away to that role's wizard. `player`/`coach` → reveals the inline sign-up form. |
 | Sign-Up submit (player/coach) | `handleRoleSignUp` → `POST /api/auth/signup {role,email,password}` | Error → inline message. Success → `router.push()` to that role's onboarding wizard. |
 | "Continue with Google" | `toast.info('Google sign-in isn't connected yet.')` | Toast only — no OAuth provider configured |
 | "Terms" / "Privacy Policy" | `href="#"` | Dead links |
 
-**Fields:** Email + Password (both tabs, `required`); Sign-Up password additionally has `minLength={10}`. No OTP on this page.
+**Fields:** Email + Password (both tabs, `required`); Sign-Up password additionally has `minLength={10}`. The forgot-password panel adds one `required` email field and shares the page's `submitting` state with the sign-in form. No OTP on this page.
 
 ![Sign in / Sign up](screenshots/auth-signin.png)
+
+---
+
+### `/auth/reset-password` — `src/app/auth/reset-password/page.tsx`
+
+*Added in `a70e233`. Documented from source only — no live screenshot exists for this page (see the refresh note at the top), and a live pass would currently be blocked anyway by the unapplied migration noted in §5.*
+
+**Audience:** Anyone who followed a password-reset link. **Purpose:** Landing page for the `?token=…` URL that `POST /api/auth/forgot-password` generates. Client component wrapped in `<Suspense>` — required, because it reads `useSearchParams()`.
+
+Three mutually exclusive states, switched on `token` and `done`:
+
+| State | Condition | What renders |
+|---|---|---|
+| Missing token | no `?token=` in the URL | "This link is missing its reset token." + a link back to `/auth`. **No form at all** — the page never offers a field to paste one into |
+| Form | token present, not yet successfully submitted | New password (`required`, `minLength={10}`, `autoComplete="new-password"`, helper text "At least 10 characters, with letters and numbers"), Confirm password, submit |
+| Done | successful `POST` | "Your password has been reset. You can now sign in with it." + a "Go to sign in" button (`router.push('/auth')`) |
+
+Confirm-match is the only rule checked client-side. Everything else — length, letter+digit, the common-password list, the HIBP breach lookup, and token validity/expiry/single-use — is enforced server-side and surfaced verbatim from the API's `error` string. A successful reset deliberately **does not sign the user in**; it drops them back at `/auth` to sign in with the new password.
+
+Visually it re-declares its own three CSS variables inline (`--accent`, `--accent-bright`, `--bg`) instead of importing a shared set — the same locally-scoped pattern as the other 2026-09 design-pass pages.
 
 ---
 
@@ -315,11 +338,13 @@ Standalone server components (not under `(dashboard)`). Each redirects a non-mat
 
 ## 4. Backend — API Route Catalog
 
-All 75 route files under `src/app/api/` were read in full. Grouped by area; **Method + Path | Auth | What it does | Notable checks**.
+All **77** route files under `src/app/api/` were read in full (75 at first generation, plus `forgot-password` and `reset-password` from `a70e233`). Grouped by area; **Method + Path | Auth | What it does | Notable checks**.
 
 ### `/api/auth/*`
-- **`GET/POST /api/auth/[...nextauth]`** — NextAuth's own handler. `authorize()` → `authenticateWithPassword` (`src/lib/auth.ts`), which applies `rateLimit('login-password', email, 10, 900)` *before* even looking the user up.
-- **`POST /api/auth/signup`** — public. Creates a bare `User` (no profile) for `player`/`coach`/`academy` roles only (`academy` additionally needs the self-serve flag). `rateLimit('bare-account-signup', email, 5, 3600)`, `validatePasswordStrength`, unique-violation → 409.
+- **`GET/POST /api/auth/[...nextauth]`** — NextAuth's own handler. `authorize()` now also extracts the client IP (`extractClientIp(req?.headers ?? {})`) and passes it to `authenticateWithPassword` (`src/lib/auth.ts`), which applies **two** rate-limit buckets *before* even looking the user up: `login-password` (email, 10/15min) and `login-password-ip` (IP, 30/15min). A nonexistent-email attempt now burns a dummy `bcrypt.compare` so it can't be told apart by response time, and five failures against one account inside 15 minutes emit one structured `auth.repeated_failed_logins` warning — **throttling and logging only, never account lockout**, stated as such in the log line itself.
+- **`POST /api/auth/signup`** — public. Creates a bare `User` (no profile) for `player`/`coach`/`academy` roles only (`academy` additionally needs the self-serve flag). Now rejects a cross-origin request with 403 before parsing anything (`isSameOriginRequest`). `rateLimit('bare-account-signup', email, 5, 3600)`, `validatePasswordStrength`, then a Have I Been Pwned breach lookup (`isPasswordBreached` — fails open), unique-violation → 409.
+- **`POST /api/auth/forgot-password`** — public, same-origin-checked. Returns the byte-identical `{ok:true, message:"If an account exists for that email…"}` body in all three cases — unknown email, rate-limited caller (`forgot-password`, email, 5/hr), and successful send — so the endpoint can't be used to enumerate registered emails, and can't leak rate-limit state either. On a real hit it creates a token row and hands the link to `sendPasswordResetEmail`, which currently only logs it.
+- **`POST /api/auth/reset-password`** — public, same-origin-checked. `rateLimit('reset-password-attempt', token, 10, 900)`, described in its own comment as a safety net rather than the primary defense since the token is 256-bit random. Runs the full strength + HIBP checks **before** consuming the token, deliberately, so a rejected weak password doesn't burn the user's one-time link; then `consumePasswordResetToken` and a single `password_hash` update.
 
 ### `/api/player/*`
 - **`POST /api/player/onboard`** — public, creates the account. Explicitly **rejects** any request carrying match-stat-shaped keys ("scores come from ingested scorecards only"). Both Aadhaar requestIds re-verified server-side via `consumeVerifiedAadhaar` (single-use). `rateLimit('player-onboard-signup', email, 5, 3600)`.
@@ -361,7 +386,7 @@ Confirm/Merge/Split — each requires the exception be `OPEN`, checks the caller
 - **`POST /api/ingest/[id]/decide`** — the real write path on approval: one transaction (20s timeout) creating Tournament/Match/Performance rows, routing ambiguous identity matches to `IdentityException` instead of guessing.
 
 ### `/api/squads/*`, `/api/tracking/*`, `/api/trial-cycles/*`, `/api/candidate-pool`, `/api/my-record`, `/api/dashboard`, `/api/claim/*`, `/api/onboarding/aadhaar/*`, `/api/academy-matching/*`
-Full per-route detail (75 routes total) is preserved in the research transcript this document was built from; the highlights not already covered above:
+Full per-route detail (77 routes total; Appendix A below is the complete table) is preserved in the research transcript this document was built from; the highlights not already covered above:
 - **`GET /api/tracking`** — comment documents a prior bug where `TrendAlert` joined straight to `PlayerProfile` with **no** visibility check at all ("ANY authenticated caller could see every association's flagged players") — now fixed via `visibilityWhere(scope)`.
 - **`POST /api/tracking/[playerId]/note`** — same under-protection pattern as coach evaluate: `requireAuth` only, no ownership check, any authenticated user can attach a note to any player.
 - **`GET /api/trial-cycles/[id]/registrations/[registrationId]/dossier`** — `requireAuth` only, **no association-scope check on the registration itself** — the exact bug class its sibling route (`.../registrations`) documents fixing one level up, but the fix wasn't carried down to this endpoint.
@@ -373,17 +398,27 @@ Full per-route detail (75 routes total) is preserved in the research transcript 
 ## 5. Security Mechanisms
 
 ### Authentication
-`src/lib/auth.ts` — NextAuth, JWT session strategy (no DB session table), `CredentialsProvider` only. `pages.signIn: "/auth"` deliberately overrides NextAuth's default unstyled page so it's never reachable. `authenticateWithPassword` normalizes email, rate-limits (`login-password`, 10/15min, keyed by email — the login path previously had *no* rate limit at all, per the code's own comment, until this session added it), looks up the user, `bcrypt.compare`s.
+`src/lib/auth.ts` — NextAuth, JWT session strategy (no DB session table), `CredentialsProvider` only. `pages.signIn: "/auth"` deliberately overrides NextAuth's default unstyled page so it's never reachable. `authenticateWithPassword` normalizes email, applies **two** rate-limit buckets, looks up the user, `bcrypt.compare`s. The buckets: `login-password` (10/15min, keyed by email — the login path previously had *no* rate limit at all, per the code's own comment) and, added in `a70e233`, `login-password-ip` (30/15min, keyed by client IP) to catch a spray that stays under the per-email cap by varying the email. The IP cap is deliberately the looser of the two, because office NAT, campus networks and carrier CGNAT legitimately put many real users behind one address.
+
+Two further hardening measures landed in the same commit:
+- **Timing-attack fix.** The no-such-user path used to return immediately while a wrong-password attempt went on to run a real `bcrypt.compare` — a measurable difference that let an attacker enumerate valid emails. It now calls `compareDummyForTiming()` against a dummy hash computed once at module load, so both paths cost comparable bcrypt work; the result is discarded.
+- **Failed-login alerting.** `recordFailedLoginForAlerting` uses `rateLimit` as a plain counter (max 1,000,000, so it can never itself block) and emits exactly one structured `auth.repeated_failed_logins` `console.warn` at the fifth failure in a 15-minute window — not on every attempt after it. That log line is the entire feature: nothing consumes it yet, no notification channel is wired, and there is deliberately no lockout.
 `encodeSessionToken`/`applySessionCookie` let non-NextAuth routes (signup, claim-verify, every onboarding-completion route) mint a session cookie indistinguishable from a real NextAuth sign-in — same JWT claims, same cookie name (`next-auth.session-token`, `__Secure-` prefixed under HTTPS), `httpOnly`, `sameSite: lax`, 30-day `maxAge`.
 
 ### Password handling
-`src/lib/password.ts` — bcrypt cost 10. `validatePasswordStrength`: 10+ chars, must contain a letter AND a digit, ~19-entry common-password blocklist (generic + site-specific like `athlasx123`). Enforced at exactly 7 account-creation call sites; **deliberately not re-checked at login** ("strength rules apply only at creation time," per the code's own comment).
+`src/lib/password.ts` — bcrypt cost 10. `validatePasswordStrength`: 10+ chars, must contain a letter AND a digit, ~19-entry common-password blocklist (generic + site-specific like `athlasx123`). Now called at **8** sites — the 7 account-creation routes plus `POST /api/auth/reset-password` — and still **deliberately not re-checked at login** ("strength rules apply only at creation time," per the code's own comment). `PASSWORD_TOO_COMMON_MESSAGE` was extracted and exported in `a70e233` so the breach check below reuses the same user-facing string instead of a second, driftable copy.
+
+`src/lib/hibp.ts` (added `a70e233`) layers a real breach check on top of that ~19-entry list, via Have I Been Pwned's Pwned Passwords range API using **k-anonymity**: only the first 5 hex characters of the password's SHA-1 ever leave the process, and the remaining 35 are matched locally against the returned suffixes — the plaintext, and even the full hash, never go over the network. 2-second timeout, and it **fails open by design**: any network error, timeout or non-200 is treated as "not breached," so a third-party outage can never block signup. Wired into exactly **2** routes (`auth/signup`, `auth/reset-password`); the other 6 account-creation routes still run the local list only.
 
 ### Rate limiting
-`src/lib/rate-limit.ts` — in-memory sliding-window, `globalThis`-backed (survives Next.js dev-mode module reloads), **not Redis-backed** despite `@upstash/*` being installed as a dependency for a future swap. 19 call sites across the codebase, every bucket keyed by the identity being targeted (email/phone/requestId — never raw IP). Full bucket list: login (10/15min), 6 signup buckets (5/hr each), 6 OTP-send buckets (5/hr each), 5 OTP-verify buckets (10/hr each), claim-flow (5/hr send, 10/hr verify). **Gap**: `POST /api/claim/search` has zero rate limiting.
+`src/lib/rate-limit.ts` — in-memory sliding-window, `globalThis`-backed (survives Next.js dev-mode module reloads), **not Redis-backed** despite `@upstash/*` being installed as a dependency for a future swap. **24 call sites across 23 distinct buckets** (re-counted at `a70e233`; was 19 call sites). Almost every bucket is still keyed by the identity being *targeted* (email / phone / requestId / reset token). The one exception is `login-password-ip` — the first and only IP-keyed bucket anywhere in this codebase — added alongside `src/lib/request-ip.ts` (best-effort `x-forwarded-for` → `x-real-ip` → `"unknown"`; trustworthy only because the app runs behind Vercel's proxy, as that file's own comment states).
+
+Full bucket list: **login** — `login-password` 10/15min, `login-password-ip` 30/15min, `login-failure-alert-count` (a non-blocking counter, not a limit); **password reset** — `forgot-password` 5/hr, `reset-password-attempt` 10/15min; **6 signup buckets** 5/hr each; **6 OTP-send buckets** 5/hr each; **5 OTP-verify buckets** 10/hr each; plus `academy-join-submit`. (`claim-otp-send` is the one bucket invoked from two call sites, which is why 24 sites map to 23 names.)
+
+**Gaps**: `POST /api/claim/search` still has zero rate limiting, and `POST /api/auth/forgot-password` has an email bucket with no IP counterpart — so a spray across many different emails isn't throttled there the way it now is on login.
 
 ### Authorization / RBAC
-`src/lib/require-auth.ts` — `requireAuth` (401 if no valid JWT cookie) / `requireRole(roles)` (403 if role not in the list) — the universal API pattern. Of 75 route files: 28 use `requireAuth` alone, 36 use `requireRole`, 21 have none (all pre-account/OTP/deliberately-public routes).
+`src/lib/require-auth.ts` — `requireAuth` (401 if no valid JWT cookie) / `requireRole(roles)` (403 if role not in the list) — the universal API pattern. Re-measured at `a70e233` across all 77 route files: **26** import `requireAuth`, **31** import `requireRole`, **3** use both, and **23** use neither (all pre-account / OTP / deliberately-public routes — the two new password-reset routes join that last group, guarded by the same-origin check and their rate limits instead of a session). These figures replace the 28/36/21 first published here, which did not reconcile against the file count; the numbers above are the measured ones.
 
 Two **verification-gate** modules layer approval-status checks on top of role checks:
 - `src/lib/association/verification-gate.ts` — `resolveVerifiedAssociationScope()` filters to `verification_status: 'approved'` associations only. Imported by **20 files** — essentially every association-scoped route.
@@ -409,20 +444,43 @@ Two **verification-gate** modules layer approval-status checks on top of role ch
 | Guardian consent (academy join-link) | In-memory, **plain module-level, not `globalThis`-backed** — inconsistent with every other in-memory OTP store | Yes |
 | Aadhaar eKYC | In-memory, `globalThis`-backed, two-stage single-use consume | Yes |
 
+### Password reset (added `a70e233`)
+`src/lib/password-reset.ts`, two API routes, and the `/auth/reset-password` page. A 256-bit `randomBytes(32)` hex token is generated and **only its SHA-256 hash is stored** (`PasswordResetToken.token_hash`, unique) — the same principle as `password_hash`, so reading that table alone can never produce a usable token; the raw token exists only in the emailed link and in the request that redeems it. 30-minute TTL, enforced in application code via `expires_at`.
+
+Single use is enforced by a `consumed_at` timestamp rather than a delete (audit trail, matching `PhoneOtp`), and the write is a conditional `updateMany(… WHERE consumed_at IS NULL)` specifically so two requests racing to redeem the same token can't both win — the loser sees `count === 0` and is rejected, even though both passed the initial read.
+
+Three things this flow does **not** do, all verifiable from `reset-password/route.ts`, whose only write is the `password_hash` update:
+- It does not invalidate the user's **other outstanding reset tokens** — every unexpired token issued earlier stays redeemable after a successful reset.
+- It does not invalidate **existing sessions**. Sessions are stateless JWTs with a 30-day `maxAge` and there is no revocation list anywhere in this codebase, so a session opened with the old password survives the reset for up to 30 days.
+- It does not notify the account holder that their password changed.
+
+There is also still **no password-change flow for an already-signed-in user** — `password_hash` is written by exactly 8 routes: the 7 account-creation ones and this reset route.
+
+### CSRF / same-origin (added `a70e233`)
+`src/lib/same-origin.ts` — compares the request's `Origin` (falling back to `Referer`) host against **that same request's** `x-forwarded-host`/`Host`, the standard OWASP "verify Origin" check. A request with neither `Origin` nor `Referer` is rejected rather than waved through, on the reasoning that a genuine same-origin `fetch()` always sets `Origin` on a state-changing request. Its header comment records that `req.nextUrl.origin` and `NEXTAUTH_URL` were both tried as the comparison target and rejected — the first normalizes to Next's internal hostname and produced false 403s for genuinely same-origin requests, the second is fixed config that can legitimately differ from the port a request actually arrived on (this repo's own e2e run being the example).
+
+Applied to **3 routes**: `auth/signup`, `auth/forgot-password`, `auth/reset-password`. Note the coverage shape: **7** routes call `applySessionCookie` to mint a session outside NextAuth, and only `auth/signup` is among the three — `claim/verify`, `player/onboard`, `coach/onboard`, `academy/onboard`, `scout/onboard` and `associations/self-serve-onboard` still rely on `sameSite: lax` alone.
+
 ### Known gaps (stated factually)
-- **No password-reset flow exists anywhere.** The "Forgot password?" link on `/auth` is a toast notice ("isn't wired up yet"), not a real flow.
-- **No dedicated CSRF middleware.** NextAuth's own `/api/auth/*` endpoints get its built-in CSRF cookie automatically; every route that mints a session *outside* the NextAuth handler (signup, claim-verify, every onboarding-completion route) relies solely on `sameSite: lax` as cross-site mitigation, with no application-level CSRF token of its own.
+- ~~**No password-reset flow exists anywhere.**~~ **Resolved in `a70e233`** — a real single-use-token flow now exists end to end (see above). Two caveats keep it from being finished:
+  - **No email is ever actually sent.** `src/lib/send-password-reset-email.ts` is an explicit stub that `console.log`s the reset link in *every* environment, production included — its own comment says so. Delivery is the one missing piece.
+  - **The `password_reset_tokens` table is not in the live database.** Both the Prisma model and `prisma/manual_migrations/password_reset_tokens.sql` are marked `DRAFT ONLY` in-repo and were deliberately left unapplied pending explicit go-ahead (the standing rule for schema changes on this project). The table *is* present in the isolated `athlasx_test` schema, which is why the tests pass. Until that migration is run, `POST /api/auth/forgot-password` will throw on its first `passwordResetToken.create`: **the flow is merged in code but not live.**
+- **CSRF is now partially covered, not fully.** NextAuth's own `/api/auth/*` endpoints get its built-in CSRF cookie automatically, and `a70e233` added a same-origin check to 3 routes — but only **1 of the 7** routes that mint a session cookie outside the NextAuth handler. The other 6 (claim-verify and all five onboarding-completion routes) still rely solely on `sameSite: lax`, with no application-level CSRF token of their own.
+- **The HIBP breach check fails open** — deliberate and documented (signup must not break on a third-party outage), but the practical consequence is that during an API outage the only password check running is the ~19-entry hardcoded list.
+- **A password reset does not end existing sessions or sibling tokens**, and does not notify the account holder — see §5's password-reset subsection.
 - **Under-protected write endpoints** (no rate limit, or a thinner-than-neighboring-routes auth check): `POST /api/coach/[playerId]/evaluate`, `POST /api/tracking/[playerId]/note` (both `requireAuth`-only with no ownership check), `GET /api/trial-cycles/[id]/registrations/[registrationId]/dossier` (no association-scope check), `/api/academy-matching/*` (no role check at all), `POST /api/claim/search` (no rate limit).
 
 ---
 
 ## 6. Database — Schema & Maintenance
 
-**Full schema**: `prisma/schema.prisma`, 1221 lines, 40+ models, 37 enums, all pinned to a dedicated `"athlasx"` Postgres schema (never touching the legacy `public` schema, which may hold ~30 unrelated tables from an archived predecessor codebase). Every PK is a `gen_random_uuid()`-defaulted UUID.
+**Full schema**: `prisma/schema.prisma`, **1251** lines, 40+ models, 37 enums, all pinned to a dedicated `"athlasx"` Postgres schema (never touching the legacy `public` schema, which may hold ~30 unrelated tables from an archived predecessor codebase). Every PK is a `gen_random_uuid()`-defaulted UUID.
 
-**Model groups** (see the full inventory in the research transcript for every field): Users & roles (`User`, `UserRole` enum with 7 values) · Association & verification (`Association`, `AssociationStaff`, verification-status gating) · Academy & batches (`Academy`, `AcademyBatch`, `AcademyBatchMembership`, `AcademyJoinRequest`, `AcademyAttendanceFlag`, `AcademyMatchCandidate`) · Player profile & performance (`PlayerProfile` — the largest model, 40 fields — `PlayerClaim`, `PhoneOtp`, `Tournament`, `Match`, `Performance`) · Coach/squad/grading (`CoachProfile`, `Squad`, `SquadCoach`, `SquadPlayer`, `CoachAdvisoryNote`, `TrainingSession`, `SessionAttendance`, `SelectionSession`, `Grade`, `Selection`, `OmissionRationale`, `SelectorProfile`) · Trial cycles & registrations (`TrialCycle`, `TrialVenue`, `Registration`, `Dossier`) · Scout (`ScoutProfile`) · Identity resolution / ingest (`IdentityException`, `IngestJob`) · Weekly tracking (`PlayerWeek`, `TrendAlert`).
+**Model groups** (see the full inventory in the research transcript for every field): Users & roles (`User`, `UserRole` enum with 7 values, `PasswordResetToken` — added `a70e233`, **draft, not in the live DB**, see below) · Association & verification (`Association`, `AssociationStaff`, verification-status gating) · Academy & batches (`Academy`, `AcademyBatch`, `AcademyBatchMembership`, `AcademyJoinRequest`, `AcademyAttendanceFlag`, `AcademyMatchCandidate`) · Player profile & performance (`PlayerProfile` — the largest model, 40 fields — `PlayerClaim`, `PhoneOtp`, `Tournament`, `Match`, `Performance`) · Coach/squad/grading (`CoachProfile`, `Squad`, `SquadCoach`, `SquadPlayer`, `CoachAdvisoryNote`, `TrainingSession`, `SessionAttendance`, `SelectionSession`, `Grade`, `Selection`, `OmissionRationale`, `SelectorProfile`) · Trial cycles & registrations (`TrialCycle`, `TrialVenue`, `Registration`, `Dossier`) · Scout (`ScoutProfile`) · Identity resolution / ingest (`IdentityException`, `IngestJob`) · Weekly tracking (`PlayerWeek`, `TrendAlert`).
 
-**No `prisma/migrations/` directory exists at all** — schema state is pushed directly (`prisma db push`), never tracked via `prisma migrate`. Instead, `prisma/manual_migrations/*.sql` (7 files) are hand-written, forward-only SQL scripts applied via `npx prisma db execute --file ... --url "$DATABASE_DIRECT_URL"` (never the pooled URL — DDL needs the direct connection). This convention exists because: (1) there's no migration history to build on, (2) tooling in this environment can't always reach the DB host or Prisma's binary CDN directly, so changes get handed over as a runnable SQL file, (3) `DATABASE_DIRECT_URL` vs. pooled `DATABASE_URL` discipline needs to be explicit per-invocation, (4) schema changes require a reviewable diff and explicit human go-ahead as a standing project rule. **No `IF NOT EXISTS` guards** exist in these files — a partial failure mid-file can leave the DB half-applied; don't blind-retry a failed `CREATE TYPE`/`CREATE TABLE`.
+**No `prisma/migrations/` directory exists at all** — schema state is pushed directly (`prisma db push`), never tracked via `prisma migrate`. Instead, `prisma/manual_migrations/*.sql` (**8 files** as of `a70e233`) are hand-written, forward-only SQL scripts applied via `npx prisma db execute --file ... --url "$DATABASE_DIRECT_URL"` (never the pooled URL — DDL needs the direct connection). This convention exists because: (1) there's no migration history to build on, (2) tooling in this environment can't always reach the DB host or Prisma's binary CDN directly, so changes get handed over as a runnable SQL file, (3) `DATABASE_DIRECT_URL` vs. pooled `DATABASE_URL` discipline needs to be explicit per-invocation, (4) schema changes require a reviewable diff and explicit human go-ahead as a standing project rule. **No `IF NOT EXISTS` guards** exist in these files — a partial failure mid-file can leave the DB half-applied; don't blind-retry a failed `CREATE TYPE`/`CREATE TABLE`.
+
+The newest of the eight, `password_reset_tokens.sql` (`a70e233`), is **the one that has not been applied to the live database** — the model carries a `DRAFT ONLY` banner in `schema.prisma` pointing at this same rule. Code that queries `passwordResetToken` is already merged and will fail at runtime until someone runs it; it reaches the `athlasx_test` schema automatically because `scripts/setup-test-db.mjs` derives that schema from `schema.prisma`, where the model is already declared.
 
 **Connection**: `src/lib/db.ts` — the standard Next.js Prisma singleton (`globalThis`-stashed outside production) to survive dev-mode hot-reload without exhausting the connection pool. `schema.prisma`'s datasource block uses **both** `url` (pooled, Supabase Supavisor, `:6543`, all runtime queries) and `directUrl` (unpooled, `:5432`, schema/DDL operations only) — transaction-mode poolers don't support the session-level features DDL needs.
 
@@ -438,7 +496,19 @@ Two **verification-gate** modules layer approval-status checks on top of role ch
 
 ## 7. Git History — Feature-Area Commit Log
 
-The 90-file backlog of uncommitted work accumulated across this engagement was split into 18 separate, feature-scoped commits this session (in dependency order — foundational pieces like password validation landing before the features that depend on them):
+**Since this document was first written** — three commits, newest first:
+
+```
+a70e233 feat: harden credentials auth and add self-serve password reset
+0ce719a docs: rewrite README for the current Prisma/Supabase stack
+91665a4 docs: add complete platform reference with live screenshots   <- this document
+```
+
+`a70e233` is the only one of the three that touched application code — 22 files, +2,237/−78 — and is the source of every change in this refresh. Beyond the auth work itself it added the repo's first e2e coverage of the auth surface (`tests/e2e/landing.spec.ts`, `auth-signin.spec.ts`, `auth-signup.spec.ts` — 51 Playwright cases, plus `tests/e2e/helpers/session.ts`) and 22 vitest cases under `tests/security/` (`auth-hardening.test.ts`, `password-reset.test.ts`), neither of which was run as part of this refresh. It also fixed `playwright.config.ts`: the `webServer` readiness probe pointed at `/dashboard`, which began 404ing for signed-out requests once the page-gating work landed, so Playwright never considered a perfectly healthy server ready and every e2e run timed out at 180s. It now probes `/`.
+
+---
+
+The 90-file backlog of uncommitted work accumulated across this engagement was split into 18 separate, feature-scoped commits in the earlier session (in dependency order — foundational pieces like password validation landing before the features that depend on them):
 
 ```
 5b01f06 feat: add error/not-found boundaries, route loading skeletons, and Sentry
@@ -499,18 +569,22 @@ Run `git log --oneline` for the complete, current history — this list reflects
 - **No fresh player/coach/scout/academy_admin accounts were created via the real signup wizards** in this pass, so `/record`, `/coach`, `/scout`, and the `/academy/**` group have no live screenshot in this document — they are documented exhaustively from source instead (every field, every button, every API call), and a live screenshot of `/scout` specifically was visually confirmed correct earlier in this session via a separate, pre-existing logged-in session, just not saved as a file here.
 - **The `academy_admin` self-serve flag is off** (`ACADEMY_SELF_SERVE_ENABLED=false`), so the entire `/academy/**` route group is currently unreachable in production even by an `academy_admin` account — confirmed launch decision, not a bug.
 - **A stray backup file exists**: `src/app/academy/onboarding/page.tsx.5step.bak` — the pre-compression version of the academy wizard, left uncommitted and unused; not part of the routed app.
+- **The 2026-09-13 refresh was source-only.** Everything added for `a70e233` (§2's `/auth/reset-password` entry and reworked "Forgot password?" row, §4's four `/api/auth/*` bullets, §5's password-reset and same-origin subsections) comes from reading the diff and every new file in full — no browser pass, no test run. The password-reset flow in particular **cannot** be walked live in its current state: `password_reset_tokens` is not in the live database (§5, §6).
+- **Every count in this document was re-measured at `a70e233`**, not incremented by hand: route files (77), `rateLimit` call sites (24) and distinct buckets (23), `requireAuth`/`requireRole` usage (26/31/3/23), `validatePasswordStrength` call sites (8), `applySessionCookie` routes (7), `schema.prisma` lines (1251), manual migrations (8). The RBAC breakdown in §5 differs from what was first published here because the original 28/36/21 did not reconcile against the file count; the measured figures replace it.
 - **Reference prompt/audit documents** exist under `docs/*.md` and `Claude outputs/*.md` (engagement context summaries, earlier UI audits, fix-plan prompts) — left as-is, not folded into this reference document, since they're process artifacts rather than product documentation.
 
 ---
 
-## Appendix A — Every API Route (complete list, all 75)
+## Appendix A — Every API Route (complete list, all 77)
 
 §4 covered the routes with the most interesting behavior in prose. This table is the complete list, so nothing is left undocumented, however routine.
 
 | Method + Path | Auth | One-line description |
 |---|---|---|
 | `GET/POST /api/auth/[...nextauth]` | NextAuth Credentials | Sign-in; `authenticateWithPassword` + rate limit |
-| `POST /api/auth/signup` | public | Bare account (player/coach/academy) |
+| `POST /api/auth/signup` | public, same-origin-checked | Bare account (player/coach/academy); strength + HIBP breach check |
+| `POST /api/auth/forgot-password` | public, same-origin-checked | Issues a single-use reset token; identical response whether or not the account exists |
+| `POST /api/auth/reset-password` | public, same-origin-checked | Consumes the token once, rewrites `password_hash` |
 | `POST /api/player/onboard` | public | Creates player account + profile, Aadhaar re-verified server-side |
 | `GET/PATCH /api/player/visibility` | requireAuth, self-only | Read/update own visibility tier |
 | `POST /api/coach/onboard` | public | Creates coach account + profile |
