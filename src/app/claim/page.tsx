@@ -175,13 +175,13 @@ export default function ClaimPage() {
                       className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-zinc-400 text-sm">Date of birth (optional, narrows results)</Label>
+                    <Label className="text-zinc-400 text-sm">Date of birth *</Label>
                     <Input type="date" value={searchForm.dob} onChange={e => setSearchForm(f => ({ ...f, dob: e.target.value }))}
                       className="bg-white/[0.05] border-white/10 text-white h-10 rounded-xl focus:border-green-500/50 [color-scheme:dark]" />
                   </div>
                 </div>
                 {error && <ErrorBox text={error} />}
-                <Button onClick={handleSearch} disabled={!searchForm.fullName || !searchForm.district || loading} className="w-full">
+                <Button onClick={handleSearch} disabled={searchForm.fullName.trim().length < 3 || !searchForm.district || !searchForm.dob || loading} className="w-full">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                   Search
                 </Button>
