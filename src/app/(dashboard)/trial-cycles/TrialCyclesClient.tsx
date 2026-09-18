@@ -309,7 +309,7 @@ function CycleCard({ cycle }: { cycle: Cycle }) {
 }
 
 /* ─── Page ───────────────────────────────────────────────────────────────────── */
-export default function TrialCyclesPage() {
+export default function TrialCyclesClient() {
   const [showCreate, setShowCreate] = useState(false)
   const [cycles, setCycles] = useState<Cycle[]>([])
   const [associationId, setAssociationId] = useState<string | null>(null)
