@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { CheckCircle2, Loader2, ShieldAlert, XCircle } from 'lucide-react'
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react'
 
 /**
  * AthlasX-Ops-only tool — the approval half of the scout pending gate.
@@ -10,10 +9,9 @@ import { CheckCircle2, Loader2, ShieldAlert, XCircle } from 'lucide-react'
  * src/lib/scout/verification-gate.ts is what actually withholds access in
  * the meantime, this page is just where the decision gets made.
  *
- * Same posture as the association version: real enforcement is
- * server-side (requireRole on both API routes below); this page's own
- * role check just avoids showing a working-looking tool to a non-ops
- * visitor.
+ * Same posture as the association version: ops/layout.tsx returns 404 for
+ * anyone who isn't athlasx_ops, and both API routes below call
+ * requireRole.
  */
 
 interface PendingScout {
@@ -33,13 +31,11 @@ const ORG_TYPE_LABEL: Record<PendingScout['orgType'], string> = {
 }
 
 export default function PendingScoutsPage() {
-  const { data: session, status } = useSession()
   const [pending, setPending] = useState<PendingScout[] | null>(null)
   const [error, setError] = useState('')
   const [actingId, setActingId] = useState<string | null>(null)
 
   useEffect(() => {
-    if (session?.user?.role !== 'athlasx_ops') return
     fetch('/api/ops/scouts/pending')
       .then(async (r) => {
         const d = await r.json()
@@ -47,7 +43,7 @@ export default function PendingScoutsPage() {
         setPending(d.scouts)
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load pending scouts'))
-  }, [session?.user?.role])
+  }, [])
 
   async function decide(id: string, verification_status: 'approved' | 'rejected') {
     setActingId(id)
@@ -65,20 +61,6 @@ export default function PendingScoutsPage() {
     } finally {
       setActingId(null)
     }
-  }
-
-  if (status === 'loading') {
-    return <div className="glass-card p-10 flex items-center justify-center text-zinc-600"><Loader2 className="w-5 h-5 animate-spin" /></div>
-  }
-
-  if (session?.user?.role !== 'athlasx_ops') {
-    return (
-      <div className="glass-card p-8 flex flex-col items-center text-center gap-2">
-        <ShieldAlert className="w-6 h-6 text-zinc-600" />
-        <p className="text-sm font-bold text-zinc-400">AthlasX Ops only</p>
-        <p className="text-xs text-zinc-600">Approving a scout grants it real access to candidate data — restricted to the Ops team.</p>
-      </div>
-    )
   }
 
   return (
