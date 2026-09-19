@@ -25,6 +25,15 @@ const { POST: decide } = await import('@/app/api/ingest/[id]/decide/route')
 
 const SECRET = process.env.NEXTAUTH_SECRET!
 
+// The caller MUST be a real User row with role: 'association' — requireRole
+// re-verifies a privileged claim (athlasx_ops/association/academy_admin/
+// scout) against the DB on every request (src/lib/session-role-refresh.ts),
+// so a JWT claiming 'association' for a user whose real DB role differs (or
+// who doesn't exist at all) gets silently corrected/rejected before this
+// route's own role check ever runs. Always pass fx.associationStaffUser.id,
+// not fx.chair.id (real DB role 'selection_panel', used elsewhere in this
+// suite as a deliberate dual-purpose stand-in for AssociationStaff-derived
+// scope — see test-db.ts's own comment on that fixture).
 async function getStaffRequest(userId: string, body: unknown) {
   const jwt = await encode({ token: { id: userId, role: 'association', email: `${userId}@test.local` }, secret: SECRET })
   return new NextRequest('http://test.local/api', {
@@ -96,7 +105,7 @@ describe('approving a real ingest job', () => {
       },
     })
 
-    const res = await decide(await getStaffRequest(fx.chair.id, { decision: 'approved' }), { params: { id: job.id } })
+    const res = await decide(await getStaffRequest(fx.associationStaffUser.id, { decision: 'approved' }), { params: { id: job.id } })
     expect(res.status, 'approve should succeed').toBe(200)
     const body = await res.json()
 
@@ -192,7 +201,7 @@ describe('approving a real ingest job', () => {
       },
     })
 
-    const res = await decide(await getStaffRequest(fx.chair.id, { decision: 'approved' }), { params: { id: job.id } })
+    const res = await decide(await getStaffRequest(fx.associationStaffUser.id, { decision: 'approved' }), { params: { id: job.id } })
     const body = await res.json()
 
     expect(body.identityAmbiguous, 'the two-candidate name match must route to AMBIGUOUS').toBe(1)

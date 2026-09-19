@@ -225,6 +225,13 @@ describe('T-GRADE-AUTH — non-selectors are blocked from every grading write pa
   // escalation (a real player-role user, no selection_panel role, no
   // AssociationStaff row, successfully POSTed a grade and got a real Grade
   // row created).
+  //
+  // 'association' is the one exception: it's a PRIVILEGED_ROLES member, so
+  // requireAuth re-verifies that claim against a real DB row on every
+  // request (src/lib/session-role-refresh.ts) — a synthetic, nonexistent id
+  // resolves to "no such account", which correctly 401s (force re-auth)
+  // rather than reaching this route's own 403 role check. asStaffer must use
+  // a real user whose DB role is actually 'association' — fx.associationStaffUser.
   const asPlayer = (body?: unknown) =>
     body === undefined
       ? getAsUser(URL, '11111111-1111-1111-1111-111111111111', 'player')
@@ -232,7 +239,7 @@ describe('T-GRADE-AUTH — non-selectors are blocked from every grading write pa
   const asCoach = (body?: unknown) =>
     postAsUser(URL, '22222222-2222-2222-2222-222222222222', 'coach', body)
   const asStaffer = (body?: unknown) =>
-    postAsUser(URL, '33333333-3333-3333-3333-333333333333', 'association', body)
+    postAsUser(URL, fx.associationStaffUser.id, 'association', body)
 
   it('rejects a player POSTing a grade — the exact escalation live-proved against the real DB', async () => {
     const res = await submitGrade(
