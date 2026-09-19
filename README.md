@@ -4,7 +4,7 @@ India's cricket talent discovery platform — connecting players, coaches, acade
 
 **Stack:** Next.js 14.2.35 (App Router) · TypeScript · Tailwind (`ax-*` design tokens) · Prisma 6 / Postgres (Supabase) · NextAuth (Credentials provider, JWT sessions) · Framer Motion · Sentry (`@sentry/nextjs`).
 
-For a complete, page-by-page and route-by-route reference — every button and form field, the full API surface, security mechanisms, and the database schema — see **[docs/AthlasX_Complete_Platform_Reference.md](docs/AthlasX_Complete_Platform_Reference.md)**. This README only covers getting the app running locally.
+For a complete, page by page and route-by-route reference — every button and form field, the full API surface, security mechanisms, and the database schema — see **[docs/AthlasX_Complete_Platform_Reference.md](docs/AthlasX_Complete_Platform_Reference.md)**. This README only covers getting the app running locally.
 
 ## Roles
 
