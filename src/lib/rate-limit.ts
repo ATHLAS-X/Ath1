@@ -1,11 +1,19 @@
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+
 /**
- * Sliding-window rate limiting. No UPSTASH_REDIS_REST_URL/TOKEN is
- * configured in this environment, so this is an in-memory-per-process
- * implementation only — fine for single-instance/local/test use, does NOT
- * share state across multiple server instances or survive a restart.
- * @upstash/ratelimit + @upstash/redis are already listed dependencies
- * (unused elsewhere in this codebase); wiring a real Redis-backed limiter
- * later means swapping this module's internals, not its call sites.
+ * Sliding-window rate limiting — shared across every server instance when
+ * Upstash Redis is configured, per-process otherwise.
+ *
+ * This app runs on Vercel, where each concurrent function instance has its
+ * own memory. An in-memory counter there multiplies every limit by the number
+ * of warm instances and resets on every cold start. With
+ * UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN set, every instance
+ * counts against the same Redis bucket. Without them — local dev, tests — the
+ * in-memory implementation below is used, unchanged.
+ *
+ * Async because a shared store needs a network round trip, so every call site
+ * awaits it.
  */
 
 // globalThis-backed, not a plain module-level const — Next.js dev mode can
@@ -33,7 +41,7 @@ export function __resetRateLimitsForTests(): void {
   buckets.clear()
 }
 
-export function rateLimit(name: string, key: string, max: number, windowSeconds: number): RateLimitResult {
+function inMemoryRateLimit(name: string, key: string, max: number, windowSeconds: number): RateLimitResult {
   const bucketKey = `${name}:${key}`
   const now = Date.now()
   const windowMs = windowSeconds * 1000
@@ -47,4 +55,54 @@ export function rateLimit(name: string, key: string, max: number, windowSeconds:
   hits.push(now)
   buckets.set(bucketKey, hits)
   return { success: true, remaining: max - hits.length, resetMs: windowMs }
+}
+
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN
+const redis = UPSTASH_URL && UPSTASH_TOKEN ? new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN }) : null
+
+// A Ratelimit instance fixes its window parameters, and every bucket in this
+// codebase always uses the same parameters — so one instance per
+// (bucket, max, window) keeps this map exactly as small as the bucket list.
+const limiters = new Map<string, Ratelimit>()
+
+function limiterFor(redisClient: Redis, name: string, max: number, windowSeconds: number): Ratelimit {
+  const id = `${name}:${max}:${windowSeconds}`
+  let limiter = limiters.get(id)
+  if (!limiter) {
+    const window: `${number} s` = `${windowSeconds} s`
+    limiter = new Ratelimit({
+      redis: redisClient,
+      limiter: Ratelimit.slidingWindow(max, window),
+      prefix: `athlasx:rl:${name}`,
+      analytics: false,
+      // Short, because these checks sit in front of sign-in and signup. On
+      // timeout Upstash allows the request rather than blocking real users.
+      timeout: 1000,
+    })
+    limiters.set(id, limiter)
+  }
+  return limiter
+}
+
+export async function rateLimit(name: string, key: string, max: number, windowSeconds: number): Promise<RateLimitResult> {
+  if (!redis) return inMemoryRateLimit(name, key, max, windowSeconds)
+
+  try {
+    const result = await limiterFor(redis, name, max, windowSeconds).limit(key)
+    return { success: result.success, remaining: result.remaining, resetMs: Math.max(0, result.reset - Date.now()) }
+  } catch (err) {
+    // A Redis outage must neither take sign-in down with it nor silently
+    // remove limiting: fall back to this instance's own counter, and say so.
+    // eslint-disable-next-line no-console
+    console.warn(
+      JSON.stringify({
+        event: 'rate_limit.redis_unavailable',
+        bucket: name,
+        error: err instanceof Error ? err.message : String(err),
+        note: 'fell back to the per-instance in-memory limiter for this request',
+      }),
+    )
+    return inMemoryRateLimit(name, key, max, windowSeconds)
+  }
 }

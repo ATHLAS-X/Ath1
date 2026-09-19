@@ -1,8 +1,7 @@
-import type { Prisma, PrismaClient } from '@prisma/client'
-import { db } from '@/lib/db'
+import { db, type AppDbClient, type AppTransactionClient } from '@/lib/db'
 import { similarity } from '@/lib/string-similarity'
 
-type DbClient = PrismaClient | Prisma.TransactionClient
+type DbClient = AppDbClient | AppTransactionClient
 
 export const AUTO_ATTACH_THRESHOLD = 0.9
 const SUGGEST_THRESHOLD = 0.65

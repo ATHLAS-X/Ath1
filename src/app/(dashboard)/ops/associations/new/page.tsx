@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { CheckCircle2, Loader2, ShieldAlert } from 'lucide-react'
+import { CheckCircle2, Loader2 } from 'lucide-react'
 
 /**
  * AthlasX-Ops-only tool for creating an Association + its first
@@ -14,16 +13,14 @@ import { CheckCircle2, Loader2, ShieldAlert } from 'lucide-react'
  * offline-signed data-sharing agreement — the confirmation checkbox below
  * is that Ops person's attestation, not the association's own.
  *
- * Real enforcement is server-side (requireRole on the API route); this
- * page's own role check is just so a non-ops visitor sees a clear message
- * instead of a raw form that will 403 on submit.
+ * Access is enforced server-side twice: ops/layout.tsx returns 404 for
+ * anyone who isn't athlasx_ops before this page ever mounts, and the API
+ * route calls requireRole.
  */
 
 const STATES = ['Andhra Pradesh', 'Assam', 'Bihar', 'Delhi', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Odisha', 'Punjab', 'Rajasthan', 'Tamil Nadu', 'Telangana', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal']
 
 export default function CreateAssociationPage() {
-  const { data: session, status } = useSession()
-
   const [name, setName] = useState('')
   const [type, setType] = useState<'state' | 'district'>('state')
   const [state, setState] = useState(STATES[0])
@@ -59,20 +56,6 @@ export default function CreateAssociationPage() {
     } finally {
       setSubmitting(false)
     }
-  }
-
-  if (status === 'loading') {
-    return <div className="glass-card p-10 flex items-center justify-center text-zinc-600"><Loader2 className="w-5 h-5 animate-spin" /></div>
-  }
-
-  if (session?.user?.role !== 'athlasx_ops') {
-    return (
-      <div className="glass-card p-8 flex flex-col items-center text-center gap-2">
-        <ShieldAlert className="w-6 h-6 text-zinc-600" />
-        <p className="text-sm font-bold text-zinc-400">AthlasX Ops only</p>
-        <p className="text-xs text-zinc-600">This tool creates a real association with real staff access — restricted to the Ops team.</p>
-      </div>
-    )
   }
 
   return (

@@ -1,7 +1,8 @@
-import type { IdentityException, Prisma, PrismaClient } from '@prisma/client'
+import type { IdentityException } from '@prisma/client'
+import type { AppDbClient, AppTransactionClient } from '@/lib/db'
 import type { NormalizedPerformanceRow } from '@/lib/ingest/types'
 
-type DbClient = PrismaClient | Prisma.TransactionClient
+type DbClient = AppDbClient | AppTransactionClient
 
 /**
  * Writes the Performance that ingest approve skipped when identity was

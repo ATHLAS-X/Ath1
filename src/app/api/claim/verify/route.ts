@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   // that counter resets if a new OTP is sent for the same claim, so it
   // alone doesn't bound the total guess rate across resends the way the
   // send-side rateLimit('claim-otp-send', ...) already bounds sends.
-  const verifyLimit = rateLimit('claim-otp-verify', claimId, 10, 3600)
+  const verifyLimit = await rateLimit('claim-otp-verify', claimId, 10, 3600)
   if (!verifyLimit.success) {
     return NextResponse.json({ error: 'Too many verification attempts. Try again later.' }, { status: 429 })
   }

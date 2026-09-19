@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
   // Account-creation attempts weren't rate-limited at all (only the Aadhaar
   // OTP step was) — keyed by email, same "identity being targeted" pattern
   // authenticateWithPassword uses for login.
-  const signupLimit = rateLimit('player-onboard-signup', email, 5, 3600)
+  const signupLimit = await rateLimit('player-onboard-signup', email, 5, 3600)
   if (!signupLimit.success) {
     return NextResponse.json({ error: 'Too many signup attempts. Please try again later.' }, { status: 429 })
   }

@@ -67,7 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: { academyId: 
     if (!consent) {
       return NextResponse.json({ error: "Guardian consent is required" }, { status: 400 });
     }
-    const limit = rateLimit("academy-join-submit", guardianPhone, 10, 3600);
+    const limit = await rateLimit("academy-join-submit", guardianPhone, 10, 3600);
     if (!limit.success) {
       return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
     }

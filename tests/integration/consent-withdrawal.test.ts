@@ -120,7 +120,7 @@ describe('consent withdrawal — all 6 read paths', () => {
     // claim/search only ever returns unclaimed profiles — exercised against
     // the separate shadow profile above, not fx.adult (which is claimed).
     const beforeSearch = JSON.stringify(
-      await (await claimSearch(post({ fullName: 'Shadow', district: 'Kanpur' }))).json(),
+      await (await claimSearch(post({ fullName: 'Shadow', district: 'Kanpur', dob: '2001-02-02' }))).json(),
     )
     expect(beforeCandidate.includes(fx.adult.id), 'precondition: visible in candidate-pool').toBe(true)
     expect(beforeTracking.includes(fx.adult.id), 'precondition: visible in tracking').toBe(true)
@@ -146,7 +146,7 @@ describe('consent withdrawal — all 6 read paths', () => {
     const afterDashboard = JSON.stringify(await (await dashboard(staffAuth)).json())
     const afterMine = JSON.stringify(await (await myRecord(await getAsUser(fx.chair.id, 'player'))).json())
     const afterSearch = JSON.stringify(
-      await (await claimSearch(post({ fullName: 'Shadow', district: 'Kanpur' }))).json(),
+      await (await claimSearch(post({ fullName: 'Shadow', district: 'Kanpur', dob: '2001-02-02' }))).json(),
     )
 
     expect(afterCandidate.includes(fx.adult.id), 'candidate-pool still returns the withdrawn player').toBe(false)

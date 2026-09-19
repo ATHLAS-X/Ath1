@@ -2,24 +2,24 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Settings, Eye, Users, Loader2, CheckCircle2 } from 'lucide-react'
+import { Settings, Eye, Users, Loader2, CheckCircle2, KeyRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Card } from '@/components/ui/card'
 
 /*
- * W6 — player-facing visibility control
+ * Account settings.
  *
- * PlayerProfile.visibility_tier decides who beyond a player's own
- * association can see their profile (src/lib/player-visibility.ts).
- * franchise_scout is intentionally not offered here — it's hard-disabled
- * behind FRANCHISE_SCOUT_ENABLED and there's no scout role to receive it
- * yet (see src/lib/feature-flags.ts).
+ * W6 — player-facing visibility control. PlayerProfile.visibility_tier
+ * decides who beyond a player's own association can see their profile
+ * (src/lib/player-visibility.ts). franchise_scout is intentionally not
+ * offered here — it's hard-disabled behind FRANCHISE_SCOUT_ENABLED and
+ * there's no scout role to receive it yet (see src/lib/feature-flags.ts).
  *
- * Styling-pass note: this page covers visibility only — there is no
- * account/contact-info editing or guardian-details-for-minors section
- * here or anywhere else in this codebase today. Not added in this pass
- * (styling only); flagged in the accompanying report instead.
+ * Password change — for every role, via POST /api/auth/change-password.
+ *
+ * Still not here: account/contact-info editing, or guardian details for
+ * minors. Neither exists anywhere else in the codebase either.
  */
 
 type SelectableTier = 'association_only' | 'cross_association'
@@ -39,11 +39,19 @@ const TIERS: { value: SelectableTier; label: string; description: string; icon: 
   },
 ]
 
+const FIELD_CLS =
+  'w-full h-10 px-3 rounded-ax-md bg-ax-fieldBg border border-ax-cardBorder text-ax-text text-sm placeholder:text-ax-textFaint focus:outline-none focus:border-ax-accent'
+
 export default function SettingsPage() {
   const [tier, setTier] = useState<SelectableTier | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [hasProfile, setHasProfile] = useState(true)
+
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changing, setChanging] = useState(false)
 
   useEffect(() => {
     fetch('/api/player/visibility')
@@ -72,6 +80,35 @@ export default function SettingsPage() {
       toast.success('Visibility updated')
     }
     setSaving(false)
+  }
+
+  async function changePassword(e: React.FormEvent) {
+    e.preventDefault()
+    if (newPassword !== confirmPassword) {
+      toast.error('The new passwords don’t match.')
+      return
+    }
+    setChanging(true)
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data?.error ?? 'Could not change your password. Please try again.')
+        return
+      }
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      toast.success('Password changed. You’ve been signed out everywhere else.')
+    } catch {
+      toast.error('Could not change your password. Please try again.')
+    } finally {
+      setChanging(false)
+    }
   }
 
   return (
@@ -123,6 +160,68 @@ export default function SettingsPage() {
             })}
           </div>
         )}
+      </Card>
+
+      <Card className="p-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <KeyRound className="w-4 h-4 text-ax-textDim" />
+          <h2 className="text-sm font-bold text-ax-text">Change password</h2>
+        </div>
+
+        <form onSubmit={changePassword} className="space-y-3">
+          <div className="space-y-1">
+            <label htmlFor="current-password" className="text-[11px] font-bold uppercase tracking-[0.08em] text-ax-textDim">
+              Current password
+            </label>
+            <input
+              id="current-password"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className={FIELD_CLS}
+            />
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="new-password" className="text-[11px] font-bold uppercase tracking-[0.08em] text-ax-textDim">
+              New password
+            </label>
+            <input
+              id="new-password"
+              type="password"
+              required
+              minLength={10}
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className={FIELD_CLS}
+            />
+            <p className="text-[11px] text-ax-textFaint">At least 10 characters, with letters and numbers.</p>
+          </div>
+          <div className="space-y-1">
+            <label htmlFor="confirm-password" className="text-[11px] font-bold uppercase tracking-[0.08em] text-ax-textDim">
+              Confirm new password
+            </label>
+            <input
+              id="confirm-password"
+              type="password"
+              required
+              autoComplete="new-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={FIELD_CLS}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={changing}
+            className="inline-flex items-center gap-2 font-barlow-semi text-[12.5px] font-bold uppercase tracking-[0.06em] bg-ax-accent text-[#1a0e02] px-[18px] py-[11px] rounded-ax-md hover:bg-ax-accentBright transition-colors disabled:opacity-60"
+          >
+            {changing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {changing ? 'Changing…' : 'Change password'}
+          </button>
+        </form>
       </Card>
     </div>
   )

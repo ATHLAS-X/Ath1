@@ -58,7 +58,7 @@ afterAll(async () => {
 
 describe('finding a shadow profile', () => {
   it('matches an unclaimed profile by name and district', async () => {
-    const res = await search(post({ fullName: 'Adult', district: 'Kanpur' }))
+    const res = await search(post({ fullName: 'Adult', district: 'Kanpur', dob: '2000-01-01' }))
     expect(res.status).toBe(200)
     const body = await res.json()
     const ids = JSON.stringify(body)
@@ -66,14 +66,16 @@ describe('finding a shadow profile', () => {
   })
 
   it('is case-insensitive on district', async () => {
-    const res = await search(post({ fullName: 'Adult', district: 'kAnPuR' }))
+    const res = await search(post({ fullName: 'Adult', district: 'kAnPuR', dob: '2000-01-01' }))
     const body = JSON.stringify(await res.json())
     expect(body).toContain(fx.adult.id)
   })
 
-  it('requires fullName and district', async () => {
+  it('requires fullName, district and date of birth', async () => {
     const res = await search(post({ fullName: 'Adult' }))
     expect(res.status).toBe(400)
+    const noDob = await search(post({ fullName: 'Adult', district: 'Kanpur' }))
+    expect(noDob.status).toBe(400)
   })
 
   it('does not return an already-claimed profile', async () => {
@@ -81,7 +83,7 @@ describe('finding a shadow profile', () => {
       where: { id: fx.adult.id },
       data: { claim_status: 'claimed' },
     })
-    const res = await search(post({ fullName: 'Adult', district: 'Kanpur' }))
+    const res = await search(post({ fullName: 'Adult', district: 'Kanpur', dob: '2000-01-01' }))
     const body = JSON.stringify(await res.json())
     expect(body).not.toContain(fx.adult.id)
   })
@@ -91,7 +93,7 @@ describe('finding a shadow profile', () => {
       where: { id: fx.adult.id },
       data: { guardian_phone: '9876543210' },
     })
-    const res = await search(post({ fullName: 'Adult', district: 'Kanpur' }))
+    const res = await search(post({ fullName: 'Adult', district: 'Kanpur', dob: '2000-01-01' }))
     const body = JSON.stringify(await res.json())
     expect(body).not.toContain('9876543210')
   })

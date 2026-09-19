@@ -10,6 +10,33 @@ import { db } from "@/lib/db";
 export const PRIVILEGED_ROLES: readonly string[] = ["athlasx_ops", "association", "academy_admin", "scout"];
 
 /**
+ * When this session signed in, in epoch milliseconds — the `authTime` claim
+ * set once at sign-in (src/lib/auth.ts) and carried unchanged when NextAuth
+ * re-issues the cookie. Not `iat`: NextAuth refreshes `iat` on every
+ * re-issue, so a session kept alive after a password change would keep
+ * looking newer than that change and never be revoked.
+ *
+ * Sessions issued before `authTime` existed report 0, which treats them as
+ * older than any password change — the safe direction.
+ */
+export function sessionAuthTime(token: Record<string, unknown>): number {
+  return typeof token.authTime === "number" ? token.authTime : 0;
+}
+
+// Whether athlasx.users.password_changed_at exists yet. It ships in an
+// unapplied migration (prisma/manual_migrations/password_reset_tokens.sql);
+// until that runs, selecting it throws. Detected once per process on the
+// first failure, so every later request goes straight back to one query.
+let passwordChangedColumnAvailable = true;
+
+// Prisma P2022: "The column does not exist in the current database". Checked
+// by code rather than instanceof, so it also matches errors from the separate
+// generated client the test suite uses.
+function isMissingColumnError(err: unknown): boolean {
+  return (err as { code?: unknown } | null)?.code === "P2022";
+}
+
+/**
  * Returns the CURRENT role for a session whose JWT-claimed role is one of
  * PRIVILEGED_ROLES, re-checked against the DB on every call — this is the
  * fix for the audit finding that a DB-level role change (promote/demote/
@@ -22,10 +49,12 @@ export const PRIVILEGED_ROLES: readonly string[] = ["athlasx_ops", "association"
  * sessions, which is the whole point of scoping it to four roles instead
  * of fixing this generically for every session.
  *
- * Returns null if the account no longer exists at all (deleted) — callers
- * treat that as "this session is no longer valid", forcing re-
- * authentication rather than running the rest of the request as an
- * unauthenticated caller with a stale identity.
+ * Returns null — "this session is no longer valid", forcing
+ * re-authentication — if the account no longer exists, or if its password
+ * changed after this session signed in (`authTime`). The second check rides
+ * on the same query, so it costs nothing extra, and it inherits the same
+ * scope: a password reset evicts privileged sessions immediately, while
+ * player/coach sessions keep running until they expire or sign out.
  *
  * Deliberately ASYMMETRIC, on purpose: a DEMOTION or REVOCATION (the DB
  * role is no longer privileged, or the row is gone) takes effect on this
@@ -37,8 +66,36 @@ export const PRIVILEGED_ROLES: readonly string[] = ["athlasx_ops", "association"
  * revoking access should never wait on a stale token; granting access
  * safely can.
  */
-export async function refreshPrivilegedRole(userId: string, claimedRole: string): Promise<string | null> {
+export async function refreshPrivilegedRole(
+  userId: string,
+  claimedRole: string,
+  authTime = 0,
+): Promise<string | null> {
   if (!PRIVILEGED_ROLES.includes(claimedRole)) return claimedRole;
+
+  if (passwordChangedColumnAvailable) {
+    try {
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        select: { role: true, password_changed_at: true },
+      });
+      if (!user) return null;
+      if (user.password_changed_at && user.password_changed_at.getTime() > authTime) return null;
+      return user.role;
+    } catch (err) {
+      // Anything other than the not-yet-migrated column keeps the original
+      // behaviour below: fail closed (see the malformed-id note).
+      if (!isMissingColumnError(err)) return null;
+      passwordChangedColumnAvailable = false;
+      // eslint-disable-next-line no-console
+      console.warn(
+        JSON.stringify({
+          event: "auth.password_changed_at_unavailable",
+          note: "password_reset_tokens.sql not applied — sessions are not revoked on password change until it is",
+        }),
+      );
+    }
+  }
 
   try {
     // User.id is @db.Uuid — a malformed/tampered JWT carrying a non-UUID
