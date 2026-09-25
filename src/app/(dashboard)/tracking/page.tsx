@@ -92,7 +92,7 @@ function DeepView({ player, onClose }: { player: TrackedPlayer; onClose: () => v
             <h2 className="text-sm font-black text-white">{player.name}</h2>
             <p className="text-[10px] text-zinc-600">{player.district} · {player.playing_role}</p>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center text-zinc-500 hover:text-white">
+          <button onClick={onClose} aria-label="Close" className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center text-zinc-500 hover:text-white">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -193,7 +193,7 @@ export default function TrackingPage() {
     <div className="space-y-6 max-w-[1100px]">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-white">Weekly Tracking</h1>
+          <h1 className="font-anton uppercase text-xl text-ax-text">Weekly Tracking</h1>
           <p className="text-xs text-zinc-600 mt-0.5">W5 · In-season performance monitoring</p>
         </div>
         <div className="flex items-center gap-2 text-[10px]">

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Loader2, Upload, Copy, CheckCircle2 } from 'lucide-react'
 import { AcademyShell, CARD_CLS, CONTROL_CLS, LABEL_CLS, BTN_AMBER_CLS, BTN_GHOST_CLS, EYEBROW_CLS, H1_CLS } from '../_theme'
+import { ageFromDob } from '@/lib/age'
 
 /**
  * Add Players — the three tabs from design/import/AthlasX Add Players.html:
@@ -33,11 +34,7 @@ const STATES = ['Karnataka', 'Maharashtra', 'Tamil Nadu', 'Delhi', 'Punjab', 'Ke
 function ageOf(dobStr: string): number | null {
   const d = new Date(dobStr)
   if (Number.isNaN(d.getTime())) return null
-  const now = new Date()
-  let age = now.getFullYear() - d.getFullYear()
-  const m = now.getMonth() - d.getMonth()
-  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--
-  return age
+  return ageFromDob(d)
 }
 
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {

@@ -101,7 +101,7 @@ export default function PendingScoutsPage() {
                 </button>
                 <button
                   type="button" disabled={actingId === s.id} onClick={() => decide(s.id, 'approved')}
-                  className="h-9 px-3 rounded-xl text-xs font-bold border border-green-500/40 bg-green-500/15 text-green-400 hover:bg-green-500/25 transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
+                  className="h-9 px-3 rounded-xl text-xs font-bold border border-ax-accent/40 bg-ax-accent/15 text-ax-accentBright hover:bg-ax-accent/25 transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
                 >
                   {actingId === s.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />} Approve
                 </button>

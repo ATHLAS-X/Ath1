@@ -77,7 +77,7 @@ export default function CreateAssociationPage() {
             <div className="flex gap-2">
               {(['state', 'district'] as const).map((t) => (
                 <button key={t} type="button" onClick={() => setType(t)}
-                  className={`flex-1 h-10 rounded-xl text-sm font-bold border transition-colors capitalize ${type === t ? 'bg-green-500/15 border-green-500/40 text-green-400' : 'bg-white/[0.03] border-white/10 text-zinc-400'}`}>
+                  className={`flex-1 h-10 rounded-xl text-sm font-bold border transition-colors capitalize ${type === t ? 'bg-ax-accent/15 border-ax-accent/40 text-ax-accentBright' : 'bg-white/[0.03] border-white/10 text-zinc-400'}`}>
                   {t}
                 </button>
               ))}
@@ -122,7 +122,7 @@ export default function CreateAssociationPage() {
         )}
 
         <button type="button" onClick={submit} disabled={submitting}
-          className="w-full h-11 rounded-xl bg-green-500 text-black font-bold text-sm hover:bg-green-400 disabled:opacity-50 transition-colors">
+          className="w-full h-11 rounded-xl bg-ax-accent text-[#1a0e02] font-bold text-sm hover:bg-ax-accentBright disabled:opacity-50 transition-colors">
           {submitting ? <Loader2 className="w-4 h-4 animate-spin inline" /> : 'Create Association'}
         </button>
       </div>

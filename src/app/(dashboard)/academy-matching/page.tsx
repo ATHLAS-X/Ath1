@@ -86,14 +86,14 @@ export default function AcademyMatchingPage() {
         <button
           onClick={() => setTab('queue')}
           className={cn('px-3 py-2 text-xs font-bold border-b-2 -mb-px transition-colors',
-            tab === 'queue' ? 'text-white border-green-400' : 'text-zinc-600 border-transparent hover:text-zinc-400')}
+            tab === 'queue' ? 'text-white border-ax-accent' : 'text-zinc-600 border-transparent hover:text-zinc-400')}
         >
           Reconciliation Queue
         </button>
         <button
           onClick={() => setTab('production')}
           className={cn('px-3 py-2 text-xs font-bold border-b-2 -mb-px transition-colors',
-            tab === 'production' ? 'text-white border-green-400' : 'text-zinc-600 border-transparent hover:text-zinc-400')}
+            tab === 'production' ? 'text-white border-ax-accent' : 'text-zinc-600 border-transparent hover:text-zinc-400')}
         >
           Production Ranking
         </button>
@@ -183,7 +183,7 @@ export default function AcademyMatchingPage() {
                     disabled={busyId === c.id}
                     className={cn(
                       'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors',
-                      'bg-green-500/10 border-green-500/25 text-green-400 hover:bg-green-500/15 disabled:opacity-50'
+                      'bg-ax-accent/10 border-ax-accent/25 text-ax-accentBright hover:bg-ax-accent/15 disabled:opacity-50'
                     )}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" /> Confirm

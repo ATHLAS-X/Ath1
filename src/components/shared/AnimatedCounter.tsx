@@ -22,5 +22,5 @@ export default function AnimatedCounter({ to, duration = 1 }: AnimatedCounterPro
     return () => controls.stop()
   }, [to, duration])
 
-  return <>{value.toLocaleString('en-IN')}</>
+  return <span className="tabular-nums">{value.toLocaleString('en-IN')}</span>
 }

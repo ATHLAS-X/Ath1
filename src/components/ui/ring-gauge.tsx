@@ -42,7 +42,7 @@ export function RingGauge({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-anton text-ax-text leading-none" style={{ fontSize: size * 0.28 }}>{label}</span>
+        <span className="font-anton text-ax-text leading-none tabular-nums" style={{ fontSize: size * 0.28 }}>{label}</span>
         {sublabel && (
           <span className="font-barlow-semi font-bold uppercase tracking-[0.1em] text-ax-textFaint" style={{ fontSize: size * 0.09, marginTop: 2 }}>
             {sublabel}

@@ -129,7 +129,7 @@ export default function SelectionPage() {
               onClick={() => setRoleFilter(r)}
               className={cn(
                 'px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors',
-                roleFilter === r ? 'bg-green-500/15 border-green-500/25 text-green-400' : 'bg-white/[0.02] border-white/[0.06] text-zinc-500 hover:text-zinc-300'
+                roleFilter === r ? 'bg-ax-accent/15 border-ax-accent/25 text-ax-accentBright' : 'bg-white/[0.02] border-white/[0.06] text-zinc-500 hover:text-zinc-300'
               )}
             >
               {r === 'Wicket-keeper Batsman' ? 'WK-Bat' : r}
