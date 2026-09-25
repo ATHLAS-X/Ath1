@@ -21,5 +21,11 @@ export async function POST(req: NextRequest) {
   }
 
   const { requestId, devCode } = await sendScoutOtp(digits)
-  return NextResponse.json({ requestId, devCode, devNotice: 'Dev mode — no SMS gateway connected' })
+  // SECURITY FIX: devCode used to be returned unconditionally in every
+  // environment. Gated the same way claim/start.ts already gates its own
+  // dev-only OTP log.
+  if (process.env.NODE_ENV !== 'production') {
+    return NextResponse.json({ requestId, devCode, devNotice: 'Dev mode — no SMS gateway connected' })
+  }
+  return NextResponse.json({ requestId })
 }

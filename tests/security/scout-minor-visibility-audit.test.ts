@@ -173,18 +173,19 @@ describe('CHECK 2 (PRIORITY) — /api/tracking, an indirect ops route with no sc
 })
 
 describe('CHECK 3 — /api/tracking/[playerId]/note: can a scout write into a minor\'s record?', () => {
-  it('FINDING (write-side, not disclosure): requireAuth-only means no ownership/role check blocks this', async () => {
+  it('FIXED (T-NOTE-AUTH): a scout with no squad membership for this player is now refused', async () => {
     const req = new NextRequest('http://test.local/api/tracking/x/note', {
       method: 'POST',
       body: JSON.stringify({ note: 'planted by a scout account' }),
       headers: { 'content-type': 'application/json', cookie: scoutCookie },
     })
     const res = await trackingNote(req, { params: { playerId: minorCrossAssocId } })
-    // This documents the existing, already-known gap (no role/ownership
-    // check on this route) applied specifically to a MINOR's record — a
-    // scout account can tamper with a minor's tracking note despite never
-    // being authorized to interact with that player at all.
-    expect(res.status, 'a scout account should not be able to write a note against a minor\'s record').toBe(200)
+    // Was a real gap (no role/ownership check on this route at all,
+    // applied specifically to a MINOR's record) — closed by
+    // canAccessPlayer (src/lib/squad-access.ts), which this route now
+    // calls before writing. See tests/security/player-write-idor.test.ts
+    // for the general (non-minor) regression coverage of the same fix.
+    expect(res.status, 'a scout account should not be able to write a note against a minor\'s record').toBe(403)
   })
 })
 

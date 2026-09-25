@@ -103,6 +103,8 @@ export async function resetDb() {
         athlasx_test.coach_profiles,
         athlasx_test.selector_profiles,
         athlasx_test.player_profiles,
+        athlasx_test.affiliated_academies,
+        athlasx_test.consent_records,
         athlasx_test.users,
         athlasx_test.associations
       RESTART IDENTITY CASCADE
