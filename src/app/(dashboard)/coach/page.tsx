@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { RingGauge } from '@/components/ui/ring-gauge'
+import { fetchJSON } from '@/lib/fetch-json'
 
 // Second restyle pass (docs request, 2026-09-10) — a table with flagged
 // players pinned to the top + pagination, matching the new mockup set,
@@ -167,12 +168,14 @@ export default function CoachPage() {
   const evalRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    fetch('/api/coach/squad').then(r => r.json()).then(data => {
-      setSquad(data.squad ?? [])
-      setTrend(data.trend ?? [])
-      setTrendDelta(data.trendDelta ?? null)
-      setLoading(false)
-    })
+    fetchJSON<{ squad?: typeof squad; trend?: typeof trend; trendDelta?: typeof trendDelta }>('/api/coach/squad')
+      .then(data => {
+        setSquad(data.squad ?? [])
+        setTrend(data.trend ?? [])
+        setTrendDelta(data.trendDelta ?? null)
+      })
+      .catch(err => console.error('Failed to load coach squad data:', err))
+      .finally(() => setLoading(false))
   }, [])
 
   const needsEval  = squad.filter(p => !p.fitness_rating).length

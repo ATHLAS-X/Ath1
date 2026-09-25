@@ -8,6 +8,7 @@ import {
   TrendingUp, TrendingDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { fetchJSON } from '@/lib/fetch-json'
 import type { PlayingRole } from '@/types'
 
 interface Candidate {
@@ -68,10 +69,10 @@ export default function SelectionPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/candidate-pool').then(r => r.json()).then(data => {
-      setCandidates(data.candidates ?? [])
-      setLoading(false)
-    })
+    fetchJSON<{ candidates?: Candidate[] }>('/api/candidate-pool')
+      .then(data => setCandidates(data.candidates ?? []))
+      .catch(err => console.error('Failed to load candidate pool:', err))
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = candidates.filter(c => {

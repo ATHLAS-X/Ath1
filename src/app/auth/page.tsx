@@ -382,7 +382,7 @@ function AuthPageInner() {
               </button>
             </p>
             <p className="text-center text-xs text-white/40 mt-4">
-              By continuing you agree to our <a href="#" className="text-[color:var(--accent-bright)] hover:underline">Terms</a> &amp; <a href="#" className="text-[color:var(--accent-bright)] hover:underline">Privacy Policy</a>.
+              By continuing you agree to our Terms &amp; Privacy Policy.
             </p>
           </div>
         </div>

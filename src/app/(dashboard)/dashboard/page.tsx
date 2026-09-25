@@ -14,6 +14,7 @@ import {
 } from 'recharts'
 import AnimatedCounter from '@/components/shared/AnimatedCounter'
 import { Button } from '@/components/ui/button'
+import { fetchJSON } from '@/lib/fetch-json'
 
 interface DashboardData {
   kpis: { registrations: number; dossiersReady: number; pendingIngest: number; formDropAlerts: number }
@@ -73,7 +74,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/dashboard').then(r => r.json()).then(d => { setData(d); setLoading(false) })
+    fetchJSON<DashboardData>('/api/dashboard')
+      .then(setData)
+      .catch(err => console.error('Failed to load dashboard data:', err))
+      .finally(() => setLoading(false))
   }, [])
 
   if (loading || !data) {

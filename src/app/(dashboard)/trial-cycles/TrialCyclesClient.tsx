@@ -9,6 +9,7 @@ import {
   Upload, ClipboardCheck, ClipboardList, X, ArrowRight, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { fetchJSON } from '@/lib/fetch-json'
 
 interface Venue { id: string; name: string; district: string; date: string }
 interface Cycle {
@@ -318,13 +319,15 @@ export default function TrialCyclesClient() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/trial-cycles').then(r => r.json()),
-      fetch('/api/associations').then(r => r.json()),
-    ]).then(([cyclesData, assocData]) => {
-      setCycles(cyclesData.cycles ?? [])
-      setAssociationId(assocData.associations?.[0]?.id ?? null)
-      setLoading(false)
-    })
+      fetchJSON<{ cycles?: Cycle[] }>('/api/trial-cycles'),
+      fetchJSON<{ associations?: { id: string }[] }>('/api/associations'),
+    ])
+      .then(([cyclesData, assocData]) => {
+        setCycles(cyclesData.cycles ?? [])
+        setAssociationId(assocData.associations?.[0]?.id ?? null)
+      })
+      .catch(err => console.error('Failed to load trial cycles:', err))
+      .finally(() => setLoading(false))
   }, [])
 
   const steps = [

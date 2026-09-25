@@ -8,6 +8,7 @@ import {
   Zap, AlertTriangle, Loader2, Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { fetchJSON } from '@/lib/fetch-json'
 import type { FlagType } from '@/types'
 
 interface WeekEntry {
@@ -175,10 +176,10 @@ export default function TrackingPage() {
   const [filterFlag, setFilterFlag] = useState<FlagType | 'all'>('all')
 
   useEffect(() => {
-    fetch('/api/tracking').then(r => r.json()).then(data => {
-      setPlayers(data.players ?? [])
-      setLoading(false)
-    })
+    fetchJSON<{ players?: TrackedPlayer[] }>('/api/tracking')
+      .then(data => setPlayers(data.players ?? []))
+      .catch(err => console.error('Failed to load tracking data:', err))
+      .finally(() => setLoading(false))
   }, [])
 
   const flagCounts = {
