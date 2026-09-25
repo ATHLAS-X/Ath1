@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/require-auth'
 import { calculateAthlasXScore } from '@/lib/athlasx-score'
 import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { verifiedPerformancesByPlayer } from '@/lib/verified-performances'
+import { canAccessPlayer } from '@/lib/squad-access'
 
 // 3 consecutive weeks moving the same direction before flagging —
 // matches the business rule prisma/seed.ts's own fixture already assumed
@@ -27,6 +28,14 @@ function mondayOfCurrentWeek(): Date {
 export async function POST(req: NextRequest, { params }: { params: { playerId: string } }) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
+
+  // T-EVAL-AUTH: requireAuth alone let ANY authenticated user (player,
+  // scout, unrelated coach) POST fitness/behaviour ratings for any
+  // playerId — this is the same membership check coach/squad/route.ts
+  // already applies via canAccessSquad, extended to a playerId caller.
+  if (!(await canAccessPlayer(auth.user, params.playerId))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const { fitness, behaviour, note } = await req.json()
 

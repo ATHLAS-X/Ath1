@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { loadOwnedActiveBatch, isBatchArchived } from "@/lib/academy/batches";
+import { ageFromDob as sharedAgeFromDob } from "@/lib/age";
 import type { PlayingRoleEnum, BattingStyle, BowlingStyleEnum, Gender } from "@prisma/client";
 
 /**
@@ -36,8 +37,7 @@ export type AcademyPlayerRow = {
 
 function ageFromDob(dob: Date | null): number | null {
   if (!dob) return null;
-  const diff = Date.now() - dob.getTime();
-  return Math.floor(diff / (365.25 * 24 * 3600 * 1000));
+  return sharedAgeFromDob(dob);
 }
 
 /** Every active player across this academy's batches, for the Players surface. */

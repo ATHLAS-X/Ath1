@@ -32,3 +32,21 @@ export async function squadIdsForCoach(userId: string): Promise<string[]> {
   const rows = await db.squadCoach.findMany({ where: { user_id: userId }, select: { squad_id: true } })
   return rows.map(r => r.squad_id)
 }
+
+/**
+ * Player-level wrapper around canAccessSquad — a caller can act on a
+ * specific player if they can access any squad that player belongs to
+ * (via a real SquadPlayer row, never a client-supplied squad ID). Used by
+ * routes that take a playerId directly (coach evaluations, tracking
+ * notes) rather than a squadId, which previously had no membership check
+ * at all — any authenticated user could write to any player.
+ */
+export async function canAccessPlayer(user: SessionUser, playerId: string): Promise<boolean> {
+  if (user.role === 'athlasx_ops') return true
+
+  const links = await db.squadPlayer.findMany({ where: { player_id: playerId }, select: { squad_id: true } })
+  for (const link of links) {
+    if (await canAccessSquad(user, link.squad_id)) return true
+  }
+  return false
+}

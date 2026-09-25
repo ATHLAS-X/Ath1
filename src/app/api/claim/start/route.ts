@@ -3,11 +3,7 @@ import { db } from '@/lib/db'
 import { generateOtp, hashOtp, otpExpiry } from '@/lib/otp'
 import { rateLimit } from '@/lib/rate-limit'
 import { logOtpEvent } from '@/lib/otp-log'
-
-function isMinor(dob: Date): boolean {
-  const age = (Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000)
-  return age < 18
-}
+import { isUnder18 as isMinor } from '@/lib/age'
 
 // Starts (or restarts) a claim on a shadow profile and issues an OTP.
 // Under-18 players cannot self-verify — the OTP goes to the guardian's phone

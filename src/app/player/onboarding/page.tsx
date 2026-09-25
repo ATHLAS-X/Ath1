@@ -3,12 +3,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, ArrowLeft, Loader2, CheckCircle2, AlertCircle, Upload, Link2, ShieldCheck } from 'lucide-react'
+import { ArrowRight, ArrowLeft, Loader2, CheckCircle2, AlertCircle, Upload, Link2, ShieldCheck, UserCheck, Users } from 'lucide-react'
 import { Anton, Barlow, Barlow_Semi_Condensed } from 'next/font/google'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { StepRail } from '@/components/ui/step-rail'
+import { OptionCard } from '@/components/ui/option-card'
 import { cn } from '@/lib/utils'
+import { isUnder18 } from '@/lib/age'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
@@ -88,12 +90,6 @@ const indianStates = [
   'Maharashtra', 'Odisha', 'Punjab', 'Rajasthan', 'Tamil Nadu', 'Telangana',
   'Uttar Pradesh', 'West Bengal',
 ]
-
-function isUnder18(dob: string): boolean {
-  if (!dob) return false
-  const age = (Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 3600 * 1000)
-  return age < 18
-}
 
 type AadhaarStatus = 'unverified' | 'sent' | 'verified'
 interface AadhaarState {
@@ -202,15 +198,21 @@ Your data is retained for as long as your account is active. You can request acc
   },
   {
     key: 'dpdpGuardian' as const,
-    title: 'Guardian consent (Digital Personal Data Protection Act, 2023)',
+    title: 'Guardian consent (Digital Personal Data Protection Act, 2023 — Rule 10)',
     minorOnly: true,
-    body: `Under India's Digital Personal Data Protection Act, 2023, a child (anyone under 18) cannot independently consent to the processing of their personal data — a parent or lawful guardian must provide verifiable consent on the child's behalf before that data is processed.
+    body: `THIS CONSENT IS GIVEN BY YOU, THE PARENT OR LEGAL GUARDIAN — NOT BY THE PLAYER.
 
-Because the date of birth entered in Stage 1 indicates this player is under 18, this consent must be given by the player's parent or legal guardian, not the player themselves. By continuing, the person completing this step confirms they are the parent or legal guardian of the player named in this form, and that they consent to AthlasX collecting and processing the player's personal data as described in the Data collection & use consent above.
+Under India's Digital Personal Data Protection Act, 2023 and the DPDP Rules, 2025 (Rule 10), a child under 18 cannot legally consent to their own personal data being processed. Because the date of birth entered in Stage 1 shows this player is under 18, only a parent or lawful guardian can give this consent — this screen is asking for your consent, not the player's.
 
-The guardian completes a one-time OTP confirmation tied to the Aadhaar number provided in Stage 2, separately from the player's own confirmation — this requires an active verification step, not merely checking a box.
+WHAT IS BEING VERIFIED ABOUT THE PLAYER: their identity and age, confirmed against the Aadhaar details entered in Stage 2, plus the playing profile they entered in this form — name, date of birth, district, state, playing role, and physical details.
 
-The guardian may withdraw this consent at any time by contacting AthlasX. Withdrawing consent for a minor player will restrict that player's profile from being processed or shown to any selection panel or association until the player turns 18 and can independently re-consent, or a new guardian consent is given.
+WHAT IS BEING VERIFIED ABOUT YOU, THE PARENT/GUARDIAN: your identity, your relationship to the player, and your authority to consent on their behalf. You confirm this through a separate one-time OTP verification tied to the guardian Aadhaar number provided in Stage 2 — a distinct verification step from the player's own, not the same check run twice.
+
+WHAT WE COLLECT ABOUT THE PLAYER, AND WHY: their name, date of birth, contact details, and Aadhaar-verified identity, used to build their player profile; and — only once an association ingests and approves it — their match performance statistics, used to compute their AthlasX Score and make their profile discoverable to selection panels per the visibility setting you or the player set in Settings.
+
+WHAT WE DO NOT DO: this player's data is never used for behavioral monitoring or targeted advertising, on this platform or through any third party. This is a legal prohibition on processing any minor's data this way, not a discretionary privacy choice, and AthlasX does not run this kind of tracking against any minor account.
+
+WITHDRAWING CONSENT: you may withdraw this consent at any time by contacting AthlasX. Withdrawing it will restrict the player's profile from being processed or shown to any selection panel or association until either the player turns 18 and independently re-consents, or a new guardian consent is given.
 
 This consent is specific to this player's account and does not extend to any other child or account.`,
   },
@@ -247,12 +249,6 @@ You may delete your account at any time. These terms may be updated from time to
 // Shared field styling — orange-token equivalent of the old green inputs.
 const FIELD_CLS = 'bg-[color:var(--field-bg)] border-[color:var(--card-border)] text-white placeholder:text-white/40 h-10 rounded-[9px] focus:border-[color:var(--accent)] focus:bg-white/[0.09]'
 const LABEL_CLS = 'font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.1em] text-white/70'
-const OPTCARD_CLS = (active: boolean) => cn(
-  'transition-all border-[1.5px] rounded-[11px]',
-  active
-    ? 'bg-[rgba(255,138,30,0.14)] border-[color:var(--accent)] text-[color:var(--accent-bright)]'
-    : 'bg-[color:var(--field-bg)] border-[color:var(--card-border)] text-white/70 hover:border-white/30',
-)
 
 export default function OnboardingPage() {
   const [stage, setStage] = useState(1)
@@ -691,10 +687,10 @@ export default function OnboardingPage() {
                           <Label className={LABEL_CLS}>Playing role *</Label>
                           <div className="grid grid-cols-2 gap-2">
                             {playingRoles.map(role => (
-                              <button key={role} type="button" onClick={() => update('playingRole', role)}
-                                className={cn('px-3 py-2.5 text-sm font-medium', OPTCARD_CLS(form.playingRole === role))}>
+                              <OptionCard key={role} active={form.playingRole === role} onClick={() => update('playingRole', role)}
+                                className="px-3 py-2.5 text-sm font-medium">
                                 {role}
-                              </button>
+                              </OptionCard>
                             ))}
                           </div>
                         </div>
@@ -703,10 +699,10 @@ export default function OnboardingPage() {
                           <Label className={LABEL_CLS}>Batting style</Label>
                           <div className="flex gap-2">
                             {battingStyles.map(s => (
-                              <button key={s} type="button" onClick={() => update('battingStyle', s)}
-                                className={cn('flex-1 py-2 text-sm font-medium', OPTCARD_CLS(form.battingStyle === s))}>
+                              <OptionCard key={s} active={form.battingStyle === s} onClick={() => update('battingStyle', s)}
+                                className="flex-1 py-2 text-sm font-medium">
                                 {s}
-                              </button>
+                              </OptionCard>
                             ))}
                           </div>
                         </div>
@@ -715,10 +711,10 @@ export default function OnboardingPage() {
                           <Label className={LABEL_CLS}>Bowling style</Label>
                           <div className="grid grid-cols-2 gap-2">
                             {bowlingStyles.map(s => (
-                              <button key={s} type="button" onClick={() => update('bowlingStyle', s)}
-                                className={cn('px-2 py-2 text-xs font-medium text-left', OPTCARD_CLS(form.bowlingStyle === s))}>
+                              <OptionCard key={s} active={form.bowlingStyle === s} onClick={() => update('bowlingStyle', s)}
+                                className="px-2 py-2 text-xs font-medium text-left">
                                 {s}
-                              </button>
+                              </OptionCard>
                             ))}
                           </div>
                         </div>
@@ -727,10 +723,10 @@ export default function OnboardingPage() {
                           <Label className={LABEL_CLS}>Preferred formats</Label>
                           <div className="flex gap-2">
                             {formats.map(f => (
-                              <button key={f} type="button" onClick={() => toggleFormat(f)}
-                                className={cn('flex-1 py-2 text-sm font-medium', OPTCARD_CLS(form.selectedFormats.includes(f)))}>
+                              <OptionCard key={f} active={form.selectedFormats.includes(f)} onClick={() => toggleFormat(f)}
+                                className="flex-1 py-2 text-sm font-medium">
                                 {f}
-                              </button>
+                              </OptionCard>
                             ))}
                           </div>
                         </div>
@@ -770,13 +766,45 @@ export default function OnboardingPage() {
                           Aadhaar OTP verification. We never store your raw Aadhaar number — only the last 4 digits and your verified status.
                         </p>
                       </div>
-                      <AadhaarBlock label="Your Aadhaar" subject="player" state={aadhaar} setState={setAadhaar}
-                        onSend={() => sendAadhaarOtp('player')} onVerify={() => verifyAadhaarOtp('player')} />
+
+                      {/* Player-identity verification — visually distinct from the
+                          guardian-consent block below (different icon, accent color,
+                          and section framing) so it's never mistaken for the same
+                          check run twice. This attests WHO THE PLAYER IS. */}
+                      <div className="rounded-[14px] border border-[color:var(--card-border)] bg-white/[0.02] p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-[rgba(255,138,30,0.14)] border border-[color:var(--accent)] flex items-center justify-center shrink-0">
+                            <UserCheck className="w-3.5 h-3.5 text-[color:var(--accent-bright)]" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-white">Player identity verification</p>
+                            <p className="text-[11px] text-white/50">Confirms who the player is</p>
+                          </div>
+                        </div>
+                        <AadhaarBlock label="Your Aadhaar" subject="player" state={aadhaar} setState={setAadhaar}
+                          onSend={() => sendAadhaarOtp('player')} onVerify={() => verifyAadhaarOtp('player')} />
+                      </div>
 
                       {minor && (
-                        <div className="pt-4 border-t border-[color:var(--card-border)]">
-                          <p className="text-sm font-bold text-white mb-1">Parent / guardian verification</p>
-                          <p className="text-xs text-white/50 mb-3">Required in addition to the guardian phone number already provided — this independently verifies your guardian&apos;s own identity.</p>
+                        /* Guardian-consent verification — deliberately a separate
+                           card with its own header/icon/accent (not a border-t
+                           continuation of the player block above), since Rule 10
+                           treats this as a distinct attestation: WHO THE GUARDIAN
+                           IS, their relationship to the player, and their authority
+                           to consent — not a second player-identity check. */
+                        <div className="rounded-[14px] border border-[color:var(--ok)]/30 bg-[color:var(--ok)]/[0.05] p-4 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-[color:var(--ok)]/15 border border-[color:var(--ok)]/50 flex items-center justify-center shrink-0">
+                              <Users className="w-3.5 h-3.5 text-[color:var(--ok)]" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-white">Guardian consent verification</p>
+                              <p className="text-[11px] text-white/50">Confirms who you are, your relationship to the player, and your authority to consent on their behalf</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-white/50">
+                            Required in addition to the guardian phone number already provided in Stage 1 — this independently verifies your own identity, separately from the player&apos;s.
+                          </p>
                           <AadhaarBlock label="Guardian's Aadhaar" subject="guardian" state={guardianAadhaar} setState={setGuardianAadhaar}
                             onSend={() => sendAadhaarOtp('guardian')} onVerify={() => verifyAadhaarOtp('guardian')} />
                         </div>

@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { isBatchArchived, loadOwnedActiveBatch } from "@/lib/academy/batches";
+import { ageFromDob as sharedAgeFromDob } from "@/lib/age";
 
 /**
  * Academy join-request queue. Ported from origin/v1-features-sparsh
@@ -22,8 +23,7 @@ export type JoinRequestRow = {
 
 function ageFromDob(dob: Date | null): number | null {
   if (!dob) return null;
-  const diff = Date.now() - dob.getTime();
-  return Math.floor(diff / (365.25 * 24 * 3600 * 1000));
+  return sharedAgeFromDob(dob);
 }
 
 /** Pending join requests for one academy (academy-admin queue). */
