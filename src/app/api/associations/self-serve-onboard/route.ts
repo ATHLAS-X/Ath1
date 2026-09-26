@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isSameOriginRequest } from '@/lib/same-origin'
 import type { AssociationType } from '@prisma/client'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
@@ -22,6 +23,12 @@ const ASSOCIATION_TYPES = new Set<AssociationType>(['state', 'district'])
 // scoped route in this codebase now resolves scope through instead of
 // trusting AssociationStaff membership alone.
 export async function POST(req: NextRequest) {
+  // Mints a session cookie outside NextAuth's own CSRF-protected handler —
+  // same-origin check, as on the auth routes (see src/lib/same-origin.ts).
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+  }
+
   if (!ASSOCIATION_SELF_SERVE_ENABLED) {
     return NextResponse.json({ error: 'Association sign-up is not available yet' }, { status: 403 })
   }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isSameOriginRequest } from '@/lib/same-origin'
 import type { AcademyType, PlayerCountRange } from '@prisma/client'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
@@ -43,6 +44,12 @@ function toBool(v: unknown): boolean {
 }
 
 export async function POST(req: NextRequest) {
+  // Mints a session cookie outside NextAuth's own CSRF-protected handler —
+  // same-origin check, as on the auth routes (see src/lib/same-origin.ts).
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+  }
+
   const gate = academyGate()
   if (gate) return gate
 

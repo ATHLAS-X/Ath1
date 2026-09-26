@@ -22,6 +22,17 @@ Copy `.env.local.example` to `.env.local` and fill in:
 | `NEXTAUTH_URL` | yes | `http://localhost:3000` locally, your deployed URL in production |
 | `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_DSN` | no | Sentry error reporting. The SDK no-ops safely with these unset — `error.tsx` still shows its fallback screen, it just doesn't report anywhere |
 | `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | no | Enables source-map upload at build time. Without them the build still succeeds; Sentry's webpack plugin just skips that step |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | recommended in production | Upstash Redis REST credentials (Upstash console → your database → REST API). See [Rate limiting](#rate-limiting) below |
+| `NEXT_PUBLIC_ACADEMY_SELF_SERVE_ENABLED`, `NEXT_PUBLIC_ASSOCIATION_SELF_SERVE_ENABLED`, `NEXT_PUBLIC_FRANCHISE_SCOUT_ENABLED`, `NEXT_PUBLIC_SCOUT_SELF_SERVE_ENABLED` | no | Feature-flag overrides (`true`/`1` = on). Launch defaults live in `src/lib/feature-flags.ts`; changing one needs a rebuild |
+
+### Rate limiting
+
+Every rate-limited action (login, signup, password reset, OTP send/verify, claim) goes through `src/lib/rate-limit.ts`, which has two modes:
+
+- **Upstash configured** (both variables set): counters live in Redis, so every serverless instance shares one limit.
+- **Not configured**: it silently uses a per-process in-memory counter. Fine for local development and tests, but on Vercel each instance keeps its own count and resets on cold start, so limits are much weaker than they look. Treat the Upstash variables as required configuration for any real deployment.
+
+If Redis errors at runtime, the limiter falls back to the in-memory counter for that request (sign-in stays available and is still limited per instance) and logs a `rate_limit.redis_unavailable` warning. Never put the token in a committed file; use your host's secret store.
 
 ## Local Setup
 
@@ -43,6 +54,16 @@ npx prisma db execute --file prisma/manual_migrations/<file>.sql --url "$DATABAS
 
 Always use `DATABASE_DIRECT_URL` for schema/DDL operations, never the pooled `DATABASE_URL` — see `docs/AthlasX_Complete_Platform_Reference.md` §6 for why.
 
+### Migration safety
+
+`prisma db push` and `prisma migrate diff` treat anything that exists in the database but not in `schema.prisma` as drift to remove, so they will emit `DROP TABLE` / `DROP COLUMN` for hand-created, legacy or since-removed objects. Before applying any schema change to a live database, run:
+
+```bash
+npm run db:check-drift
+```
+
+This runs `prisma migrate diff` (live database → `schema.prisma`) **read-only** over `DATABASE_DIRECT_URL`, prints every statement that would drop a table or column or truncate, and exits non-zero if it finds any. It never applies anything and never prints the connection string. Treat a non-zero exit as "stop and look": either `schema.prisma` is missing a model that exists live, or a removal is intended and belongs in its own reviewed `prisma/manual_migrations/*.sql`. Never apply raw `migrate diff --script` output, and never `db push` against a live database without checking first.
+
 To seed a minimal realistic dataset (one association, a few shadow player profiles, a grading session, weekly tracking data):
 
 ```bash
@@ -55,11 +76,14 @@ Tests run against an isolated `athlasx_test` Postgres schema derived from the re
 
 ```bash
 npm run test:setup-db     # provisions the athlasx_test schema
-npm run test:ci           # unit + integration + security + known-defects suites
+npm run test:ci           # regression suite: unit + integration + security (CI fails if any fail)
+npm run test:known-defects  # tests/known-defects only, run separately
 npm run test:teardown-db  # drops the athlasx_test schema
 ```
 
-Granular scripts: `test:unit`, `test:integration`, `test:security`, `test:coverage`, `test:e2e` (Playwright). `tests/known-defects/` is a deliberate exception — those tests are *expected* to fail until the documented defect they track is actually fixed; don't "fix" them by loosening the assertion.
+Granular scripts: `test:unit`, `test:integration`, `test:security`, `test:coverage`, `test:e2e` (Playwright).
+
+**Regression vs known defects.** `test:ci` is the regression suite and must stay green. `tests/known-defects/` is a deliberate exception — those tests assert behaviour the product documents and are *expected* to fail while the defect they track is open, so they run as their own `known-defects` CI job with `continue-on-error`: an open defect stays visible in the PR checks without blocking merges. Don't "fix" them by loosening or skipping the assertion. When no defect is open the job simply passes.
 
 ## Other Scripts
 
@@ -69,6 +93,11 @@ Granular scripts: `test:unit`, `test:integration`, `test:security`, `test:covera
 | `npm run start` | Serve a production build |
 | `npm run lint` | `next lint` |
 | `npm run audit:js` | `npm audit` |
+| `npm run db:check-drift` | Read-only schema-drift preflight (see [Migration safety](#migration-safety)) |
+
+### Health check
+
+`GET /api/health` is a public readiness probe for uptime monitors and load balancers: `200 {"status":"ok","db":"ok"}` when the database answers a `SELECT 1`, otherwise `503 {"status":"degraded","db":"down"}`. The body is always those two fixed strings — never a version, env var name or error detail.
 
 ## Project Structure
 

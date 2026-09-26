@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isSameOriginRequest } from '@/lib/same-origin'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { hashPassword, validatePasswordStrength } from '@/lib/password'
@@ -16,6 +17,12 @@ import { rateLimit } from '@/lib/rate-limit'
 // affiliation, not a membership grant, and is accepted here as
 // self-serve/instant rather than gated behind that association's approval.
 export async function POST(req: NextRequest) {
+  // Mints a session cookie outside NextAuth's own CSRF-protected handler —
+  // same-origin check, as on the auth routes (see src/lib/same-origin.ts).
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+  }
+
   let body: Record<string, unknown>
   try {
     body = await req.json()

@@ -13,12 +13,14 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:security": "vitest run tests/security",
-    "test:ci": "vitest run tests/unit tests/integration tests/security tests/known-defects",
+    "test:ci": "vitest run tests/unit tests/integration tests/security",
+    "test:known-defects": "vitest run tests/known-defects",
     "test:coverage": "vitest run --coverage",
     "postinstall": "prisma generate",
     "test:e2e": "playwright test",
     "test:setup-db": "node scripts/setup-test-db.mjs",
-    "test:teardown-db": "node scripts/setup-test-db.mjs --drop"
+    "test:teardown-db": "node scripts/setup-test-db.mjs --drop",
+    "db:check-drift": "node scripts/check-schema-drift.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

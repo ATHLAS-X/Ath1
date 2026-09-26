@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isSameOriginRequest } from '@/lib/same-origin'
 import type { BattingStyle, BowlingStyleEnum, CompetitiveLevel, Format, Gender, PlayingRoleEnum } from '@prisma/client'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
@@ -85,6 +86,12 @@ const MATCH_STAT_KEYS = new Set([
 ])
 
 export async function POST(req: NextRequest) {
+  // Mints a session cookie outside NextAuth's own CSRF-protected handler —
+  // same-origin check, as on the auth routes (see src/lib/same-origin.ts).
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+  }
+
   let body: Record<string, unknown>
   try {
     body = await req.json()
