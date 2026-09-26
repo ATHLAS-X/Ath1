@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Loader2, CalendarRange, Users, TrendingDown, TrendingUp, Lock, UserCog, Star, Flag, AlertTriangle } from 'lucide-react'
+import { Loader2, CalendarRange, Users, TrendingDown, TrendingUp, Lock, UserCog, Star, Flag, AlertTriangle, Building2, Trash2, Info } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { RingGauge } from '@/components/ui/ring-gauge'
@@ -104,6 +104,16 @@ interface AvailableCoach {
   email: string
 }
 
+interface AffiliatedAcademyRow {
+  id: string
+  academy_name: string
+  contact_name: string | null
+  contact_phone: string | null
+  contact_email: string | null
+  status: 'active' | 'inactive'
+  created_at: string
+}
+
 // Fixed alongside this restyle: this map's keys ('open'/'closed') never
 // matched TrialCycleStatus's real values (upcoming/registration_open/
 // registration_closed/in_progress/completed) — every real row fell
@@ -183,6 +193,74 @@ export default function AssociationDashboard() {
   const [assigningSquad, setAssigningSquad] = useState<string | null>(null)
   const [assignError, setAssignError] = useState('')
 
+  const [affiliatedAcademies, setAffiliatedAcademies] = useState<AffiliatedAcademyRow[] | null>(null)
+  const [affiliatedError, setAffiliatedError] = useState('')
+  const [newAcademyName, setNewAcademyName] = useState('')
+  const [newAcademyContactName, setNewAcademyContactName] = useState('')
+  const [newAcademyContactPhone, setNewAcademyContactPhone] = useState('')
+  const [addingAcademy, setAddingAcademy] = useState(false)
+
+  function loadAffiliatedAcademies() {
+    fetch('/api/association/affiliated-academies')
+      .then(async r => {
+        const d = await r.json()
+        if (!r.ok) throw new Error(d.error || 'Failed to load affiliated academies')
+        setAffiliatedAcademies(d.academies ?? [])
+      })
+      .catch(e => setAffiliatedError(e instanceof Error ? e.message : 'Failed to load affiliated academies'))
+  }
+
+  async function addAcademy() {
+    if (!newAcademyName.trim()) return
+    setAddingAcademy(true)
+    setAffiliatedError('')
+    try {
+      const res = await fetch('/api/association/affiliated-academies', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          academyName: newAcademyName.trim(),
+          contactName: newAcademyContactName.trim() || undefined,
+          contactPhone: newAcademyContactPhone.trim() || undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to add academy')
+      setAffiliatedAcademies(prev => [data.academy, ...(prev ?? [])])
+      setNewAcademyName(''); setNewAcademyContactName(''); setNewAcademyContactPhone('')
+    } catch (err) {
+      setAffiliatedError(err instanceof Error ? err.message : 'Failed to add academy')
+    } finally {
+      setAddingAcademy(false)
+    }
+  }
+
+  async function toggleAcademyStatus(id: string, current: 'active' | 'inactive') {
+    const next = current === 'active' ? 'inactive' : 'active'
+    setAffiliatedAcademies(prev => prev?.map(a => a.id === id ? { ...a, status: next } : a) ?? prev)
+    try {
+      const res = await fetch(`/api/association/affiliated-academies/${id}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: next }),
+      })
+      if (!res.ok) throw new Error('Failed to update status')
+    } catch {
+      setAffiliatedAcademies(prev => prev?.map(a => a.id === id ? { ...a, status: current } : a) ?? prev)
+      setAffiliatedError('Failed to update status — reverted.')
+    }
+  }
+
+  async function removeAcademy(id: string) {
+    const prev = affiliatedAcademies
+    setAffiliatedAcademies(list => list?.filter(a => a.id !== id) ?? list)
+    try {
+      const res = await fetch(`/api/association/affiliated-academies/${id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to remove')
+    } catch {
+      setAffiliatedAcademies(prev)
+      setAffiliatedError('Failed to remove entry — restored.')
+    }
+  }
+
   function loadSquads() {
     fetch('/api/squads')
       .then(async r => {
@@ -229,6 +307,10 @@ export default function AssociationDashboard() {
       setAssigningSquad(null)
     }
   }
+
+  useEffect(() => {
+    loadAffiliatedAcademies()
+  }, [])
 
   useEffect(() => {
     loadSquads()
@@ -563,6 +645,90 @@ export default function AssociationDashboard() {
                   </div>
                 )
               })}
+            </div>
+          )}
+        </Card>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+        <Card className="p-5">
+          <SectionHeading icon={Building2} title="Affiliated Academies" sub="Academies you consider affiliated with your association" />
+
+          <div className="flex items-start gap-2 p-3 rounded-ax-md border border-ax-cardBorder bg-white/[0.02] mb-4">
+            <Info className="w-3.5 h-3.5 text-ax-textFaint mt-0.5 shrink-0" />
+            <p className="text-[11px] text-ax-textDim leading-relaxed">
+              This list is self-reported by your association — AthlasX does not independently verify academy affiliations against any external registry. Add and remove entries as your own records change.
+            </p>
+          </div>
+
+          {affiliatedError && <p className="text-xs text-ax-bad mb-2">{affiliatedError}</p>}
+
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+            <input
+              value={newAcademyName}
+              onChange={e => setNewAcademyName(e.target.value)}
+              placeholder="Academy name *"
+              className="flex-1 h-9 px-3 rounded-ax-sm bg-white/[0.03] border border-ax-cardBorder text-ax-text text-sm placeholder:text-ax-textFaint focus:outline-none focus:border-ax-accent"
+            />
+            <input
+              value={newAcademyContactName}
+              onChange={e => setNewAcademyContactName(e.target.value)}
+              placeholder="Contact name"
+              className="flex-1 h-9 px-3 rounded-ax-sm bg-white/[0.03] border border-ax-cardBorder text-ax-text text-sm placeholder:text-ax-textFaint focus:outline-none focus:border-ax-accent"
+            />
+            <input
+              value={newAcademyContactPhone}
+              onChange={e => setNewAcademyContactPhone(e.target.value)}
+              placeholder="Contact phone"
+              className="flex-1 h-9 px-3 rounded-ax-sm bg-white/[0.03] border border-ax-cardBorder text-ax-text text-sm placeholder:text-ax-textFaint focus:outline-none focus:border-ax-accent"
+            />
+            <button
+              type="button"
+              onClick={addAcademy}
+              disabled={addingAcademy || !newAcademyName.trim()}
+              className="shrink-0 h-9 px-4 rounded-ax-sm bg-ax-accent text-[#1a0e02] text-xs font-bold uppercase tracking-wide hover:bg-ax-accentBright transition-colors disabled:opacity-50"
+            >
+              {addingAcademy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Add'}
+            </button>
+          </div>
+
+          {!affiliatedAcademies && !affiliatedError && <Loader2 className="w-4 h-4 animate-spin text-ax-textFaint" />}
+          {affiliatedAcademies && affiliatedAcademies.length === 0 && (
+            <p className="text-xs text-ax-textFaint">No affiliated academies added yet.</p>
+          )}
+          {affiliatedAcademies && affiliatedAcademies.length > 0 && (
+            <div className="space-y-2">
+              {affiliatedAcademies.map(a => (
+                <div key={a.id} className="flex items-center justify-between gap-3 p-3 rounded-ax-md bg-white/[0.02] border border-ax-cardBorder">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-ax-text truncate">{a.academy_name}</p>
+                    <p className="text-[11px] text-ax-textFaint truncate">
+                      {[a.contact_name, a.contact_phone].filter(Boolean).join(' · ') || 'No contact info added'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => toggleAcademyStatus(a.id, a.status)}
+                      className={`text-[10px] font-bold uppercase px-2 py-1 rounded-ax-sm border transition-colors ${
+                        a.status === 'active'
+                          ? 'text-ax-ok bg-[rgba(56,211,159,0.1)] border-[rgba(56,211,159,0.2)]'
+                          : 'text-ax-textFaint bg-white/[0.03] border-ax-cardBorder'
+                      }`}
+                    >
+                      {a.status === 'active' ? 'Active' : 'Inactive'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeAcademy(a.id)}
+                      className="p-1.5 rounded-ax-sm text-ax-textFaint hover:text-ax-bad hover:bg-ax-bad/10 transition-colors"
+                      aria-label={`Remove ${a.academy_name}`}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </Card>

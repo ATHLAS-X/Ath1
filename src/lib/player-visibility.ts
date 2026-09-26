@@ -52,8 +52,21 @@ export function visibilityWhere(viewerScope: string[] | null): Prisma.PlayerProf
 
   const clauses: Prisma.PlayerProfileWhereInput[] = [
     { association_id: { in: viewerScope } },
-    { visibility_tier: 'cross_association' },
   ]
+  // cross_association means "any association's STAFF can see them" (see
+  // file header) — a caller with an EMPTY scope has no real
+  // AssociationStaff row for any association at all (e.g. a scout
+  // account), so they are not staff of any association and this clause
+  // must not apply to them. Previously this branch fired for any
+  // non-null scope regardless of length, so a caller with zero
+  // memberships matched it unconditionally — a minor who self-selected
+  // cross_association (which has no age check of its own) became visible
+  // through every route using visibilityWhere(), bypassing the
+  // adult-only franchise_scout design entirely. See
+  // tests/security/scout-minor-visibility-audit.test.ts CHECK 2.
+  if (viewerScope.length > 0) {
+    clauses.push({ visibility_tier: 'cross_association' })
+  }
   if (FRANCHISE_SCOUT_ENABLED) {
     clauses.push(franchiseScoutWhere())
   }

@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { requireAuth } from '@/lib/require-auth'
+import { canAccessPlayer } from '@/lib/squad-access'
 
 // Coach note is advisory only, 200 char max — enforced here, not just in
 // the UI, since this is a value selectors read as-is.
 export async function POST(req: NextRequest, { params }: { params: { playerId: string } }) {
   const auth = await requireAuth(req)
   if (auth instanceof NextResponse) return auth
+
+  // T-NOTE-AUTH: requireAuth alone let ANY authenticated user overwrite
+  // any player's coach note — same fix as evaluate/route.ts, reusing
+  // canAccessSquad's existing membership discipline via canAccessPlayer.
+  if (!(await canAccessPlayer(auth.user, params.playerId))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const { note } = await req.json()
   if (typeof note !== 'string' || note.length > 200) {

@@ -56,7 +56,7 @@ function NavItem({ href, icon: Icon, label, badge, active }: NavItemProps) {
         whileHover={{ x: active ? 0 : 3 }}
         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
         className={cn(
-          'relative flex items-center gap-3 pl-3.5 pr-3 py-2.5 rounded-ax-md text-sm font-medium font-barlow transition-all duration-200 group',
+          'relative flex items-center gap-3 pl-3.5 pr-3 py-2.5 rounded-ax-md text-sm font-medium font-barlow transition-colors duration-200 group',
           active
             ? 'bg-[rgba(255,138,30,0.1)] text-ax-accentBright'
             : 'text-ax-textDim hover:text-ax-text hover:bg-white/[0.04]'
@@ -89,14 +89,14 @@ export default function DashboardSidebar() {
   const sections = navSectionsForRole(session?.user?.role ?? '')
 
   return (
-    <aside className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-ax-bg border-r border-ax-cardBorder z-30">
-      <div className="px-5 h-14 flex items-center border-b border-ax-cardBorder">
+    <aside className="hidden lg:flex flex-col w-60 h-screen fixed left-0 top-0 bg-ax-bg border-r border-white/[0.12] z-30">
+      <div className="px-5 h-14 flex items-center border-b border-white/[0.12]">
         <Link href="/" className="flex items-center gap-1 font-barlow-semi uppercase tracking-[0.18em] font-bold text-sm text-ax-text">
           Athlas<span className="text-ax-accent">X</span>
         </Link>
       </div>
 
-      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-4">
+      <nav className="flex-1 px-3 pt-5 pb-4 overflow-y-auto space-y-4">
         {sections.map((section) => (
           <div key={section.label}>
             <p className="px-3 font-anton text-[11px] font-normal text-ax-textFaint uppercase tracking-[0.14em] mb-1.5">

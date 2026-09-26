@@ -17,6 +17,8 @@ export interface VerifiedMatchRow {
   batting_runs?: number
   batting_balls?: number
   batting_dismissed?: boolean
+  batting_fours?: number
+  batting_sixes?: number
   bowling_overs?: number
   bowling_wickets?: number
   bowling_runs_conceded?: number
@@ -27,7 +29,10 @@ export interface VerifiedMatchRow {
 // match-identifying fields (opponent/tournament/date) that a single score
 // row doesn't carry. There's no stored "player's own team" field, so
 // `opponent` is the match's away_team — the real recorded opponent, not a
-// synthetic pairing.
+// synthetic pairing. batting_fours/batting_sixes are included here (and not
+// in verifiedPerformancesByPlayer below) because only this player-facing
+// "record" view needs a boundary breakdown — athlasx-score.ts's scoring
+// engine, the batch function's only consumer, never reads them.
 export async function verifiedMatchHistoryForPlayer(playerId: string): Promise<VerifiedMatchRow[]> {
   const rows = await db.performance.findMany({
     where: { player_id: playerId, association_approval_status: 'approved' },
@@ -44,6 +49,8 @@ export async function verifiedMatchHistoryForPlayer(playerId: string): Promise<V
     batting_runs: r.batting_runs ?? undefined,
     batting_balls: r.batting_balls ?? undefined,
     batting_dismissed: r.batting_dismissed ?? undefined,
+    batting_fours: r.batting_fours ?? undefined,
+    batting_sixes: r.batting_sixes ?? undefined,
     bowling_overs: r.bowling_overs ?? undefined,
     bowling_wickets: r.bowling_wickets ?? undefined,
     bowling_runs_conceded: r.bowling_runs_conceded ?? undefined,

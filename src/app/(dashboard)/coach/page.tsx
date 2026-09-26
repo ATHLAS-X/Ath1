@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { RingGauge } from '@/components/ui/ring-gauge'
+import { fetchJSON } from '@/lib/fetch-json'
 
 // Second restyle pass (docs request, 2026-09-10) — a table with flagged
 // players pinned to the top + pagination, matching the new mockup set,
@@ -167,12 +168,14 @@ export default function CoachPage() {
   const evalRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    fetch('/api/coach/squad').then(r => r.json()).then(data => {
-      setSquad(data.squad ?? [])
-      setTrend(data.trend ?? [])
-      setTrendDelta(data.trendDelta ?? null)
-      setLoading(false)
-    })
+    fetchJSON<{ squad?: typeof squad; trend?: typeof trend; trendDelta?: typeof trendDelta }>('/api/coach/squad')
+      .then(data => {
+        setSquad(data.squad ?? [])
+        setTrend(data.trend ?? [])
+        setTrendDelta(data.trendDelta ?? null)
+      })
+      .catch(err => console.error('Failed to load coach squad data:', err))
+      .finally(() => setLoading(false))
   }, [])
 
   const needsEval  = squad.filter(p => !p.fitness_rating).length
@@ -251,8 +254,8 @@ export default function CoachPage() {
             <p className="font-barlow-semi text-[11px] font-bold uppercase tracking-[0.18em] text-ax-accentBright">Roster health · AthlasX roster average {stats.avgScore != null ? stats.avgScore.toFixed(1) : '—'}</p>
             <h2 className="font-anton uppercase text-xl sm:text-2xl text-ax-text mt-1.5 leading-tight">
               {needsEval > 0
-                ? `${needsEval} player${needsEval === 1 ? '' : 's'} need${needsEval === 1 ? 's' : ''} attention this week`
-                : 'No players need attention this week'}
+                ? `${needsEval} player${needsEval === 1 ? '' : 's'} awaiting evaluation this week`
+                : 'Every player evaluated this week'}
             </h2>
             <p className="text-[13.5px] text-ax-textDim mt-2.5 leading-relaxed max-w-lg">
               {stats.formDrop > 0 && <>{stats.formDrop} form drop{stats.formDrop === 1 ? '' : 's'} ({flaggedNames.formDrop.join(', ')})</>}
@@ -278,7 +281,7 @@ export default function CoachPage() {
       {/* Stat tiles */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatTile icon={Users} value={squad.length} label="Roster size" />
-        <StatTile icon={AlertTriangle} value={needsEval} label="Needs attention" tint="bg-[rgba(255,90,77,0.1)]" />
+        <StatTile icon={AlertTriangle} value={needsEval} label="Awaiting evaluation" tint="bg-[rgba(255,90,77,0.1)]" />
         <StatTile icon={CheckCircle2} value={stats.onForm} label="On form" tint="bg-[rgba(56,211,159,0.1)]" />
         <StatTile icon={Award} value={stats.avgScore != null ? stats.avgScore.toFixed(1) : '—'} label="Average score" />
       </div>

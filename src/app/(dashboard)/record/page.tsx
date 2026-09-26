@@ -15,6 +15,11 @@ import { RingGauge } from '@/components/ui/ring-gauge'
 interface RecordData {
   player: { id: string; full_name: string; playing_role: string; district: string; academy: string | null }
   score: { total: number; tier: string; batting: number; bowling: number; fitness: number; fitnessAssessed: boolean }
+  matrix: {
+    batting: { score: number; matches: number; boundaryPct: number; average: number; strikeRate: number }
+    bowling: { score: number; matches: number; economy: number; wickets: number; style: string | null }
+    fitness: { assessed: boolean; score: number }
+  }
   percentile: { value: number | null; cohortSize: number; ageCategory: string; district: string }
   summary: { matches: number; runs: number; average: number; strikeRate: number; fifties: number; best: number }
   trend: { label: string; runs: number; sr: number }[]
@@ -28,6 +33,17 @@ interface RecordData {
 // a completely different concept from score.tier. Using the real tier
 // labels here instead of reproducing the mockup's mislabeled ladder.
 const TIER_LADDER = ['Rising', 'Developing', 'Advanced', 'Elite']
+
+// Quadrant-card tier badge for the Performance Matrix, on the same 0–10
+// scale as score.batting/score.bowling (athlasx-score.ts) — a separate
+// scale from TIER_LADDER above, which describes the 0–100 total score.
+function matrixTier(value: number, hasData: boolean): { label: string; className: string } {
+  if (!hasData) return { label: 'No data', className: 'text-ax-textFaint bg-white/[0.05] border-ax-cardBorder' }
+  if (value >= 8) return { label: 'Elite tier', className: 'text-ax-ok bg-[rgba(56,211,159,0.15)] border-[rgba(56,211,159,0.2)]' }
+  if (value >= 6) return { label: 'Strong tier', className: 'text-ax-accentBright bg-[rgba(255,138,30,0.15)] border-[rgba(255,138,30,0.2)]' }
+  if (value >= 4) return { label: 'Developing', className: 'text-amber-400 bg-amber-500/15 border-amber-500/20' }
+  return { label: 'Support tier', className: 'text-ax-textDim bg-white/[0.05] border-ax-cardBorder' }
+}
 
 // docs/AthlasX_Master_Data_Points_Phase1_Prompts.md L-2 audit — was
 // text-blue/text-purple/text-amber/text-cyan, unrelated to the green
@@ -83,7 +99,7 @@ export default function RecordPage() {
     </Card>
   )
 
-  const { player, score, percentile, summary, trend, scoreTrend, matches } = data
+  const { player, score, matrix, percentile, summary, trend, scoreTrend, matches } = data
   const firstName = player.full_name.split(' ')[0]
   const roleLabel = dbRoleMap[player.playing_role] ?? player.playing_role.replace(/_/g, ' ')
 
@@ -172,35 +188,110 @@ export default function RecordPage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            {[
-              { label: 'Batting', value: score.batting, shown: score.batting > 0 ? score.batting.toFixed(1) : '—' },
-              { label: 'Bowling', value: score.bowling, shown: score.bowling > 0 ? score.bowling.toFixed(1) : '—' },
-              { label: 'Fitness', value: score.fitnessAssessed ? score.fitness : 0, shown: score.fitnessAssessed ? score.fitness.toFixed(1) : '0' },
-            ].map(t => (
-              <div key={t.label} className="p-2.5 rounded-ax-md border border-ax-cardBorder bg-white/[0.02]">
-                <p className="text-[9px] font-bold text-ax-textFaint uppercase tracking-wide">{t.label}</p>
-                <p className="text-sm font-black text-ax-text tabular-nums">{t.shown}<span className="text-[9px] text-ax-textFaint font-medium">/10</span></p>
-                <div className="h-1 rounded-full bg-white/[0.06] mt-1.5 overflow-hidden">
-                  <div className="h-full rounded-full bg-ax-accent" style={{ width: `${Math.min(100, Math.max(0, (t.value / 10) * 100))}%` }} />
+        </Card>
+      </motion.div>
+
+      {/* Performance Matrix — three quadrant cards (Batting/Bowling/Fitness),
+          each with a tier badge and its own real substats, ported from the
+          Stitch mockup's "Core Performance Matrix" layout. Fitness always
+          shows "Not assessed" here — athlasx-score.ts's fitnessAssessed is
+          hardcoded false (no fitness data is collected anywhere in this
+          app yet), so unlike the mockup's fabricated Yo-Yo/sprint numbers,
+          this card shows only that honest state. */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="flex flex-col gap-2.5">
+        <div className="flex items-center justify-between">
+          <span className="font-barlow-semi text-[11px] text-ax-accentBright tracking-wider uppercase font-bold">Core performance matrix</span>
+          <span className="font-barlow-semi text-xs text-ax-textFaint font-semibold">Verified data only</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {(() => {
+            const battingHasData = matrix.batting.matches > 0
+            const battingBadge = matrixTier(matrix.batting.score, battingHasData)
+            return (
+              <Card className="p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-barlow-semi text-xs text-ax-textDim uppercase font-bold">Batting</span>
+                    <span className={cn('text-[10px] font-barlow-semi uppercase font-bold px-2 py-0.5 rounded border', battingBadge.className)}>{battingBadge.label}</span>
+                  </div>
+                  <div className="flex items-baseline gap-1 my-2">
+                    <span className="font-anton text-3xl text-ax-text">{battingHasData ? matrix.batting.score.toFixed(1) : '—'}</span>
+                    <span className="font-barlow text-xs text-ax-textFaint">/10</span>
+                  </div>
                 </div>
-                {t.label === 'Fitness' && !score.fitnessAssessed && <p className="text-[8px] text-ax-textFaint/70 mt-1">Not assessed</p>}
+                {battingHasData ? (
+                  <div className="space-y-1.5 pt-2 border-t border-ax-cardBorder text-xs font-barlow text-ax-textDim">
+                    <div className="flex justify-between"><span>Boundary runs %</span><strong className="text-ax-text">{matrix.batting.boundaryPct}%</strong></div>
+                    <div className="flex justify-between"><span>Average</span><strong className="text-ax-text">{matrix.batting.average.toFixed(1)}</strong></div>
+                    <div className="flex justify-between"><span>Strike rate</span><strong className="text-ax-ok">{matrix.batting.strikeRate.toFixed(1)}</strong></div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-ax-textFaint/70 pt-2 border-t border-ax-cardBorder">No verified batting innings yet</p>
+                )}
+              </Card>
+            )
+          })()}
+
+          {(() => {
+            const bowlingHasData = matrix.bowling.matches > 0
+            const bowlingBadge = matrixTier(matrix.bowling.score, bowlingHasData)
+            return (
+              <Card className="p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-barlow-semi text-xs text-ax-textDim uppercase font-bold">Bowling</span>
+                    <span className={cn('text-[10px] font-barlow-semi uppercase font-bold px-2 py-0.5 rounded border', bowlingBadge.className)}>{bowlingBadge.label}</span>
+                  </div>
+                  <div className="flex items-baseline gap-1 my-2">
+                    <span className="font-anton text-3xl text-ax-text">{bowlingHasData ? matrix.bowling.score.toFixed(1) : '—'}</span>
+                    <span className="font-barlow text-xs text-ax-textFaint">/10</span>
+                  </div>
+                </div>
+                {bowlingHasData ? (
+                  <div className="space-y-1.5 pt-2 border-t border-ax-cardBorder text-xs font-barlow text-ax-textDim">
+                    <div className="flex justify-between"><span>Discipline</span><strong className="text-ax-text">{matrix.bowling.style ? matrix.bowling.style.replace(/_/g, ' ') : '—'}</strong></div>
+                    <div className="flex justify-between"><span>Economy</span><strong className="text-ax-text">{matrix.bowling.economy.toFixed(1)} RPO</strong></div>
+                    <div className="flex justify-between"><span>Wickets</span><strong className="text-ax-ok">{matrix.bowling.wickets} / {matrix.bowling.matches} inns</strong></div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-ax-textFaint/70 pt-2 border-t border-ax-cardBorder">No verified bowling figures yet</p>
+                )}
+              </Card>
+            )
+          })()}
+
+          <Card className="p-4 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="font-barlow-semi text-xs text-ax-textDim uppercase font-bold">Fitness &amp; endurance</span>
+                <span className="text-[10px] font-barlow-semi uppercase font-bold px-2 py-0.5 rounded border text-ax-textFaint bg-white/[0.05] border-ax-cardBorder">Not assessed</span>
+              </div>
+              <div className="flex items-baseline gap-1 my-2">
+                <span className="font-anton text-3xl text-ax-text">—</span>
+                <span className="font-barlow text-xs text-ax-textFaint">/10</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-ax-textFaint/70 pt-2 border-t border-ax-cardBorder">Fitness assessment isn&apos;t collected yet — this card will populate once that&apos;s built.</p>
+          </Card>
+        </div>
+      </motion.div>
+
+      {/* Career telemetry strip — real aggregates from verified matches only
+          (summaryStats, defined above from `summary`), restyled to match
+          the mockup's labeled-strip treatment. */}
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        <Card className="p-4 flex flex-col gap-3">
+          <span className="font-barlow-semi text-[11px] text-ax-accentBright tracking-wider uppercase font-bold">Career telemetry summary</span>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+            {summaryStats.map(s => (
+              <div key={s.label} className="text-center p-3 rounded-ax-md border border-ax-cardBorder bg-white/[0.02]">
+                <div className="text-xl font-black tabular-nums text-ax-accentBright">{s.value}</div>
+                <div className="text-[9px] font-bold text-ax-textFaint mt-0.5 uppercase tracking-wide">{s.label}</div>
+                <div className="text-[8px] text-ax-textFaint/70 mt-0.5">{s.sub}</div>
               </div>
             ))}
           </div>
         </Card>
-      </motion.div>
-
-      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-          {summaryStats.map(s => (
-            <div key={s.label} className="text-center p-3 rounded-ax-md border border-ax-cardBorder bg-white/[0.02]">
-              <div className="text-xl font-black tabular-nums text-ax-accentBright">{s.value}</div>
-              <div className="text-[9px] font-bold text-ax-textFaint mt-0.5 uppercase tracking-wide">{s.label}</div>
-              <div className="text-[8px] text-ax-textFaint/70 mt-0.5">{s.sub}</div>
-            </div>
-          ))}
-        </div>
       </motion.div>
 
       {/* Score trend — real, from PlayerWeek.rolling_4week_average, only

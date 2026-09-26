@@ -360,9 +360,62 @@ model Association {
   identity_exceptions IdentityException[]
   ingest_jobs         IngestJob[]
   squads              Squad[]
+  affiliated_academies AffiliatedAcademy[]
 
   @@index([type])
   @@map("associations")
+  @@schema("athlasx")
+}
+
+// ─── AffiliatedAcademy — an association's own self-reported list of
+// academies it considers affiliated with it. Deliberately NOT related to
+// the real, self-serve `Academy` model (an academy with its own AthlasX
+// account) — an academy doesn't need to exist as an Academy row, or have
+// an account at all, to be listed here. This is the association's own
+// record-keeping, not independently verified against any external source
+// (confirmed by research: no reliable public academy-to-association
+// directory exists — see docs/AthlasX_Legal_Consent_and_Association_Research.md).
+// The UI must label this self-reported, never imply verification.
+model AffiliatedAcademy {
+  id             String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  association_id String                  @db.Uuid
+  association    Association             @relation(fields: [association_id], references: [id], onDelete: Cascade)
+  academy_name   String
+  contact_name   String?
+  contact_phone  String?
+  contact_email  String?
+  status         AffiliatedAcademyStatus @default(active)
+  created_at     DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime                @updatedAt @db.Timestamptz(6)
+
+  @@index([association_id])
+  @@map("affiliated_academies")
+  @@schema("athlasx")
+}
+
+enum AffiliatedAcademyStatus {
+  active
+  inactive
+
+  @@schema("athlasx")
+}
+
+// ─── APPLIED 2026-09-21 (pushed to the live dev DB by explicit go-ahead) ──
+// Reference/lookup data only — the real, canonical list of 36 BCCI
+// full/associate member state & UT cricket associations (see
+// docs/AthlasX_Legal_Consent_and_Association_Research.md), so association
+// names entered elsewhere in the system can be checked against real
+// entities. Deliberately separate from the operational `Association`
+// model (which represents real onboarded tenants with staff, trial
+// cycles, etc.) — seeding this table does NOT create 36 fake tenants.
+// Populated by prisma/seed-bcci-associations.ts.
+model BcciAssociationReference {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String   @unique
+  state_or_ut  String
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("bcci_association_reference")
   @@schema("athlasx")
 }
 
@@ -564,6 +617,7 @@ model PlayerProfile {
   batch_memberships        AcademyBatchMembership[]
   academy_join_requests    AcademyJoinRequest[]
   academy_attendance_flags AcademyAttendanceFlag[]
+  consent_records          ConsentRecord[]
 
   @@index([claim_status])
   @@index([association_id])
@@ -878,6 +932,40 @@ model Performance {
 
   @@index([player_id])
   @@map("performances")
+  @@schema("athlasx")
+}
+
+// ─── APPLIED 2026-09-21 (pushed to the live dev DB by explicit go-ahead) ──
+// Proposed by the DPDP consent-audit prompt (MP-2). See
+// docs/AthlasX_DigiLocker_Verification_Dependency_Map.md for what changes
+// here once a real eKYC vendor (e.g. Surepass) replaces the dev-mode
+// Aadhaar OTP stub.
+//
+// Records the specific consent event, not just a boolean: which guardian
+// (linked to the player, not a free-text name only), which version of the
+// consent copy they were shown, when, and by what verification method —
+// so a real guardian-consent record can be produced on demand, distinct
+// from the player's own identity-verification record.
+model ConsentRecord {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  player_id            String   @db.Uuid
+  player               PlayerProfile @relation(fields: [player_id], references: [id])
+  guardian_name        String
+  guardian_relation    String
+  // Identifies exactly which copy was shown at consent time (e.g. a hash of
+  // the CONSENTS[].body string, or a manually bumped tag like
+  // "guardian_dpdp_v2") — so a later copy rewrite never retroactively
+  // changes what an earlier consent record is understood to have agreed to.
+  consent_text_version String
+  // Deliberately a plain string, not an enum — "aadhaar_otp_stub" today,
+  // "digilocker_token" (or another vendor's method) once real eKYC lands,
+  // without a schema migration just to add a new verification method.
+  verification_method  String
+  verified_at          DateTime @db.Timestamptz(6)
+  created_at           DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([player_id])
+  @@map("consent_records")
   @@schema("athlasx")
 }
 

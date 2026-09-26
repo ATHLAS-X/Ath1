@@ -54,6 +54,24 @@ async function seedPlayer(label: string) {
   })
 }
 
+// canAccessPlayer (src/lib/squad-access.ts, T-EVAL-AUTH) now requires a
+// real SquadCoach row for the target player's squad — this route no
+// longer accepts any authenticated coach. Every test below needs a real
+// squad with this player rostered and this coach assigned, not just a
+// bare coach user.
+async function seedCoachWithSquad(playerId: string, label: string) {
+  const association = await testDb.association.create({
+    data: { name: `Trend ${label} Assoc`, type: 'district', state: 'Uttar Pradesh' },
+  })
+  const squad = await testDb.squad.create({
+    data: { association_id: association.id, name: `Trend ${label} Squad`, season: '2026' },
+  })
+  await testDb.squadPlayer.create({ data: { squad_id: squad.id, player_id: playerId } })
+  const coach = await testDb.user.create({ data: { email: `coach-${label}@test.local`, role: 'coach', password_hash: 'x' } })
+  await testDb.squadCoach.create({ data: { squad_id: squad.id, user_id: coach.id } })
+  return coach
+}
+
 async function postEvaluate(playerId: string, coachUserId: string) {
   return evaluate(
     await postAsUser('http://test.local/api', coachUserId, 'coach', { note: 'weekly check-in' }),
@@ -64,7 +82,7 @@ async function postEvaluate(playerId: string, coachUserId: string) {
 describe('POST /api/coach/[playerId]/evaluate — real weekly score + trend detection', () => {
   it('writes a real rolling_4week_average/score_delta on every save, not just the seed', async () => {
     const player = await seedPlayer('basic')
-    const coach = await testDb.user.create({ data: { email: 'coach-basic@test.local', role: 'coach', password_hash: 'x' } })
+    const coach = await seedCoachWithSquad(player.id, 'basic')
 
     const res = await postEvaluate(player.id, coach.id)
     expect(res.status).toBe(200)
@@ -78,7 +96,7 @@ describe('POST /api/coach/[playerId]/evaluate — real weekly score + trend dete
 
   it('flags form_drop and writes a TrendAlert after 3 real consecutive declining weeks', async () => {
     const player = await seedPlayer('declining')
-    const coach = await testDb.user.create({ data: { email: 'coach-declining@test.local', role: 'coach', password_hash: 'x' } })
+    const coach = await seedCoachWithSquad(player.id, 'declining')
 
     await testDb.playerWeek.create({
       data: { player_id: player.id, week_start: weeksAgo(2), matches_played: 1, rolling_4week_average: 95, score_delta: -5 },
@@ -104,7 +122,7 @@ describe('POST /api/coach/[playerId]/evaluate — real weekly score + trend dete
 
   it('does not flag or alert with only 2 consecutive declining weeks', async () => {
     const player = await seedPlayer('almost')
-    const coach = await testDb.user.create({ data: { email: 'coach-almost@test.local', role: 'coach', password_hash: 'x' } })
+    const coach = await seedCoachWithSquad(player.id, 'almost')
 
     // Only one prior declining week — this week would be the 2nd, below
     // the 3-week threshold.
@@ -125,7 +143,7 @@ describe('POST /api/coach/[playerId]/evaluate — real weekly score + trend dete
 
   it('does not create a duplicate TrendAlert when the same already-flagged week is saved again', async () => {
     const player = await seedPlayer('resave')
-    const coach = await testDb.user.create({ data: { email: 'coach-resave@test.local', role: 'coach', password_hash: 'x' } })
+    const coach = await seedCoachWithSquad(player.id, 'resave')
 
     await testDb.playerWeek.create({
       data: { player_id: player.id, week_start: weeksAgo(2), matches_played: 1, rolling_4week_average: 95, score_delta: -5 },

@@ -5,6 +5,17 @@ import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { hashPassword, validatePasswordStrength } from '@/lib/password'
 import { consumeVerifiedAadhaar } from '@/lib/aadhaar-verification'
 import { rateLimit } from '@/lib/rate-limit'
+import { recordGuardianConsent } from '@/lib/consent-record'
+import { isUnder18 } from '@/lib/age'
+
+// Bump this whenever CONSENTS.dpdpGuardian.body (src/app/player/onboarding/
+// page.tsx) changes wording — a stable identifier for exactly which copy a
+// guardian was shown, so a later rewrite never retroactively changes what
+// an earlier ConsentRecord is understood to have agreed to. This route has
+// no access to the frontend's CONSENTS array (only the boolean the client
+// posts), so a manually-bumped tag is used rather than a hash computed
+// from text this route never receives.
+const GUARDIAN_CONSENT_TEXT_VERSION = 'guardian_dpdp_v1'
 
 // docs/AthlasX_Master_Data_Points.docx Player Phase 1 (HIGH) — the wizard's
 // <select> already sends the enum's own values directly (see the "value"
@@ -239,6 +250,23 @@ export async function POST(req: NextRequest) {
         data: { linked_player_id: created.player_profile!.id },
       })
 
+      // Captured at the moment guardian consent completes (this submit),
+      // not inferred after the fact from the consent_status column alone.
+      // guardian_relation is NOT collected anywhere in this wizard's form
+      // (unlike /claim and the academy join flow, which both ask for it)
+      // — recorded honestly as unspecified rather than fabricated, and
+      // flagged as a real gap to close, not silently papered over.
+      if (minor) {
+        await recordGuardianConsent({
+          playerId: created.player_profile!.id,
+          guardianName,
+          guardianRelation: 'Unspecified — not collected by this onboarding wizard',
+          consentTextVersion: GUARDIAN_CONSENT_TEXT_VERSION,
+          verificationMethod: 'aadhaar_otp_stub',
+          verifiedAt: new Date(),
+        }, tx)
+      }
+
       return created
     })
 
@@ -259,10 +287,6 @@ export async function POST(req: NextRequest) {
 
 function isUniqueViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && 'code' in err && (err as { code: string }).code === 'P2002'
-}
-
-function isUnder18(dob: Date): boolean {
-  return (Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000) < 18
 }
 
 function footageUrls(body: Record<string, unknown>): string[] {

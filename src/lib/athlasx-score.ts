@@ -152,7 +152,7 @@ function battingDisplayScore(avg: number, sr: number): number {
 // An economy of exactly 0 (a maiden-only spell) is the best possible outcome,
 // not "no data" — absence of bowling data is gated by the caller instead.
 function bowlingDisplayScore(economy: number, avg: number): number {
-  const ecoScore = clamp(((10 - economy) / 4) * 10, 0, 10)   // 6.5 eco → 10, 10.5 eco → 0
+  const ecoScore = clamp(((10.5 - economy) / 4) * 10, 0, 10)   // 6.5 eco → 10, 10.5 eco → 0
   const avgScore = clamp(((40 - avg)     / 25) * 10, 0, 10)  // 15 avg → 10, 40 avg → 0
   return Math.round((ecoScore * 0.55 + avgScore * 0.45) * 10) / 10
 }

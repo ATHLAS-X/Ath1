@@ -257,7 +257,7 @@ function GradePanel({ existing, locked, onSubmit }: {
             className={cn(
               'w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition-all',
               grade && !saving
-                ? 'bg-green-600 hover:bg-green-500 text-white'
+                ? 'bg-ax-accent hover:bg-ax-accentBright text-[#1a0e02]'
                 : 'bg-white/[0.04] border border-white/[0.08] text-zinc-600 cursor-not-allowed'
             )}
           >

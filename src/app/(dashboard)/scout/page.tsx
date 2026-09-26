@@ -255,7 +255,7 @@ export default function ScoutPage() {
                         <td className="px-3 py-3 text-sm text-ax-textDim hidden lg:table-cell">{c.bowling_style && c.bowling_style !== 'None' ? c.bowling_style.replace(/_/g, ' ') : '—'}</td>
                         <td className="px-3 py-3 text-sm text-ax-textDim hidden md:table-cell truncate max-w-[160px]">{c.academy ?? '—'}</td>
                         <td className="px-5 sm:px-6 py-3 text-right">
-                          <span className="font-anton text-base text-ax-text">{c.athlasx_score != null ? c.athlasx_score.toFixed(1) : '—'}</span>
+                          <span className="font-anton text-base text-ax-text tabular-nums">{c.athlasx_score != null ? c.athlasx_score.toFixed(1) : '—'}</span>
                         </td>
                       </tr>
                     ))}
@@ -301,7 +301,7 @@ function StatTile({ icon: Icon, value, label }: { icon: typeof Users; value: str
       <div className="w-[34px] h-[34px] rounded-full bg-[rgba(255,138,30,0.08)] flex items-center justify-center">
         <Icon className="w-4 h-4 text-ax-accentBright" />
       </div>
-      <div className="font-anton text-2xl text-ax-text mt-3">{value}</div>
+      <div className="font-anton text-2xl text-ax-text mt-3 tabular-nums">{value}</div>
       <p className="font-barlow-semi text-[10.5px] font-bold uppercase tracking-[0.1em] text-ax-textDim mt-0.5">{label}</p>
     </div>
   )

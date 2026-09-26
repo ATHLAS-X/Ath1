@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Inter } from 'next/font/google'
 import { Loader2, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { isUnder18 } from '@/lib/age'
 
 /**
  * Public guardian self-registration landing page — the destination of the
@@ -85,11 +86,7 @@ export default function JoinPage({ params }: { params: { academyId: string } }) 
   const isMinor = (() => {
     const d = new Date(dob)
     if (Number.isNaN(d.getTime())) return false
-    const now = new Date()
-    let age = now.getFullYear() - d.getFullYear()
-    const m = now.getMonth() - d.getMonth()
-    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--
-    return age < 18
+    return isUnder18(d)
   })()
 
   async function sendOtp() {
@@ -205,7 +202,12 @@ export default function JoinPage({ params }: { params: { academyId: string } }) 
 
               {isMinor && (
                 <div className="border-l-[3px] border-[color:var(--accent)] bg-[#FFF7EE] rounded-r-xl p-4 space-y-4">
-                  <p className="text-[14px] font-bold leading-relaxed">You are registering a minor. Guardian consent is required.</p>
+                  <div className="space-y-2">
+                    <p className="text-[14px] font-bold leading-relaxed">You are registering a minor. This section is asking for your consent, not the player&apos;s.</p>
+                    <p className="text-[12.5px] leading-relaxed text-[color:var(--ink-dim)]">
+                      Under India&apos;s Digital Personal Data Protection Act, 2023 (DPDP Rules, 2025 — Rule 10), a child cannot legally consent to their own data being processed — only a parent or legal guardian can. Below, you&apos;re confirming your own identity and relationship to the player, separately from the player&apos;s details above.
+                    </p>
+                  </div>
                   <div>
                     <label className={LABEL_CLS}>Parent / Guardian Full Name *</label>
                     <input value={guardianName} onChange={(e) => setGuardianName(e.target.value)} placeholder="Full name" className={CONTROL_CLS} />
@@ -232,7 +234,7 @@ export default function JoinPage({ params }: { params: { academyId: string } }) 
                   )}
                   <label className="flex items-start gap-2 text-[13px] text-[color:var(--ink-dim)] leading-relaxed">
                     <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 w-[17px] h-[17px] accent-[color:var(--accent)] shrink-0" />
-                    I consent to AthlasX collecting and storing my child&apos;s cricket performance data.
+                    I confirm I am this player&apos;s parent or legal guardian. I consent to AthlasX collecting the player&apos;s name, date of birth, and contact details now, and — once verified by an association — their match performance data, used only to build their player profile and score. This data will never be used for behavioral monitoring or targeted advertising, and I can withdraw this consent at any time by contacting AthlasX.
                   </label>
                 </div>
               )}

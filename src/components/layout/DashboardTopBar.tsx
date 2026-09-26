@@ -36,7 +36,7 @@ export default function DashboardTopBar() {
   }, [])
 
   return (
-    <header className="h-14 flex items-center justify-between gap-4 px-4 sm:px-6 border-b border-ax-cardBorder bg-ax-bgSoft lg:ml-60">
+    <header className="h-14 flex items-center justify-between gap-4 px-4 sm:px-6 border-b border-white/[0.12] bg-ax-bgSoft lg:ml-60 relative z-20">
       <div className="flex items-center gap-4 min-w-0">
         <Link href="/" className="hidden sm:flex lg:hidden items-center gap-1 shrink-0 font-barlow-semi uppercase tracking-[0.18em] font-bold text-sm text-ax-text">
           Athlas<span className="text-ax-accent">X</span>
@@ -75,7 +75,7 @@ export default function DashboardTopBar() {
               onClick={() => signOut({ callbackUrl: '/auth' })}
               className="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-ax-textDim hover:text-ax-bad hover:bg-white/[0.04] transition-colors text-left"
             >
-              <LogOut className="w-4 h-4" /> Log out
+              <LogOut className="w-4 h-4" strokeWidth={1.5} /> Log out
             </button>
           </div>
         )}

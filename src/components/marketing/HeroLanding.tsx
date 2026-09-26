@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import { Anton, Barlow, Barlow_Semi_Condensed } from 'next/font/google'
+import { ButtonLink } from '@/components/ui/button'
 
 const anton = Anton({ subsets: ['latin'], weight: '400', variable: '--font-anton' })
 const barlow = Barlow({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-barlow' })
@@ -20,13 +21,13 @@ const HERO_VARS = {
 // mockup, translated to inline styles since Tailwind can't express a
 // multi-row named grid-template-areas string as a utility class.
 const PANELS = [
-  { area: 'p1', src: '/images/hero/motorsport.jpg', alt: 'Motorsport driver standing on a single-seater race car under a vast cloud-streaked sky', objectPosition: '50% 38%' },
-  { area: 'p2', src: '/images/hero/badminton.jpg', alt: 'Badminton player roaring in triumph with racket raised, national flag behind', objectPosition: '50% 38%' },
-  { area: 'p3', src: '/images/hero/cricket.jpg', alt: 'Cricketer in national kit, number 18, looking out over a smoke-coloured sky', objectPosition: '50% 30%' },
-  { area: 'p4', src: '/images/hero/tennis.jpg', alt: 'Cubist-style tennis player mid-roar gripping a racket', objectPosition: '50% 22%' },
-  { area: 'p5', src: '/images/hero/volleyball.jpg', alt: 'Volleyball player leaping to serve against a splash of blue and gold paint', objectPosition: '46% 30%' },
-  { area: 'p6', src: '/images/hero/cricket-sketch-wide.png', alt: 'Sketch-and-paint landscape composite of a cricketer in national blue', objectPosition: '50% 42%' },
-  { area: 'p7', src: '/images/hero/tennis-sunburst.jpg', alt: 'Stylised tennis player against a radiating sunburst of warm colour', objectPosition: '50% 30%' },
+  { area: 'p1', src: '/images/hero/attached-f1-redbull-night.jpg', alt: 'Formula 1 driver in Red Bull racing suit standing on his car celebrating under floodlights and fireworks', objectPosition: '50% 30%' },
+  { area: 'p2', src: '/images/hero/attached-badminton-smash.webp', alt: 'Badminton player leaping mid-air for an overhead smash on a tournament court', objectPosition: '50% 25%' },
+  { area: 'p3', src: '/images/hero/attached-cricket-kohli-rohit.webp', alt: 'Two Indian cricketers embracing in celebration, arms around each other on the field', objectPosition: '50% 25%' },
+  { area: 'p4', src: '/images/hero/attached-basketball-poster.jpg', alt: 'Basketball players contesting a shot at the rim in a packed arena', objectPosition: '50% 35%' },
+  { area: 'p5', src: '/images/hero/attached-cricket-virat-bw.png', alt: 'Black-and-white photo of a cricketer in national kit, number 18, raising his bat in acknowledgement', objectPosition: '50% 35%' },
+  { area: 'p6', src: '/images/hero/attached-volleyball-spike.jpg', alt: 'Volleyball player leaping high to spike the ball under stadium lights', objectPosition: '50% 30%' },
+  { area: 'p7', src: '/images/hero/attached-soccer-boots-bw.webp', alt: 'Black-and-white close-up of a soccer player’s boots and gloved hands resting on the ball at kickoff', objectPosition: '50% 40%' },
 ]
 
 export default function HeroLanding() {
@@ -73,18 +74,20 @@ export default function HeroLanding() {
 
         {/* ── Account bar ── */}
         <div className="absolute top-6 right-6 sm:top-8 sm:right-8 z-10 flex items-center gap-2.5">
-          <a
+          <ButtonLink
             href="/auth"
-            className="font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-wide px-5 py-2.5 rounded-lg border border-white/25 text-white hover:border-white/50 transition-colors"
+            variant="outline"
+            className="font-[family-name:var(--font-barlow-semi)] text-sm font-bold tracking-wide rounded-lg border-white/25 text-white hover:border-white/50 hover:bg-transparent"
           >
             Sign In
-          </a>
-          <a
+          </ButtonLink>
+          <ButtonLink
             href="/auth?mode=signup"
-            className="font-[family-name:var(--font-barlow-semi)] text-sm font-bold uppercase tracking-wide px-5 py-2.5 rounded-lg bg-[color:var(--accent)] text-[#1a0e02] hover:bg-[color:var(--accent-bright)] transition-colors shadow-[0_8px_22px_-8px_rgba(255,138,30,0.7)]"
+            variant="primary"
+            className="font-[family-name:var(--font-barlow-semi)] text-sm font-bold tracking-wide rounded-lg bg-[color:var(--accent)] border-[color:var(--accent)] hover:bg-[color:var(--accent-bright)] hover:border-[color:var(--accent-bright)]"
           >
             Signup
-          </a>
+          </ButtonLink>
         </div>
 
         {/* ── Brand overlay ── */}

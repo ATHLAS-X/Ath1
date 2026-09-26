@@ -10,15 +10,14 @@ import { calculateAthlasXScore } from '@/lib/athlasx-score'
 import { dbRoleMap } from '@/lib/mock-performance-seed'
 import { verifiedPerformancesByPlayer } from '@/lib/verified-performances'
 import type { PlayingRoleEnum } from '@prisma/client'
+import { ageFromDob } from '@/lib/age'
 
 export type AgeCategory = 'U-14' | 'U-16' | 'U-19' | 'U-23' | 'Senior'
 
-export function ageFromDob(dob: Date, now: Date = new Date()): number {
-  let age = now.getFullYear() - dob.getFullYear()
-  const m = now.getMonth() - dob.getMonth()
-  if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--
-  return age
-}
+// Re-exported from the shared, dependency-free src/lib/age.ts (safe for
+// both client and server code) instead of duplicating the calculation
+// here — this file used to keep its own independent copy of the same math.
+export { ageFromDob }
 
 export function ageCategoryForDob(dob: Date, now: Date = new Date()): AgeCategory {
   const age = ageFromDob(dob, now)

@@ -199,7 +199,7 @@ export default function ConvergencePage() {
               className={cn(
                 'px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors',
                 sort === s.key
-                  ? 'bg-green-500/15 border-green-500/25 text-green-400'
+                  ? 'bg-ax-accent/15 border-ax-accent/25 text-ax-accentBright'
                   : 'bg-white/[0.02] border-white/[0.06] text-zinc-500 hover:text-zinc-300'
               )}
             >
@@ -232,11 +232,19 @@ export default function ConvergencePage() {
                   disabled={isLocked}
                   className={cn(
                     'w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors',
+                    // isLocked = final, immutable squad decision — a real
+                    // completed status, legitimately green per the design
+                    // system's status-color convention. isSelected (still
+                    // adjustable pre-lock) is an active user choice being
+                    // made right now, not a status yet — that's ax-accent's
+                    // job, not green's. (Audit finding: this used to be
+                    // green-500 for both states.)
                     isLocked ? 'bg-green-600 border-green-600' :
-                    isSelected ? 'bg-green-500 border-green-500' : 'bg-transparent border-white/[0.15] hover:border-white/30'
+                    isSelected ? 'bg-ax-accent border-ax-accent' : 'bg-transparent border-white/[0.15] hover:border-white/30'
                   )}
                 >
-                  {(isSelected || isLocked) && <CheckCircle2 className="w-3 h-3 text-white" />}
+                  {isLocked && <CheckCircle2 className="w-3 h-3 text-white" />}
+                  {isSelected && !isLocked && <CheckCircle2 className="w-3 h-3 text-[#1a0e02]" />}
                 </button>
 
                 <div className="w-40 shrink-0">
@@ -291,7 +299,7 @@ export default function ConvergencePage() {
             className={cn(
               'flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all',
               selected.size > 0 && !locking
-                ? 'bg-green-600 hover:bg-green-500 text-white'
+                ? 'bg-ax-accent hover:bg-ax-accentBright text-[#1a0e02]'
                 : 'bg-white/[0.04] border border-white/[0.08] text-zinc-600 cursor-not-allowed'
             )}
           >

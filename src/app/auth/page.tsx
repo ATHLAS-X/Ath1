@@ -7,6 +7,8 @@ import Image from 'next/image'
 import { Anton, Barlow, Barlow_Semi_Condensed } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 /*
  * New front door for sign-in and role-based sign-up. Does not replace
@@ -51,10 +53,10 @@ const ROLES: { value: Role; label: string; blurb: string }[] = [
 ]
 
 const TILES = [
-  { src: '/images/hero/motorsport.jpg', alt: 'Motorsport driver on a single-seater under a vast sky', className: 'row-span-2' },
-  { src: '/images/hero/badminton.jpg', alt: 'Badminton player roaring in triumph, flag behind' },
-  { src: '/images/hero/tennis-sunburst.jpg', alt: 'Stylised tennis player against a warm sunburst', className: 'row-span-2' },
-  { src: '/images/hero/cricket.jpg', alt: 'Cricketer in national kit against a smoke-coloured sky' },
+  { src: '/images/hero/attached-f1-redbull-night.jpg', alt: 'Formula 1 driver in Red Bull racing suit celebrating under floodlights and fireworks', className: 'row-span-2' },
+  { src: '/images/hero/attached-badminton-smash.webp', alt: 'Badminton player leaping mid-air for an overhead smash' },
+  { src: '/images/hero/attached-cricket-virat-bw.png', alt: 'Black-and-white photo of a cricketer in national kit raising his bat', className: 'row-span-2' },
+  { src: '/images/hero/attached-basketball-poster.jpg', alt: 'Basketball players contesting a shot at the rim in a packed arena' },
 ]
 
 function AuthPageInner() {
@@ -213,7 +215,7 @@ function AuthPageInner() {
             <p className="font-[family-name:var(--font-barlow-semi)] text-[11px] font-bold uppercase tracking-[0.2em] text-[color:var(--accent-bright)] mb-1.5">
               {mode === 'signup' ? 'Join AthlasX' : 'Welcome back'}
             </p>
-            <h1 className="font-[family-name:var(--font-anton)] uppercase font-normal text-4xl sm:text-5xl text-white mb-1.5">
+            <h1 className="font-[family-name:var(--font-anton)] uppercase font-normal text-4xl sm:text-5xl text-white mb-1.5 text-balance">
               {mode === 'signup' ? 'Create account' : 'Sign in'}
             </h1>
             <p className="font-[family-name:var(--font-barlow)] text-sm text-white/60 mb-6">
@@ -285,15 +287,15 @@ function AuthPageInner() {
               )
             ) : mode === 'signin' ? (
               <form onSubmit={handleSignIn} className="space-y-3">
-                <input
+                <Input
                   type="email" required value={email} placeholder="Email address"
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3.5 py-3 rounded-[9px] bg-white/[0.06] border border-white/[0.14] text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] focus:bg-white/[0.09] transition-colors"
+                  className="h-auto px-3.5 py-3 rounded-[9px] bg-white/[0.06] border-white/[0.14] focus:border-[color:var(--accent)] focus:bg-white/[0.09] placeholder:text-white/40"
                 />
-                <input
+                <Input
                   type="password" required value={password} placeholder="Password"
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-3 rounded-[9px] bg-white/[0.06] border border-white/[0.14] text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-[color:var(--accent)] focus:bg-white/[0.09] transition-colors"
+                  className="h-auto px-3.5 py-3 rounded-[9px] bg-white/[0.06] border-white/[0.14] focus:border-[color:var(--accent)] focus:bg-white/[0.09] placeholder:text-white/40"
                 />
                 {error && <p role="status" className="text-xs text-[#ff8a7e]">{error}</p>}
 
@@ -311,12 +313,12 @@ function AuthPageInner() {
                   </button>
                 </div>
 
-                <button
-                  type="submit" disabled={submitting}
-                  className="font-[family-name:var(--font-barlow-semi)] w-full py-3.5 rounded-[10px] text-base font-bold uppercase tracking-wide bg-[color:var(--accent)] text-[#1a0e02] shadow-[0_10px_26px_-10px_rgba(255,138,30,0.8)] hover:bg-[color:var(--accent-bright)] transition-colors disabled:opacity-50"
+                <Button
+                  type="submit" disabled={submitting} variant="primary"
+                  className="h-auto w-full py-3.5 rounded-[10px] text-base bg-[color:var(--accent)] border-[color:var(--accent)] shadow-[0_10px_26px_-10px_rgba(255,138,30,0.8)] hover:bg-[color:var(--accent-bright)] hover:border-[color:var(--accent-bright)]"
                 >
                   {submitting ? 'Signing in…' : 'Sign In'}
-                </button>
+                </Button>
               </form>
             ) : (
               <div className="space-y-4">
@@ -365,13 +367,13 @@ function AuthPageInner() {
               or
               <span className="flex-1 h-px bg-white/[0.14]" />
             </div>
-            <button
-              type="button"
+            <Button
+              type="button" variant="outline"
               onClick={() => toast.info('Google sign-in isn’t connected yet.')}
-              className="w-full py-3 rounded-[10px] text-sm font-bold text-white border-[1.5px] border-white/[0.14] hover:border-white/30 transition-colors"
+              className="h-auto w-full py-3 rounded-[10px] text-sm bg-transparent border-[1.5px] border-white/[0.14] text-white hover:border-white/30 hover:bg-transparent normal-case font-bold"
             >
               {mode === 'signup' ? 'Sign up with Google' : 'Continue with Google'}
-            </button>
+            </Button>
 
             <p className="text-center text-sm text-white/60 mt-5">
               {mode === 'signup' ? 'Already on AthlasX?' : 'New to AthlasX?'}{' '}
@@ -380,7 +382,7 @@ function AuthPageInner() {
               </button>
             </p>
             <p className="text-center text-xs text-white/40 mt-4">
-              By continuing you agree to our <a href="#" className="text-[color:var(--accent-bright)] hover:underline">Terms</a> &amp; <a href="#" className="text-[color:var(--accent-bright)] hover:underline">Privacy Policy</a>.
+              By continuing you agree to our Terms &amp; Privacy Policy.
             </p>
           </div>
         </div>

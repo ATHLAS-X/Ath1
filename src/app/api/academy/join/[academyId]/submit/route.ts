@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { verifyGuardianOtp } from "@/lib/academy/guardian-otp";
 import { rateLimit } from "@/lib/rate-limit";
 import { academyGate } from "@/lib/academy/gate";
+import { isUnder18 } from "@/lib/age";
 
 export const dynamic = "force-dynamic";
 
@@ -47,11 +48,7 @@ export async function POST(req: NextRequest, { params }: { params: { academyId: 
     return NextResponse.json({ error: "Invalid date of birth" }, { status: 400 });
   }
 
-  const now = new Date();
-  let age = now.getFullYear() - dob.getFullYear();
-  const m = now.getMonth() - dob.getMonth();
-  if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
-  const isMinor = age < 18;
+  const isMinor = isUnder18(dob);
 
   let guardianPhone = "";
   if (isMinor) {

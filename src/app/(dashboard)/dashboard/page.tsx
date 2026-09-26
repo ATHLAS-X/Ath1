@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import {
   Users, Activity, FileText,
   ChevronRight, CheckCircle2, Clock, Database, Loader2,
-  TrendingUp,
+  TrendingUp, TrendingDown,
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -13,6 +13,8 @@ import {
   XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts'
 import AnimatedCounter from '@/components/shared/AnimatedCounter'
+import { Button } from '@/components/ui/button'
+import { fetchJSON } from '@/lib/fetch-json'
 
 interface DashboardData {
   kpis: { registrations: number; dossiersReady: number; pendingIngest: number; formDropAlerts: number }
@@ -72,7 +74,10 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/dashboard').then(r => r.json()).then(d => { setData(d); setLoading(false) })
+    fetchJSON<DashboardData>('/api/dashboard')
+      .then(setData)
+      .catch(err => console.error('Failed to load dashboard data:', err))
+      .finally(() => setLoading(false))
   }, [])
 
   if (loading || !data) {
@@ -90,7 +95,7 @@ export default function DashboardPage() {
     <div className="space-y-5 max-w-[1400px]">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-black text-white">Association Overview</h1>
+          <h1 className="font-anton uppercase text-xl text-ax-text text-balance">Association Overview</h1>
           <p className="text-xs text-zinc-600 mt-0.5">2026–27 Season</p>
         </div>
         <div className="flex items-center gap-2">
@@ -99,9 +104,9 @@ export default function DashboardPage() {
             <span className="text-xs font-semibold text-green-400">Registration Open</span>
           </div>
           <Link href="/trial-cycles">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-zinc-400 hover:text-white text-xs font-medium transition-colors">
+            <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-zinc-400 hover:text-white">
               Manage cycles <ChevronRight className="w-3 h-3" />
-            </button>
+            </Button>
           </Link>
         </div>
       </motion.div>
@@ -212,8 +217,9 @@ export default function DashboardPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <p className="text-xs font-bold text-white">{f.name}</p>
-                    <span className={cn('text-[10px] font-bold', f.flag === 'form_drop' ? 'text-red-400' : 'text-green-400')}>
-                      {f.flag === 'form_drop' ? '🔴 Form drop' : '🟢 On form'}
+                    <span className={cn('inline-flex items-center gap-1 text-[10px] font-bold', f.flag === 'form_drop' ? 'text-red-400' : 'text-green-400')}>
+                      {f.flag === 'form_drop' ? <TrendingDown className="w-3 h-3" strokeWidth={2.5} /> : <TrendingUp className="w-3 h-3" strokeWidth={2.5} />}
+                      {f.flag === 'form_drop' ? 'Form drop' : 'On form'}
                     </span>
                   </div>
                   <p className="text-[10px] text-zinc-600 mt-0.5">{f.detail}</p>

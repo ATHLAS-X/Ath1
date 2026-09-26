@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import {
-  Zap, Search, ArrowRight, ArrowLeft, Loader2, CheckCircle2,
+  Search, ArrowRight, ArrowLeft, Loader2, CheckCircle2,
   ShieldCheck, AlertCircle, User,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -143,11 +143,8 @@ export default function ClaimPage() {
     <div className="min-h-screen bg-[#050505] flex flex-col">
       <div className="border-b border-white/[0.05] px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-green-400 to-emerald-700 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-white fill-white" />
-          </div>
           <span className="text-xl font-black tracking-tight">
-            Athlas<span className="text-gradient-green">X</span>
+            Athlas<span className="text-ax-accent">X</span>
           </span>
         </Link>
         <div className="text-xs text-zinc-500">Claim your profile</div>
@@ -167,21 +164,21 @@ export default function ClaimPage() {
                   <div className="space-y-1.5">
                     <Label className="text-zinc-400 text-sm">Full name *</Label>
                     <Input value={searchForm.fullName} onChange={e => setSearchForm(f => ({ ...f, fullName: e.target.value }))} placeholder="Arjun Sharma"
-                      className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
+                      className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-ax-accent/50" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-zinc-400 text-sm">District *</Label>
                     <Input value={searchForm.district} onChange={e => setSearchForm(f => ({ ...f, district: e.target.value }))} placeholder="Kanpur"
-                      className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
+                      className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-ax-accent/50" />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-zinc-400 text-sm">Date of birth *</Label>
                     <Input type="date" value={searchForm.dob} onChange={e => setSearchForm(f => ({ ...f, dob: e.target.value }))}
-                      className="bg-white/[0.05] border-white/10 text-white h-10 rounded-xl focus:border-green-500/50 [color-scheme:dark]" />
+                      className="bg-white/[0.05] border-white/10 text-white h-10 rounded-xl focus:border-ax-accent/50 [color-scheme:dark]" />
                   </div>
                 </div>
                 {error && <ErrorBox text={error} />}
-                <Button onClick={handleSearch} disabled={searchForm.fullName.trim().length < 3 || !searchForm.district || !searchForm.dob || loading} className="w-full">
+                <Button variant="primary" onClick={handleSearch} disabled={searchForm.fullName.trim().length < 3 || !searchForm.district || !searchForm.dob || loading} className="w-full">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                   Search
                 </Button>
@@ -197,7 +194,7 @@ export default function ClaimPage() {
                 <div className="space-y-2">
                   {candidates.map(c => (
                     <button key={c.id} onClick={() => handleSelect(c)}
-                      className="w-full glass-card p-4 flex items-center gap-3 text-left hover:border-green-500/30 transition-colors">
+                      className="w-full glass-card p-4 flex items-center gap-3 text-left hover:border-ax-accent/30 transition-colors">
                       <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center shrink-0">
                         <User className="w-4 h-4 text-zinc-400" />
                       </div>
@@ -226,8 +223,10 @@ export default function ClaimPage() {
                   <div className="flex items-start gap-2.5 p-4 rounded-2xl border border-amber-500/15 bg-amber-500/6">
                     <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-bold text-amber-300">Guardian consent required</p>
-                      <p className="text-xs text-amber-300/70 mt-0.5">This player is under 18. The verification code will go to your guardian&apos;s phone, and their entering it is recorded as guardian consent (DPDP Act).</p>
+                      <p className="text-sm font-bold text-amber-300">Guardian consent required (DPDP Act, 2023 — Rule 10)</p>
+                      <p className="text-xs text-amber-300/70 mt-0.5">
+                        This player is under 18, so only a parent or legal guardian can consent to their data being processed — not the player. The verification code goes to the guardian&apos;s phone below; entering it confirms the guardian&apos;s identity and records their consent to linking this verified match history to the player&apos;s profile. This data is never used for behavioral monitoring or targeted advertising, and consent can be withdrawn at any time by contacting AthlasX.
+                      </p>
                     </div>
                   </div>
                 )}
@@ -236,7 +235,7 @@ export default function ClaimPage() {
                   <div className="space-y-1.5">
                     <Label className="text-zinc-400 text-sm">Your phone number *</Label>
                     <Input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 98765 43210"
-                      className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
+                      className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-ax-accent/50" />
                   </div>
 
                   {isMinor && (
@@ -244,18 +243,18 @@ export default function ClaimPage() {
                       <div className="space-y-1.5">
                         <Label className="text-zinc-400 text-sm">Guardian name *</Label>
                         <Input value={guardianName} onChange={e => setGuardianName(e.target.value)} placeholder="Guardian's full name"
-                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
+                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-ax-accent/50" />
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-zinc-400 text-sm">Guardian phone *</Label>
                         <Input type="tel" value={guardianPhone} onChange={e => setGuardianPhone(e.target.value)} placeholder="+91 98765 43210"
-                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
+                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-ax-accent/50" />
                         <p className="text-[10px] text-zinc-700">The OTP is sent here, not to the player.</p>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-zinc-400 text-sm">Relation to player *</Label>
                         <Input value={guardianRelation} onChange={e => setGuardianRelation(e.target.value)} placeholder="Father / Mother / Legal guardian"
-                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-green-500/50" />
+                          className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-10 rounded-xl focus:border-ax-accent/50" />
                       </div>
                     </>
                   )}
@@ -268,6 +267,7 @@ export default function ClaimPage() {
                     <ArrowLeft className="w-4 h-4" /> Back
                   </button>
                   <Button
+                    variant="primary"
                     onClick={handleStartClaim}
                     disabled={loading || !phone || (isMinor && (!guardianName || !guardianPhone || !guardianRelation))}
                     className="flex-1"
@@ -299,12 +299,12 @@ export default function ClaimPage() {
                 <div className="space-y-1.5">
                   <Label className="text-zinc-400 text-sm">6-digit code</Label>
                   <Input value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="123456"
-                    className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-12 rounded-xl text-center text-2xl tracking-[0.5em] font-mono focus:border-green-500/50" />
+                    className="bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 h-12 rounded-xl text-center text-2xl tracking-[0.5em] font-mono focus:border-ax-accent/50" />
                 </div>
 
                 {error && <ErrorBox text={error} />}
 
-                <Button onClick={handleVerify} disabled={code.length !== 6 || loading} className="w-full">
+                <Button variant="primary" onClick={handleVerify} disabled={code.length !== 6 || loading} className="w-full">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   Verify & Claim
                 </Button>
@@ -321,7 +321,7 @@ export default function ClaimPage() {
                   <p className="text-zinc-500 text-sm">{isMinor ? 'Guardian consent recorded. ' : ''}Your match history is now linked to your account.</p>
                 </div>
                 <Link href="/record">
-                  <Button className="w-full">Go to my record <ArrowRight className="w-4 h-4" /></Button>
+                  <Button variant="primary" className="w-full">Go to my record <ArrowRight className="w-4 h-4" /></Button>
                 </Link>
               </motion.div>
             )}

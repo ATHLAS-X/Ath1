@@ -56,7 +56,7 @@ export function StepRail({ steps, currentIndex, completedIndices, saveLabel = 'A
             )}
             <span
               className={cn(
-                'relative z-10 flex-none w-[27px] h-[27px] rounded-full grid place-items-center font-barlow-semi text-[0.78rem] font-bold border-[1.5px] transition-all',
+                'relative z-10 flex-none w-[27px] h-[27px] rounded-full grid place-items-center font-barlow-semi text-[0.78rem] font-bold border-[1.5px] transition-[background-color,border-color,box-shadow]',
                 isCurrent
                   ? 'border-ax-accent bg-ax-accent text-[#1a0e02] shadow-[0_0_0_4px_rgba(255,138,30,0.22)]'
                   : isDone

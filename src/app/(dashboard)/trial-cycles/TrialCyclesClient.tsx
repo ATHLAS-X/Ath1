@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, MapPin, Users, ChevronRight,
@@ -8,6 +9,7 @@ import {
   Upload, ClipboardCheck, ClipboardList, X, ArrowRight, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { fetchJSON } from '@/lib/fetch-json'
 
 interface Venue { id: string; name: string; district: string; date: string }
 interface Cycle {
@@ -104,7 +106,7 @@ function CreateCycleModal({ associationId, onClose, onCreated }: {
             <h2 className="text-sm font-bold text-white">New Trial Cycle</h2>
             <p className="text-xs text-zinc-600 mt-0.5">Step {step} of {STEPS}</p>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
+          <button onClick={onClose} aria-label="Close" className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -216,8 +218,8 @@ function CreateCycleModal({ associationId, onClose, onCreated }: {
             }}
             disabled={saving || (step === 1 && !canProceedStep1)}
             className={cn(
-              'flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-bold transition-colors',
-              saving || (step === 1 && !canProceedStep1) ? 'bg-white/[0.06] cursor-not-allowed' : 'bg-green-600 hover:bg-green-500'
+              'flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-colors',
+              saving || (step === 1 && !canProceedStep1) ? 'bg-white/[0.06] text-white cursor-not-allowed' : 'bg-ax-accent text-[#1a0e02] hover:bg-ax-accentBright'
             )}
           >
             {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : (step < STEPS ? 'Next' : 'Publish Cycle')}
@@ -300,9 +302,9 @@ function CycleCard({ cycle }: { cycle: Cycle }) {
             <span>{daysLeft}d left to register</span>
           </div>
         )}
-        <button className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs font-medium text-zinc-400 hover:text-white transition-colors">
+        <Link href={`/trial-cycles/${cycle.id}/dossiers`} className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs font-medium text-zinc-400 hover:text-white transition-colors">
           View registrations <ChevronRight className="w-3 h-3" />
-        </button>
+        </Link>
       </div>
     </motion.div>
   )
@@ -317,13 +319,15 @@ export default function TrialCyclesClient() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/trial-cycles').then(r => r.json()),
-      fetch('/api/associations').then(r => r.json()),
-    ]).then(([cyclesData, assocData]) => {
-      setCycles(cyclesData.cycles ?? [])
-      setAssociationId(assocData.associations?.[0]?.id ?? null)
-      setLoading(false)
-    })
+      fetchJSON<{ cycles?: Cycle[] }>('/api/trial-cycles'),
+      fetchJSON<{ associations?: { id: string }[] }>('/api/associations'),
+    ])
+      .then(([cyclesData, assocData]) => {
+        setCycles(cyclesData.cycles ?? [])
+        setAssociationId(assocData.associations?.[0]?.id ?? null)
+      })
+      .catch(err => console.error('Failed to load trial cycles:', err))
+      .finally(() => setLoading(false))
   }, [])
 
   const steps = [
@@ -344,7 +348,7 @@ export default function TrialCyclesClient() {
         <button
           onClick={() => setShowCreate(true)}
           disabled={!associationId}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-bold transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-ax-accent hover:bg-ax-accentBright disabled:opacity-50 text-[#1a0e02] text-sm font-bold transition-colors"
         >
           <Plus className="w-4 h-4" />
           New Trial Cycle

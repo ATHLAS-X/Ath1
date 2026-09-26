@@ -48,6 +48,16 @@ export async function GET(req: NextRequest) {
   const dismissals = battingMatches.filter(m => m.batting_dismissed).length
   const fifties = battingMatches.filter(m => (m.batting_runs ?? 0) >= 50).length
   const best = Math.max(0, ...battingMatches.map(m => m.batting_runs ?? 0))
+  const totalFours = battingMatches.reduce((s, m) => s + (m.batting_fours ?? 0), 0)
+  const totalSixes = battingMatches.reduce((s, m) => s + (m.batting_sixes ?? 0), 0)
+  const boundaryRuns = totalFours * 4 + totalSixes * 6
+  const boundaryPct = totalRuns > 0 ? Math.round((boundaryRuns / totalRuns) * 1000) / 10 : 0
+
+  const bowlingMatches = matches.filter(m => m.bowling_overs !== undefined)
+  const totalOvers = bowlingMatches.reduce((s, m) => s + (m.bowling_overs ?? 0), 0)
+  const totalWickets = bowlingMatches.reduce((s, m) => s + (m.bowling_wickets ?? 0), 0)
+  const totalRunsConceded = bowlingMatches.reduce((s, m) => s + (m.bowling_runs_conceded ?? 0), 0)
+  const economy = totalOvers > 0 ? Math.round((totalRunsConceded / totalOvers) * 100) / 100 : 0
 
   // Monthly trend bucketed from the synthetic match dates
   const monthly = new Map<string, { runs: number; balls: number }>()
@@ -81,6 +91,11 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     player: { id: player.id, full_name: player.full_name, playing_role: role, dob: player.dob, district: player.district, academy: player.academy },
     score: { total: result.total, tier: tier.label, batting: result.batting, bowling: result.bowling, fitness: result.fitness, fitnessAssessed: result.fitnessAssessed },
+    matrix: {
+      batting: { score: result.batting, matches: battingMatches.length, boundaryPct, average: dismissals > 0 ? Math.round((totalRuns / dismissals) * 10) / 10 : totalRuns, strikeRate: totalBalls > 0 ? Math.round((totalRuns / totalBalls) * 1000) / 10 : 0 },
+      bowling: { score: result.bowling, matches: bowlingMatches.length, economy, wickets: totalWickets, style: player.bowling_style },
+      fitness: { assessed: result.fitnessAssessed, score: result.fitness },
+    },
     percentile: {
       value: cohort.percentile,
       cohortSize: cohort.cohortSize,
