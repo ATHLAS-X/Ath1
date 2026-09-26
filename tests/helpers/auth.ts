@@ -30,6 +30,12 @@ export async function getAsUser(url: string, userId: string, role: string): Prom
   })
 }
 
+// What a genuine same-origin browser request carries. Routes guarded by
+// src/lib/same-origin.ts's isSameOriginRequest reject a state-changing request
+// with neither header, so the shared mutation helpers send a matching pair;
+// tests exercising the rejection build their own request with different values.
+export const SAME_ORIGIN_TEST_HEADERS = { origin: 'http://test.local', host: 'test.local' }
+
 export async function postAsUser(url: string, userId: string, role: string, body: unknown): Promise<NextRequest> {
   return new NextRequest(url, {
     method: 'POST',
@@ -37,6 +43,7 @@ export async function postAsUser(url: string, userId: string, role: string, body
     headers: {
       'content-type': 'application/json',
       cookie: await sessionCookieFor(userId, role),
+      ...SAME_ORIGIN_TEST_HEADERS,
     },
   })
 }
@@ -48,6 +55,7 @@ export async function patchAsUser(url: string, userId: string, role: string, bod
     headers: {
       'content-type': 'application/json',
       cookie: await sessionCookieFor(userId, role),
+      ...SAME_ORIGIN_TEST_HEADERS,
     },
   })
 }

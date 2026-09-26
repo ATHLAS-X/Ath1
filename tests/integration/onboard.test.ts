@@ -39,7 +39,7 @@ const post = (body: unknown) =>
   new NextRequest('http://test.local/api/player/onboard', {
     method: 'POST',
     body: JSON.stringify(body),
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', origin: 'http://test.local', host: 'test.local' },
   })
 
 const adultBody = {

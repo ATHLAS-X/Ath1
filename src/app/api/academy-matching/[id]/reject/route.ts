@@ -11,10 +11,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const candidate = await db.academyMatchCandidate.findUnique({ where: { id: params.id } })
   if (!candidate) return NextResponse.json({ error: 'Candidate not found' }, { status: 404 })
 
-  await db.academyMatchCandidate.update({
-    where: { id: params.id },
-    data: { status: 'rejected', reviewed_at: new Date() },
+  // 'confirmed' and 'rejected' are terminal (see confirm/route.ts). The status
+  // filter makes the guard atomic against a concurrent decision.
+  const decided = await db.academyMatchCandidate.updateMany({
+    where: { id: params.id, status: { in: ['unmatched', 'suggested'] } },
+    data: { status: 'rejected', reviewed_by: auth.user.id, reviewed_at: new Date() },
   })
+  if (decided.count === 0) {
+    return NextResponse.json({ error: `Candidate is already ${candidate.status}` }, { status: 409 })
+  }
 
   return NextResponse.json({ rejected: true })
 }

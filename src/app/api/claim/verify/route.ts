@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isSameOriginRequest } from '@/lib/same-origin'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
 import { verifyOtpCode, isOtpExpired, MAX_ATTEMPTS } from '@/lib/otp'
@@ -8,6 +9,12 @@ import { rateLimit } from '@/lib/rate-limit'
 // Verifies the OTP and, on success, grants consent, marks the profile
 // claimed, creates the player User, and signs them in via a session cookie.
 export async function POST(req: NextRequest) {
+  // Mints a session cookie outside NextAuth's own CSRF-protected handler —
+  // same-origin check, as on the auth routes (see src/lib/same-origin.ts).
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+  }
+
   const { claimId, code } = await req.json()
   if (!claimId || !code) {
     return NextResponse.json({ error: 'claimId and code are required' }, { status: 400 })

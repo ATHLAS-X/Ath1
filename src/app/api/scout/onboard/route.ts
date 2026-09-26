@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isSameOriginRequest } from '@/lib/same-origin'
 import type { ScoutOrgType } from '@prisma/client'
 import { db } from '@/lib/db'
 import { applySessionCookie, encodeSessionToken } from '@/lib/auth'
@@ -20,6 +21,12 @@ import { rateLimit } from '@/lib/rate-limit'
 const ORG_TYPES = new Set<ScoutOrgType>(['franchise', 'academy_recruiting_arm', 'independent'])
 
 export async function POST(req: NextRequest) {
+  // Mints a session cookie outside NextAuth's own CSRF-protected handler —
+  // same-origin check, as on the auth routes (see src/lib/same-origin.ts).
+  if (!isSameOriginRequest(req)) {
+    return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 })
+  }
+
   const gate = scoutGate()
   if (gate) return gate
 

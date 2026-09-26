@@ -33,7 +33,7 @@ const post = (body: unknown) =>
   new NextRequest('http://test.local/api', {
     method: 'POST',
     body: JSON.stringify(body),
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', origin: 'http://test.local', host: 'test.local' },
   })
 
 let fx: Fixtures
